@@ -22,13 +22,13 @@ We are **Octopus**, responsible for Part 6: Level Design System in the Space Inv
 
 Our team will design and implement a Level Design System for Campaign Mode and Endless Mode. The system will manage level configurations, enemy waves, and campaign stage progression, including stage-clear and stage-failure conditions. Each wave will support different enemy types, counts, formations, and health values, and levels will be importable and exportable as JSON files.
 
-We will implement difficulty adjustment based on the player's health and design playable campaign stages. We will also coordinate with the Currency System and Records & Achievements System teams to award currency and unlock achievements when players clear a campaign stage for the first time.
+We will implement difficulty adjustment based on the player's health and design playable campaign stages. We will also coordinate with the Records & Achievements System teams to unlock achievements when players clear a campaign stage for the first time.
 
 ## Detailed Requirements
 
 - Support two game modes: Campaign Mode and Endless Mode.
   - Create varied levels with different enemy types, counts, formations, and health values for each wave.
-  - Award currency and unlock achievements when players clear a stage for the first time in Campaign Mode.
+  - Unlock achievements when players clear a stage for the first time in Campaign Mode.
 - In Campaign Mode, clear the current stage and advance to the next stage when all enemies have been defeated and the player's ship is still alive. If the player's health reaches zero, mark the stage as failed and do not advance to the next stage.
 - Support importing and exporting levels as JSON files.
 - Automatically decrease difficulty when the player's health is low and increase it when the player's health is high.
