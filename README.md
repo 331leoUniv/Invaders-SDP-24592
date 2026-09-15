@@ -16,6 +16,7 @@ Register your team by adding one row to the table below and submitting the chang
 | No. | Name | Members | Requirements |
 | ---: | --- | --- | --- |
 | 0 | [Instructors](teams/Instructors.md) | [Scott Uk-Jin Lee](https://github.com/scottukjinlee/scottukjinlee), [Seungho Kim](https://github.com/oh-gnues/oh-gnues), [Elkarmy Salma](https://github.com/salma5-cpu), [Eric Zhang](https://github.com/Eric-Zhang37) | [Course guidance](teams/Instructors.md#responsibilities) |
+| ---: | https://github.com/greg-hue/Invaders-SDP-24592.git | Grégoire NOGIER : https://github.com/greg-hue, Eloi GAILLARD : https://github.com/eloi-kgg, Samuel KUTCHUKIAN : https://github.com/SamZTU, Alexis BIHOUR : https://github.com/Alex0xB, Arthur NEVANT : https://github.com/Arthurnev, Loane GOSSELIN : https://github.com/Loanegosselin, Lyanh RENKIN : https://github.com/renlahh, Evangeline VUCHOT : https://github.com/EvangelineVuchot, Chiara BICHON :  https://github.com/Lawsiel| teams/Frenchies.md |
 
 ## Screenshots
 
