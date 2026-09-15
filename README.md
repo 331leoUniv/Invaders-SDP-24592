@@ -16,6 +16,7 @@ Register your team by adding one row to the table below and submitting the chang
 | No. | Name | Members | Requirements |
 | ---: | --- | --- | --- |
 | 0 | [Instructors](teams/Instructors.md) | [Scott Uk-Jin Lee](https://github.com/scottukjinlee/scottukjinlee), [Seungho Kim](https://github.com/oh-gnues/oh-gnues), [Elkarmy Salma](https://github.com/salma5-cpu), [Eric Zhang](https://github.com/Eric-Zhang37) | [Course guidance](teams/Instructors.md#responsibilities) |
+|5| [Chinese can fly] (teams/Chinese can fly.md)| [진혜청] (Leader) | [clover0409](https://github.com/clover0409) | [위준걸][arjen12138](https://github.com/arjen12138) ,[담조곤] [wrxtzk](https://github.com/wrxtzk), [손첸디] [sunchendi](https://github.com/sunchendi) ,[하함준 ] [Godovo666](https://github.com/Godovo666),[허린호] [woshi777](https://github.com/woshi777), [양천시] [MiooYoung](https://github.com/MiooYoung) |
 
 ## Screenshots
 
