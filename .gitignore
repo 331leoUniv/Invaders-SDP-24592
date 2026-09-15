@@ -168,4 +168,5 @@ pip-log.txt
 
 log*
 *.ttf
+!res/font.ttf
 .checkstyle
