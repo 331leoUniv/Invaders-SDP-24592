@@ -1,13 +1,19 @@
 ## 1. Team Introduction
 Our ambition is to design and implement a dynamic, robust, and extensible Item System for Space Invaders SDP. The vision is to enhance gameplay depth and player engagement by introducing collectible items, power-ups, and inventory mechanics that seamlessly interact with combat and progression systems.
 
-* **Team Leader:** Leo Enaud
-* **Developers:** Mathéo SUHR, [Nom 2], [Nom 3], [Nom 4], [Nom 5], [Nom 6], ...
+* **Team Leader:** Leo Enaux
+* **Developers:** Mathéo SUHR,
+* Clarisse Majourau
+* Brieuc Viougeat
+* Raphaelle Amar
+* Ines Safir
+* Manel Belfedhal
+* Aurele Ouary
 
 ---
 
 ## 2. Team Requirements
-We are developing the **Item System** of the Space Invaders game. This module manages the lifecycle, attributes, spawning logic, and effects of all in-game items (e.g., weapon upgrades, shields, score multipliers, health packs). It acts as the backbone for player enhancements and consumable rewards during gameplay.
+We are developing the **Item System** of the Space Invaders game. This module manages the lifecycle, attributes, spawning logic, and effects of all in-game items. It acts as the backbone for player enhancements and consumable rewards during gameplay.
 
 ---
 
