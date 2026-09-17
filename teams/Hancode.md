@@ -14,13 +14,13 @@ Our goal is to develop a robust, bug-free, and scalable currency system that fee
 
 | **Member** | **Role** | **GitHub** |
 | :--- | :--- | :--- |
-| 오세윤 | TeamLeader | https://github.com/ogaji |
+| 오세윤 | PM / TeamLeader | https://github.com/ogaji |
 | Khuvituguldur | Developer | https://github.com/tuugy-rvn |
 | Isaac de Jesus Rojas Torres | Developer | https://github.com/isaacrt54 |
 | Joshua Hernández Ruiz | Developer | https://github.com/Jperf0 |
 | Anukhishig | Documentation | https://github.com/Anukhishig |
 | Byambakhishig Khishigjin | QA Tester | https://github.com/hishigjinb-svg |
-| 제현승 | Github Collaborator | https://github.com/HyunseungJe |
+| 제현승 | Dev Lead / Collaborator | https://github.com/HyunseungJe |
 | 여민경 | Documentation | https://github.com/yeominkyung |
 
 ---
