@@ -2,17 +2,17 @@
 
 ## 1. Team Introduction
 
-**Requirements:** 4. Currency System
+Requirements: 4. Currency System
 
-**Course:** CSE2024 Software Development Practices
+Course: CSE2024 Software Development Practices
 
 ### Goals and Vision:
 
-Our goal is to develop a robust, bug-free, and scalable currency system that feels rewarding, enhances the player's progression and seamlessly integrates with other gameplay mechanics.The system should integrate smoothly with other gameplay systems such as the HUD, item system, and enemy variety system.
+Our goal is to develop a robust, bug-free, and scalable currency system that feels rewarding, enhances the player's progression and seamlessly integrates with other gameplay mechanics. The system should integrate smoothly with other gameplay systems such as the HUD, item system, and enemy variety system.
 
 ### Members:
 
-| **Member** | **Role** | **GitHub** |
+| Member | Role | GitHub |
 | :--- | :--- | :--- |
 | 오세윤 | PM / TeamLeader | https://github.com/ogaji |
 | Khuvituguldur | Developer | https://github.com/tuugy-rvn |
@@ -35,16 +35,29 @@ Currency System. Our team is responsible for managing the logic, balance, and pe
 
 ## 3. Detailed Requirements
 
-1. Implement a core `CurrencyManager` class to handle the secure addition, subtraction, and tracking of in-game currency.
-2. Define and implement logic for currency drop rates and reward amounts based on the destruction of specific enemy ship types or completing levels.
-3. Implement a data persistence mechanism to save and load the player's currency balance between different game sessions.
-4. Create an API/interface that allows other systems to check the current balance and deduct currency when a player makes a purchase.
-5. Develop error-handling logic to prevent invalid transactions (e.g., spending more currency than the player currently owns).
+1. Implement a core currency class to add, deduct, and track balances
+   independently from the player's score. Keep balances non-negative.
+2. Define reward amounts and drop rates for enemy defeats or level completion.
+   Prevent duplicate rewards from the same event. The source of
+   level-completion events remains to be agreed before integration.
+3. Save and load the currency balance between game sessions. Validate loaded
+   values and report failures without replacing valid balances or save data
+   with invalid data.
+4. Provide an interface for balance queries and purchase-related deductions.
+   Agree with the Item System on the purchase scope of 'Shop' and the handling
+   of item-delivery failures before integration.
+5. Prevent overspending and invalid balance updates. Rejected operations
+   must leave the balance unchanged. Test normal transactions,
+   insufficient funds, and invalid input handling.
 
 ---
 
 ## 4. Dependencies on Other Teams
 
-1. **Gameplay HUD:** We depend on the HUD team to fetch and continuously display the current currency balance to the player on the screen.
-2. **Item System:** We depend on the Item System to trigger our purchase methods when a player attempts to buy an item or upgrade.
-3. **Player & Enemy Ship Variety:** We depend on the enemy destruction events to trigger our currency reward logic when an alien is defeated.
+1. Gameplay HUD: The HUD team displays balance information supplied by our
+   currency interface. Agree on how balance updates are communicated.
+2. Item System: Agree on purchase requests, prices, and item-delivery results.
+   Our team is responsible for currency validation and deduction.
+3. Player & Enemy Ship Variety: Receive enemy-defeat notifications and the
+   enemy information needed to calculate rewards. Agree on how duplicate
+   notifications are handled.
