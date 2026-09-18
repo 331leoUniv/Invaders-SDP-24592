@@ -31,8 +31,6 @@ Our goal is to develop a robust, bug-free, and scalable currency system that fee
 
 Currency System. Our team is responsible for managing the logic, balance, and persistence of the in-game currency earned by players during gameplay.
 
-Current status: 'Currency' and 'Shop' have been added as class skeletons; their behavior is not implemented yet.
-
 ---
 
 ## 3. Detailed Requirements
