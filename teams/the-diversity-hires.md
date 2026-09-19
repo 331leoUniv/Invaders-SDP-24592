@@ -3,6 +3,7 @@
 ## 1. Team Introduction
 
 **Team Name:** The Diversity Hires
+
 **Team Focus:** Visual Effect System
 
 **Vision:**
