@@ -9,11 +9,11 @@ Our goal is to develop and improve the Gameplay HUD system for the Space Invader
 
 | Name | Role | GitHub |
 |---|---|---|
-| Kim Doyoon | Team Leader | [kdymong064](https://github.com/kdymong064) |
+| Kim Doyoon | Team Leader | [kdymong064](https://github.com/kdymong064-design) |
 | Choi Kwanwoo | Team Coordinator | [GitHub](https://github.com/choi-kwan-u) |
 | Kim Minhyeong | Gameplay HUD Developer | [love4kmh1023](https://github.com/love4kmh1023) |
 | Kim Jiwoo | Gameplay HUD Developer | [konjiwoo](https://github.com/konjiwoo) |
-| Lee Chaeheon | Gameplay HUD Developer | [chaechae44](https://github.com/chaechae44) |
+| Lee Chaehyeon | Gameplay HUD Developer | [chaechae44](https://github.com/chaechae44) |
 | Son Donghyeon | Gameplay HUD Developer | [vepormilk](https://github.com/vepormilk) |
 | Lee Seungwoo | Git / Integration | [zis1089-sudo](https://github.com/zis1089-sudo) |
 | Eom Jeongin | QA / Tester | [jungini1123](https://github.com/jungini1123) |
