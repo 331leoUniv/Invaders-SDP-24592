@@ -29,25 +29,44 @@ The HUD should provide players with important game information clearly and updat
 
 ## Detailed Requirements
 
-1. **Gameplay Information Display**
-   - Display important gameplay information using data available from the game.
+1. **Score Display**
+   - Maintain the existing score display.
+   - Ensure that the displayed score reflects changes to the player's score during gameplay.
+   - Improve the readability or layout of the score display when necessary.
 
-2. **Real-Time HUD Update**
-   - Update the HUD whenever the related game data changes.
+2. **Lives Display**
+   - Maintain the existing lives information displayed during gameplay.
+   - Ensure that the HUD correctly reflects changes in the player's remaining lives.
+   - Avoid redundant or unclear presentation of lives information.
 
-3. **Game Status Display**
-   - Display appropriate status messages based on the current game state.
+3. **Level / Stage Display**
+   - Display the current level or stage when the required information is available.
+   - Update the displayed level or stage when game progression changes.
 
-4. **Clear HUD Layout**
-   - Arrange HUD elements clearly so that players can easily read the information.
+4. **Currency Display**
+   - Display the player's current currency balance when the Currency System provides the required information.
+   - Update the displayed balance when the currency value changes.
 
-5. **Non-Intrusive HUD**
-   - Ensure that HUD elements do not interfere with or cover important gameplay areas.
+5. **Game Status Display**
+   - Display useful game-state information when appropriate.
+   - Possible status information may include level transitions, game over state, or other gameplay states supported by the game.
+
+6. **Clear and Non-Intrusive HUD Layout**
+   - Arrange HUD elements so that important information is easy to read.
+   - HUD elements should not cover or interfere with important gameplay areas.
+
+7. **Reuse Existing Game Data**
+   - Use data already managed by the game or other systems instead of duplicating gameplay logic inside the HUD.
+   - Keep HUD responsibilities focused on displaying gameplay information.
 
 ## Dependencies on Other Teams
 
 1. **Level Design System**
-   - The Gameplay HUD may require current level or stage information from the Level Design System.
+   - The Gameplay HUD may display the current level or stage.
+   - The Level Design System is responsible for providing or maintaining the level/stage information used by the HUD.
+   - The exact integration method will be coordinated with the Level Design System team.
 
 2. **Currency System**
-   - If currency information is displayed on the HUD, the current currency value will be provided by the Currency System.
+   - The Gameplay HUD may display the player's current currency balance.
+   - The Currency System is responsible for providing the currency value used by the HUD.
+   - The exact data access and update method will be coordinated with the Currency System team.
