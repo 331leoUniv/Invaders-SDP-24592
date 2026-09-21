@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 
 import screen.Screen;
 import entity.Entity;
+import entity.Ship;
 
 /**
  * Manages screen drawing.
@@ -243,7 +244,7 @@ public final class DrawManager {
 	}
 
 	/**
-	 * Draws number of remaining lives on screen.
+	 * Draws remaining lives as ship icons on screen.
 	 * 
 	 * @param screen
 	 *            Screen to draw on.
@@ -251,9 +252,9 @@ public final class DrawManager {
 	 *            Current lives.
 	 */
 	public void drawLives(final Screen screen, final int lives) {
-		backBufferGraphics.setFont(fontRegular);
-		backBufferGraphics.setColor(Color.WHITE);
-		backBufferGraphics.drawString(Integer.toString(lives), 20, 25);
+		Ship dummyShip = new Ship(0, 0);
+		for (int i = 0; i < lives; i++)
+			drawEntity(dummyShip, 20 + 35 * i, 10);
 	}
 
 	/**
