@@ -24,17 +24,13 @@ We are developing the **Main Menu** of the Space Invaders game.
 
 This menu is the central hub that connects players to gameplay, settings, achievements, and customization options.
 
-### Specific Requirements
-
-- [ ] **User-Friendly Navigation** – The main menu must provide clear labels and allow the player to navigate to every available submenu using the keyboard or controller.
-
-- [ ] **Dynamic Integration** – Each submenu (Settings, Shop, Hangar, Achievements, etc.) must open and connect correctly to its corresponding game module.
-
-- [ ] **Scalability** – The main menu must use a modular structure that allows new menu options to be added without modifying existing menu functionalities.
-
-- [ ] **Consistency** – The main menu must follow the visual and audio style of the Space Invaders game, including consistent fonts, colors, sounds, and interface elements.
-
-- [ ] **Performance** – The main menu must load within 2 seconds and respond to user input without noticeable delay.
+| ID | Requirement |
+|---|---|
+| **1.1** | **Implement Main Menu navigation:** Display all available menu options (Play, Settings, Shop, Hangar, Achievements, etc.) and allow the player to move between them using keyboard or controller input. Highlight the currently selected option and prevent invalid selections. |
+| **1.2** | **Implement menu audio feedback:** Play a navigation sound when changing the selected option and a confirmation sound when selecting an option. Play a distinct sound when returning to the previous menu. Menu sounds must respect the audio volume configured by the player. |
+| **1.3** | **Implement game mode selection:** Provide a game mode screen accessible from the Main Menu. Display the available modes, including Single Player and Two Player, allow the player to select a mode, and launch the corresponding game mode after confirmation. |
+| **1.4** | **Implement Settings access:** Provide a direct link from the Main Menu to the Settings module. Display the available audio and visual settings, allow the player to modify them, apply the changes, and return to the Main Menu without losing the selected values. |
+| **1.5** | **Implement Shop and Hangar access:** Provide direct links from the Main Menu to the Shop and Hangar modules. The Shop must allow access to available items and currency, while the Hangar must display the player's available ships and customization options. Return to the Main Menu must be possible from both modules. |
 
 ## Dependencies
 
