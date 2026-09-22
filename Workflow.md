@@ -7,6 +7,10 @@
 * Enables code review on a per-PR basis.
 * Simpler than Git Flow, making it suitable for a one-semester project.
 
+### 2. Branch Strategy
+* Create branches based on each feature and assign roles by allocating team members as needed.
+* As features are completed, team members will consult with each other to merge and delete the branches to consolidate them into the main branch.
+
 ### 3. Commit Rules
 
 * Each commit should contain one minimal, functional unit of change.
