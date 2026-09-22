@@ -1,3 +1,12 @@
+### 1. Workflow and Rationale
+
+**Chosen workflow:** Feature Branch Workflow
+
+* With 9 team members developing different features in parallel, separate feature branches minimize conflicts.
+* Keeps the `main` branch in a working state at all times.
+* Enables code review on a per-PR basis.
+* Simpler than Git Flow, making it suitable for a one-semester project.
+
 ### 3. Commit Rules
 
 * Each commit should contain one minimal, functional unit of change.
