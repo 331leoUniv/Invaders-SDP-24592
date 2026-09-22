@@ -26,16 +26,26 @@ This menu is the central hub that connects players to gameplay, settings, achiev
 
 ### Specific Requirements
 
-- **User-Friendly Navigation** – The menu must be intuitive, with clear labels and logical flow.
-- **Dynamic Integration** – Each submenu (Settings, Shop, Hangar, Achievements, etc.) must directly connect to its respective game module.
-- **Scalability** – The menu should allow easy addition of future features without breaking existing functionality.
-- **Consistency** – Visual and audio design must align with the overall game style.
-- **Performance** – The menu must load quickly and respond smoothly to user input.
+- [ ] **User-Friendly Navigation** – The main menu must provide clear labels and allow the player to navigate to every available submenu using the keyboard or controller.
+
+- [ ] **Dynamic Integration** – Each submenu (Settings, Shop, Hangar, Achievements, etc.) must open and connect correctly to its corresponding game module.
+
+- [ ] **Scalability** – The main menu must use a modular structure that allows new menu options to be added without modifying existing menu functionalities.
+
+- [ ] **Consistency** – The main menu must follow the visual and audio style of the Space Invaders game, including consistent fonts, colors, sounds, and interface elements.
+
+- [ ] **Performance** – The main menu must load within 2 seconds and respond to user input without noticeable delay.
 
 ## Dependencies
 
-The main menu relies on several modules to provide its features:
+The Main Menu depends on the following modules:
 
-- **Sound & Visual Settings** – Adjustable audio and video options (Modules 1 & 2).
-- **Game Mode Selection** – Choose between single-player and two-player modes (Module 10).
-- **Shop & Hangar** – Access currency, items, and ship variety (Modules 4, 5 & 9).
+- **Sound & Visual Settings** → [Modules 1 & 2](#)  
+  The Main Menu must provide access to the game's audio and video settings.
+
+- **Game Mode Selection** → [Module 10](#)  
+  The Main Menu must allow the player to select between single-player and two-player game modes.
+
+- **Shop & Hangar** → [Modules 4, 5 & 9](#)  
+  The Main Menu must provide access to the shop, currency, available items, and ship customization.
+
