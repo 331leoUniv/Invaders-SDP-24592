@@ -40,7 +40,7 @@ This menu is the central hub that connects players to gameplay, settings, achiev
 
 The Main Menu depends on the following modules:
 
-- **Sound & Visual Settings** → [Modules 1](/teams/chanyoung.md) & [Modules & 2](/teams/the-diversity-hires.md)
+- **Sound & Visual Settings** → [Modules 1](/teams/chanyoung.md) & [Modules 2](/teams/the-diversity-hires.md)
   The Main Menu must provide access to the game's audio and video settings.
 
 - **Game Mode Selection** → [Module 10](/teams/friends.md)  
