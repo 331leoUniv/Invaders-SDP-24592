@@ -1,27 +1,25 @@
 # Team Document: Best French
 
 ## 1. Team Introduction
-Our ambition is to design and implement a dynamic, robust, and extensible Item System for Space Invaders SDP. The vision is to enhance gameplay depth and player engagement by introducing collectible items, power-ups, and inventory mechanics that seamlessly interact with combat and progression systems.
-
-To ensure consistent, balanced, and verifiable individual contributions, each team member is assigned a dedicated engineering responsibility within our Item System architecture.
+Our ambition is to design and implement a dynamic, robust, and extensible Item System for Space Invaders SDP[cite: 2]. The vision is to enhance gameplay depth and player engagement by introducing collectible items, power-ups, and inventory mechanics that seamlessly interact with combat and progression systems.
 
 ### Members & Roles
 
-| Name | Role | Primary Contribution Scope | GitHub Profile |
-| :--- | :--- | :--- | :--- |
-| **Leo Enaux** | Team Leader & Core Architecture | Core ItemManager, entity lifecycle, spawn engine, and upstream integration | [@leoenaux](https://github.com/leoenaux) |
-| **Mathéo SUHR** | Collision & Drop Logic Developer | Item drop physics, boundary checks, drop probabilities, and hitboxes | [@Matheo92i](https://github.com/Matheo92i) |
-| **Clarisse Majourau** | Twin Cannon Feature Developer | Dual-stream projectile volley logic, trajectory math, and weapon state | [@clarissemajourau](https://github.com/clarissemajourau) |
-| **Brieuc VIOUGEAT** | Chameleon Hull Feature Developer | Color-cycling routine, periodic timer execution, and speed modifier | [@BrieucVio](https://github.com/BrieucVio) |
-| **Raphaelle Amar** | Cluster Grenade Feature Developer | Secondary ordnance entity, detonation trigger, and radial AoE logic | [@Raphaelle94](https://github.com/Raphaelle94) |
-| **Inès Safir** | Hyperfire Buff Feature Developer | Firing cooldown reduction calculations, active state logic, and resets | [@ines-saphir](https://github.com/ines-saphir) |
-| **Manel Belfedhal** | Orbital Annihilator Feature Developer | Piercing beam execution, 1.5s charge lock, and mass enemy clearance | [@belfedhal-manel](https://github.com/belfedhal-manel) |
-| **Aurele Ouary** | Inventory & Buff State Developer | Active buff countdown timers, expiration handling, and item inventory | [@aureleouaryPro](https://github.com/aureleouaryPro) |
+| Name | Role | GitHub Profile |
+| :--- | :--- | :--- |
+| **Leo Enaux** | Team Leader & Core Architecture | [@leoenaux](https://github.com/leoenaux) |
+| **Mathéo SUHR** | Collision & Spawning Developer | [@Matheo92i](https://github.com/Matheo92i) |
+| **Clarisse Majourau** | Twin Cannon Developer | [@clarissemajourau](https://github.com/clarissemajourau) |
+| **Brieuc VIOUGEAT** | Chameleon Hull Developer | [@BrieucVio](https://github.com/BrieucVio) |
+| **Raphaelle Amar** | Cluster Grenade Developer | [@Raphaelle94](https://github.com/Raphaelle94) |
+| **Inès Safir** | Hyperfire Buff Developer | [@ines-saphir](https://github.com/ines-saphir) |
+| **Manel Belfedhal** | Orbital Annihilator Developer | [@belfedhal-manel](https://github.com/belfedhal-manel) |
+| **Aurele Ouary** | Inventory & Buff State Developer | [@aureleouaryPro](https://github.com/aureleouaryPro) |
 
 ---
 
 ## 2. Team Requirements
-We are developing the **Item System** (Requirement 5) of the Space Invaders game. This module manages the lifecycle, attributes, spawning logic, and effects of all in-game items. It acts as the backbone for player enhancements, temporary combat buffs, active sub-weapons, and consumable rewards during gameplay.
+We are developing the **Item System** (Requirement 5) of the Space Invaders game[cite: 2]. This module manages the lifecycle, attributes, spawning logic, and effects of all in-game items[cite: 1, 2]. It acts as the backbone for player enhancements, temporary combat buffs, active sub-weapons, and consumable rewards during gameplay.
 
 ---
 
@@ -38,8 +36,8 @@ We are developing the **Item System** (Requirement 5) of the Space Invaders game
 ## 4. Dependencies on Other Teams
 
 1. **Player & Enemy Ship Variety (Requirement 9):**
-   * *Dependency:* The Twin Cannon, Cluster Grenade, and Hyperfire items directly modify ship attributes, firing intervals, and projectile spawn offsets inside `PlayerShip.java`.
+   * *Dependency:* The Twin Cannon, Cluster Grenade, and Hyperfire items directly modify ship attributes, firing intervals, and projectile spawn offsets inside `PlayerShip.java`[cite: 2].
 2. **Gameplay HUD (Requirement 8):**
-   * *Dependency:* Active temporary item buffs (such as the 10-second Hyperfire cooldown buff and the 25-second Twin Cannon timer) require visual timer countdowns or status icons drawn on the player HUD.
+   * *Dependency:* Active temporary item buffs (such as the 10-second Hyperfire cooldown buff and the 25-second Twin Cannon timer) require visual timer countdowns or status icons drawn on the player HUD[cite: 2].
 3. **Sound Effects / BGM (Requirement 1):**
-   * *Dependency:* Audio triggers are required for item collection feedback, firing mode audio variations, grenade explosions, and the laser beam charging sound effect.
+   * *Dependency:* Audio triggers are required for item collection feedback, firing mode audio variations, grenade explosions, and the laser beam charging sound effect[cite: 2].
