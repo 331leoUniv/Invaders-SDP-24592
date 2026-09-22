@@ -1,11 +1,26 @@
 package audio;
 
+import engine.Core;
+
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import java.io.File;
+import java.io.IOException;
+import java.util.logging.Logger;
+
 /**
  * Provides global audio control for background music and sound effects.
  * This class manages BGM playback, SFX playback, volume levels,
  * and the global mute state.
  */
 public class AudioManager {
+
+    /** Application logger. */
+    private static Logger logger;
+
+    /** Clip for the current background music. */
+    private static Clip bgmClip;
 
     static {
         initialize();
@@ -15,25 +30,80 @@ public class AudioManager {
      * Initializes the audio system and required internal resources.
      */
     private static void initialize() {
-
+        logger = Core.getLogger();
+        bgmClip = null;
+        logger.info("Audio system initialized.");
     }
 
     /**
      * Plays the specified background music.
      * If another BGM is already playing, the current implementation
      * may stop or replace it.
+     * Only 16-bit PCM WAV files are supported by this application.
      *
-     * @param name the name of the background music to play
+     * @param path the absolute path of the background music to play
      */
-    public static void playBGM(String name) {
+    public static void playBGM(String path) {
+        AudioInputStream stream = null;
+        Clip newClip = null;
+        boolean started = false;
 
+        try {
+            if (path == null || path.trim().isEmpty())
+                throw new IllegalArgumentException("BGM path must not be empty.");
+
+            File file = new File(path);
+
+            if (!file.isAbsolute())
+                throw new IllegalArgumentException("BGM path must be absolute.");
+
+            if (!file.isFile())
+                throw new IllegalArgumentException("BGM file not found: " + path);
+
+            stream = AudioSystem.getAudioInputStream(file);
+
+            newClip = AudioSystem.getClip();
+            newClip.open(stream);
+
+            stopBGM();
+
+            newClip.setFramePosition(0);
+            newClip.loop(Clip.LOOP_CONTINUOUSLY);
+
+            bgmClip = newClip;
+            started = true;
+
+            logger.info("Playing BGM: " + path);
+
+        } catch (Exception e) {
+            logger.warning(
+                    "Failed to play BGM: " + path + " / " + e);
+
+        } finally {
+            if (!started && newClip != null)
+                newClip.close();
+
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (IOException e) {
+                    logger.warning("Failed to close BGM input stream: " + e);
+                }
+            }
+        }
     }
 
     /**
      * Stops the currently playing background music.
      */
     public static void stopBGM() {
+        if (bgmClip != null) {
+            bgmClip.stop();
+            bgmClip.close();
+            bgmClip = null;
 
+            logger.info("BGM stopped.");
+        }
     }
 
     /**
