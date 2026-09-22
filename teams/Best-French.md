@@ -1,4 +1,3 @@
-# Team Document: Best French
 
 ## 1. Team Introduction
 Our ambition is to design and implement a dynamic, robust, and extensible Item System for Space Invaders SDP[cite: 2]. The vision is to enhance gameplay depth and player engagement by introducing collectible items, power-ups, and inventory mechanics that seamlessly interact with combat and progression systems.
