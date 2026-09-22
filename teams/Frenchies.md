@@ -40,12 +40,12 @@ This menu is the central hub that connects players to gameplay, settings, achiev
 
 The Main Menu depends on the following modules:
 
-- **Sound & Visual Settings** → [Modules 1 & 2](#)  
+- **Sound & Visual Settings** → [Modules 1](/teams/chanyoung.md) & [Modules & 2](/teams/the-diversity-hires.md)
   The Main Menu must provide access to the game's audio and video settings.
 
-- **Game Mode Selection** → [Module 10](#)  
+- **Game Mode Selection** → [Module 10](/teams/friends.md)  
   The Main Menu must allow the player to select between single-player and two-player game modes.
 
-- **Shop & Hangar** → [Modules 4, 5 & 9](#)  
+- **Shop & Hangar** → [Modules 4](/teams/Hancode.md), [Module 5](/teams/Best-French.md) & [Module 9](/teams/KimchiBaguette.md) 
   The Main Menu must provide access to the shop, currency, available items, and ship customization.
 
