@@ -94,33 +94,54 @@ public class AudioManager {
      * Stops the currently playing background music.
      */
     public static void stopBGM() {
-        if (bgmClip != null) {
-            bgmClip.stop();
-            bgmClip.close();
-            bgmClip = null;
-
-            logger.info("BGM stopped.");
+        if (bgmClip == null) {
+            logger.info("No BGM is loaded.");
+            return;
         }
+
+        bgmClip.stop();
+        bgmClip.close();
+        bgmClip = null;
+
+        logger.info("BGM stopped.");
     }
 
     /**
      * Pauses the currently playing background music.
      */
     public static void pauseBGM() {
-        if (bgmClip != null && bgmClip.isRunning()) {
-            bgmClip.stop();
-            logger.info("BGM paused.");
+        if (bgmClip == null || !bgmClip.isOpen()) {
+            logger.warning("Cannot pause BGM: no BGM is loaded.");
+            return;
         }
+
+        if (!bgmClip.isRunning()) {
+            logger.info("BGM is already paused.");
+            return;
+        }
+
+        bgmClip.stop();
+        logger.info("BGM paused.");
+
     }
 
     /**
      * Resumes the previously paused background music.
      */
     public static void resumeBGM() {
-        if (bgmClip != null && !bgmClip.isRunning()) {
-            bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
-            logger.info("BGM resumed.");
+        if (bgmClip == null || !bgmClip.isOpen()) {
+            logger.warning("Cannot resume BGM: no BGM is loaded.");
+            return;
         }
+
+        if (bgmClip.isRunning()) {
+            logger.info("BGM is already playing.");
+            return;
+        }
+
+        bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
+        logger.info("BGM resumed.");
+
     }
 
     /**
