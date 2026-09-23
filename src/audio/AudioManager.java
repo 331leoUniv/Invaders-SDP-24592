@@ -7,6 +7,8 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import java.io.IOException;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -21,6 +23,15 @@ public class AudioManager {
 
     /** Clip for the current background music. */
     private static Clip bgmClip;
+
+    /** Mutex for sound effect playback management. */
+    private static final Object SFX_MUTEX = new Object();
+
+    /** Clips indexed by their playback IDs. */
+    private static final Map<Integer, Clip> sfxClips = new HashMap<>();
+
+    /** Next sound effect playback ID. */
+    private static int nextSFXId = 0;
 
     static {
         initialize();
@@ -141,17 +152,61 @@ public class AudioManager {
 
         bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
         logger.info("BGM resumed.");
-
     }
 
     /**
      * Plays the specified sound effect.
      *
-     * @param name the name of the sound effect to play
-     * @return the playback ID assigned to the started sound effect
+     * @param path the resource path relative to the classpath root
+     * @return the playback ID, or -1 if playback fails
      */
-    public static int playSFX(String name) {
-        return 0;
+    public static int playSFX(String path) {
+        AudioInputStream stream = null;
+        Clip newClip = null;
+        int id = -1;
+        boolean registered = false;
+
+        try {
+            if (path == null || path.trim().isEmpty())
+                throw new IllegalArgumentException("SFX path must not be empty.");
+
+            URL resource = AudioManager.class.getClassLoader().getResource(path);
+
+            if (resource == null)
+                throw new IllegalArgumentException("SFX resource not found: " + path);
+
+            stream = AudioSystem.getAudioInputStream(resource);
+            newClip = AudioSystem.getClip();
+            newClip.open(stream);
+
+            /* for thread-safe */
+            synchronized (SFX_MUTEX) {
+                id = nextSFXId++;
+                sfxClips.put(id, newClip);
+                registered = true;
+                newClip.start();
+            }
+
+            logger.info("Playing SFX: " + path + " / ID: " + id);
+            return id;
+
+        } catch (Exception e) {
+            if (registered) {
+                stopSFX(id);
+            } else if (newClip != null) {
+                newClip.close();
+            }
+            logger.warning("Failed to play SFX: " + path + " / " + e);
+            return -1;
+        } finally {
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (IOException e) {
+                    logger.warning("Failed to close SFX input stream: " + e);
+                }
+            }
+        }
     }
 
     /**
@@ -162,7 +217,21 @@ public class AudioManager {
      * @param id the playback ID of the sound effect to stop
      */
     public static void stopSFX(int id) {
+        Clip clip;
 
+        synchronized (SFX_MUTEX) {
+            clip = sfxClips.remove(id);
+        }
+
+        if (clip == null) {
+            logger.warning("No active SFX found. ID: " + id);
+            return;
+        }
+
+        clip.stop();
+        clip.close();
+
+        logger.info("SFX stopped. ID: " + id);
     }
 
     /**
