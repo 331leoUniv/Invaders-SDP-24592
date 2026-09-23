@@ -5,8 +5,8 @@ import engine.Core;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
-import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.logging.Logger;
 
 /**
@@ -41,7 +41,7 @@ public class AudioManager {
      * may stop or replace it.
      * Only 16-bit PCM WAV files are supported by this application.
      *
-     * @param path the absolute path of the background music to play
+     * @param path the resource path relative to the classpath root
      */
     public static void playBGM(String path) {
         AudioInputStream stream = null;
@@ -52,15 +52,12 @@ public class AudioManager {
             if (path == null || path.trim().isEmpty())
                 throw new IllegalArgumentException("BGM path must not be empty.");
 
-            File file = new File(path);
+            URL resource = AudioManager.class.getClassLoader().getResource(path);
 
-            if (!file.isAbsolute())
-                throw new IllegalArgumentException("BGM path must be absolute.");
+            if (resource == null)
+                throw new IllegalArgumentException("BGM resource not found: " + path);
 
-            if (!file.isFile())
-                throw new IllegalArgumentException("BGM file not found: " + path);
-
-            stream = AudioSystem.getAudioInputStream(file);
+            stream = AudioSystem.getAudioInputStream(resource);
 
             newClip = AudioSystem.getClip();
             newClip.open(stream);
