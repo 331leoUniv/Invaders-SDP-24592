@@ -107,14 +107,20 @@ public class AudioManager {
      * Pauses the currently playing background music.
      */
     public static void pauseBGM() {
-
+        if (bgmClip != null && bgmClip.isRunning()) {
+            bgmClip.stop();
+            logger.info("BGM paused.");
+        }
     }
 
     /**
      * Resumes the previously paused background music.
      */
     public static void resumeBGM() {
-
+        if (bgmClip != null && !bgmClip.isRunning()) {
+            bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
+            logger.info("BGM resumed.");
+        }
     }
 
     /**
