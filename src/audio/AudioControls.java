@@ -8,21 +8,29 @@ import java.util.prefs.Preferences;
 /**
  * Persists audio settings for background music and sound effects.
  * Saved settings are kept after the game exits.
+ * Settings are stored with java.util.prefs.Preferences in the
+ * user's preference storage, not in a project file.
  */
 public class AudioControls {
 
+    /** Application logger. */
     private static final Logger logger = Core.getLogger();
 
+    /** Preference node storing the audio settings for this package. */
     private static final Preferences prefs = Preferences.userNodeForPackage(AudioControls.class);
 
+    /** Preference key for the background music volume. */
     private static final String BGM_VOLUME_KEY = "bgmVolume";
 
+    /** Preference key for the sound effect volume. */
     private static final String SFX_VOLUME_KEY = "sfxVolume";
 
+    /** Preference key for the global mute state. */
     private static final String MUTED_KEY = "muted";
 
     /**
      * Saves the background music volume.
+     * Invalid volume values are logged and ignored.
      *
      * @param vol the volume level, from 0 to 100
      */
@@ -38,6 +46,7 @@ public class AudioControls {
 
     /**
      * Saves the sound effect volume.
+     * Invalid volume values are logged and ignored.
      *
      * @param vol the volume level, from 0 to 100
      */
