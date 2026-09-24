@@ -2,16 +2,8 @@ package audio;
 
 import engine.Core;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.util.Properties;
 import java.util.logging.Logger;
+import java.util.prefs.Preferences;
 
 /**
  * Persists audio settings for background music and sound effects.
@@ -21,7 +13,7 @@ public class AudioControls {
 
     private static final Logger logger = Core.getLogger();
 
-    private static final String SETTINGS_FILE_NAME = "audio_settings";
+    private static final Preferences prefs = Preferences.userNodeForPackage(AudioControls.class);
 
     private static final String BGM_VOLUME_KEY = "bgmVolume";
 
@@ -40,7 +32,8 @@ public class AudioControls {
             return;
         }
 
-        saveSetting(BGM_VOLUME_KEY, Integer.toString(vol));
+        prefs.putInt(BGM_VOLUME_KEY, vol);
+        logger.info("Saved BGM volume " + vol);
     }
 
     /**
@@ -54,7 +47,8 @@ public class AudioControls {
             return;
         }
 
-        saveSetting(SFX_VOLUME_KEY, Integer.toString(vol));
+        prefs.putInt(SFX_VOLUME_KEY, vol);
+        logger.info("Saved SFX volume " + vol);
     }
 
     /**
@@ -63,43 +57,7 @@ public class AudioControls {
      * @param muted true if audio is muted, otherwise false
      */
     public static void saveMuted(boolean muted) {
-        saveSetting(MUTED_KEY, Boolean.toString(muted));
-    }
-
-    private static synchronized void saveSetting(String key, String value) {
-        File settingsFile;
-        try {
-            settingsFile = getSettingsFile();
-        } catch (UnsupportedEncodingException e) {
-            logger.warning("Could not locate audio settings file: " + e.getMessage());
-            return;
-        }
-
-        Properties settings = new Properties();
-
-        if (settingsFile.exists()) {
-            try (InputStream in = new FileInputStream(settingsFile)) {
-                settings.load(in);
-            } catch (IOException e) {
-                logger.warning("Could not read audio settings: " + e.getMessage());
-            }
-        }
-
-        settings.setProperty(key, value);
-
-        try (OutputStream out = new FileOutputStream(settingsFile)) {
-            settings.store(out, "Audio settings");
-            logger.info("Saved audio setting " + key + " = " + value);
-        } catch (IOException e) {
-            logger.warning("Could not save audio settings: " + e.getMessage());
-        }
-    }
-
-    private static File getSettingsFile() throws UnsupportedEncodingException {
-        String jarPath = AudioControls.class.getProtectionDomain()
-                .getCodeSource().getLocation().getPath();
-        jarPath = URLDecoder.decode(jarPath, "UTF-8");
-
-        return new File(new File(jarPath).getParent(), SETTINGS_FILE_NAME);
+        prefs.putBoolean(MUTED_KEY, muted);
+        logger.info("Saved mute state " + muted);
     }
 }
