@@ -2,9 +2,7 @@ package audio;
 
 import engine.Core;
 
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
+import javax.sound.sampled.*;
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
@@ -182,6 +180,25 @@ public class AudioManager {
             /* for thread-safe */
             synchronized (SFX_MUTEX) {
                 id = nextSFXId++;
+                final int tid = id;
+                newClip.addLineListener(new LineListener() {
+                    @Override
+                    public void update(LineEvent event) {
+                        if (event.getType() != LineEvent.Type.STOP) return;
+
+                        Clip finishedClip;
+
+                        synchronized (SFX_MUTEX) {
+                            finishedClip = sfxClips.remove(tid);
+                        }
+
+                        if (finishedClip != null) {
+                            finishedClip.close();
+                            logger.info("SFX finished. ID: " + tid);
+                        }
+                    }
+                });
+
                 sfxClips.put(id, newClip);
                 registered = true;
                 newClip.start();
