@@ -45,12 +45,13 @@ public class AudioManager {
     }
 
     /**
-     * Plays the specified background music.
-     * If another BGM is already playing, the current implementation
-     * may stop or replace it.
-     * Only 16-bit PCM WAV files are supported by this application.
+     * Plays the specified background music in a continuous loop.
+     * Replaces the current BGM after the new resource is loaded.
+     * Playback failures are logged.
+     * Use 16-bit PCM WAV resources for compatibility.
      *
-     * @param path the resource path relative to the classpath root
+     * @param path the resource path relative to the classpath root,
+     *             without a leading slash or the res directory prefix
      */
     public static void playBGM(String path) {
         AudioInputStream stream = null;
@@ -153,9 +154,15 @@ public class AudioManager {
     }
 
     /**
-     * Plays the specified sound effect.
+     * Plays the specified sound effect once.
+     * Multiple sound effects can play simultaneously.
+     * Each playback receives a separate ID.
+     * Finished clips are automatically removed and closed.
+     * Playback failures are logged.
+     * Use 16-bit PCM WAV resources for compatibility.
      *
-     * @param path the resource path relative to the classpath root
+     * @param path the resource path relative to the classpath root,
+     *             without a leading slash or the res directory prefix
      * @return the playback ID, or -1 if playback fails
      */
     public static int playSFX(String path) {
@@ -227,11 +234,11 @@ public class AudioManager {
     }
 
     /**
-     * Stops the sound effect associated with the specified playback ID.
-     * If the given ID does not correspond to a currently playing sound effect,
-     * the request is ignored.
+     * Stops the specified sound effect and releases its audio resources.
+     * If the ID is unknown or already completed, logs a warning
+     * and returns without stopping any other sound effect.
      *
-     * @param id the playback ID of the sound effect to stop
+     * @param id the playback ID returned by playSFX
      */
     public static void stopSFX(int id) {
         Clip clip;
