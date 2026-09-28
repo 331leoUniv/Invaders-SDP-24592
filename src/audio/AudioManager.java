@@ -22,6 +22,9 @@ public class AudioManager {
     /** Clip for the current background music. */
     private static Clip bgmClip;
 
+    /** Mutex for background music playback management. */
+    private static final Object BGM_MUTEX = new Object();
+
     /** Mutex for sound effect playback management. */
     private static final Object SFX_MUTEX = new Object();
 
@@ -30,6 +33,12 @@ public class AudioManager {
 
     /** Next sound effect playback ID. */
     private static int nextSFXId = 0;
+
+    /** Background music volume, from 0 to 100; 50 preserves the original gain. */
+    private static int bgmVolume = 50;
+
+    /** Sound effect volume, from 0 to 100; 50 preserves the original gain. */
+    private static int sfxVolume = 50;
 
     static {
         initialize();
@@ -71,14 +80,16 @@ public class AudioManager {
 
             newClip = AudioSystem.getClip();
             newClip.open(stream);
+            synchronized (BGM_MUTEX) {
+                stopBGM();
 
-            stopBGM();
+                newClip.setFramePosition(0);
+                applyVolume(newClip, bgmVolume);
+                newClip.loop(Clip.LOOP_CONTINUOUSLY);
 
-            newClip.setFramePosition(0);
-            newClip.loop(Clip.LOOP_CONTINUOUSLY);
-
-            bgmClip = newClip;
-            started = true;
+                bgmClip = newClip;
+                started = true;
+            }
 
             logger.info("Playing BGM: " + path);
 
@@ -104,53 +115,58 @@ public class AudioManager {
      * Stops the currently playing background music.
      */
     public static void stopBGM() {
-        if (bgmClip == null) {
-            logger.info("No BGM is loaded.");
-            return;
+        synchronized (BGM_MUTEX) {
+            if (bgmClip == null) {
+                logger.info("No BGM is loaded.");
+                return;
+            }
+
+            bgmClip.stop();
+            bgmClip.close();
+            bgmClip = null;
+
+            logger.info("BGM stopped.");
         }
-
-        bgmClip.stop();
-        bgmClip.close();
-        bgmClip = null;
-
-        logger.info("BGM stopped.");
     }
 
     /**
      * Pauses the currently playing background music.
      */
     public static void pauseBGM() {
-        if (bgmClip == null || !bgmClip.isOpen()) {
-            logger.warning("Cannot pause BGM: no BGM is loaded.");
-            return;
+        synchronized (BGM_MUTEX) {
+            if (bgmClip == null || !bgmClip.isOpen()) {
+                logger.warning("Cannot pause BGM: no BGM is loaded.");
+                return;
+            }
+
+            if (!bgmClip.isRunning()) {
+                logger.info("BGM is already paused.");
+                return;
+            }
+
+            bgmClip.stop();
+            logger.info("BGM paused.");
         }
-
-        if (!bgmClip.isRunning()) {
-            logger.info("BGM is already paused.");
-            return;
-        }
-
-        bgmClip.stop();
-        logger.info("BGM paused.");
-
     }
 
     /**
      * Resumes the previously paused background music.
      */
     public static void resumeBGM() {
-        if (bgmClip == null || !bgmClip.isOpen()) {
-            logger.warning("Cannot resume BGM: no BGM is loaded.");
-            return;
-        }
+        synchronized (BGM_MUTEX) {
+            if (bgmClip == null || !bgmClip.isOpen()) {
+                logger.warning("Cannot resume BGM: no BGM is loaded.");
+                return;
+            }
 
-        if (bgmClip.isRunning()) {
-            logger.info("BGM is already playing.");
-            return;
-        }
+            if (bgmClip.isRunning()) {
+                logger.info("BGM is already playing.");
+                return;
+            }
 
-        bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
-        logger.info("BGM resumed.");
+            bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
+            logger.info("BGM resumed.");
+        }
     }
 
     /**
@@ -208,12 +224,12 @@ public class AudioManager {
 
                 sfxClips.put(id, newClip);
                 registered = true;
+                applyVolume(newClip, sfxVolume);
                 newClip.start();
             }
 
             logger.info("Playing SFX: " + path + " / ID: " + id);
             return id;
-
         } catch (Exception e) {
             if (registered) {
                 stopSFX(id);
@@ -260,24 +276,43 @@ public class AudioManager {
 
     /**
      * Sets the background music volume.
+     * Invalid volume values are logged and ignored.
      *
      * @param vol the volume level, from 0 to 100
-     * @throws IllegalArgumentException if the volume is outside the range 0 to 100
      */
     public static void setBGMVolume(int vol) {
-        if (vol < 0 || vol > 100) throw new IllegalArgumentException("Volume must be an integer between 0 and 100.");
+        if (vol < 0 || vol > 100) {
+            logger.warning("Volume must be an integer between 0 and 100.");
+            return;
+        }
 
+        synchronized (BGM_MUTEX) {
+            bgmVolume = vol;
+            applyVolume(bgmClip, vol);
+        }
+
+        logger.info("BGM volume set to " + vol);
     }
 
     /**
      * Sets the sound effect volume.
+     * Invalid volume values are logged and ignored.
      *
      * @param vol the volume level, from 0 to 100
-     * @throws IllegalArgumentException if the volume is outside the range 0 to 100
      */
     public static void setSFXVolume(int vol) {
-        if (vol < 0 || vol > 100) throw new IllegalArgumentException("Volume must be an integer between 0 and 100.");
+        if (vol < 0 || vol > 100) {
+            logger.warning("Volume must be an integer between 0 and 100.");
+            return;
+        }
 
+        synchronized (SFX_MUTEX) {
+            sfxVolume = vol;
+            for (Clip clip : sfxClips.values())
+                applyVolume(clip, vol);
+        }
+
+        logger.info("SFX volume set to " + vol);
     }
 
     /**
@@ -286,7 +321,9 @@ public class AudioManager {
      * @return the BGM volume level, from 0 to 100
      */
     public static int getBGMVolume() {
-        return 50;
+        synchronized (BGM_MUTEX) {
+            return bgmVolume;
+        }
     }
 
     /**
@@ -295,7 +332,31 @@ public class AudioManager {
      * @return the SFX volume level, from 0 to 100
      */
     public static int getSFXVolume() {
-        return 50;
+        synchronized (SFX_MUTEX) {
+            return sfxVolume;
+        }
+    }
+
+    /**
+     * Applies the specified volume to an open clip.
+     *
+     * @param clip the clip to update
+     * @param vol the volume level, from 0 to 100
+     */
+    private static void applyVolume(Clip clip, int vol) {
+        if (clip == null || !clip.isOpen()) return;
+
+        if (!clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+            logger.warning("Volume control is not supported.");
+            return;
+        }
+
+        FloatControl gain = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+
+        float db = vol == 0 ? gain.getMinimum() : (float) (20.0 * Math.log10(vol / 50.0));
+
+        db = Math.max(gain.getMinimum(), Math.min(gain.getMaximum(), db));
+        gain.setValue(db);
     }
 
     /**
