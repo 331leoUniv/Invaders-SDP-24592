@@ -40,6 +40,9 @@ public class AudioManager {
     /** Sound effect volume, from 0 to 100; 50 preserves the original gain. */
     private static int sfxVolume = 50;
 
+    /** Global mute state, visible across audio control threads. */
+    private static volatile boolean muted = false;
+
     static {
         initialize();
     }
@@ -338,7 +341,8 @@ public class AudioManager {
     }
 
     /**
-     * Applies the specified volume to an open clip.
+     * Applies the specified volume and global mute setting to an open clip.
+     * Muting uses the minimum supported gain.
      *
      * @param clip the clip to update
      * @param vol the volume level, from 0 to 100
@@ -351,6 +355,8 @@ public class AudioManager {
             return;
         }
 
+        if (muted) vol = 0;
+
         FloatControl gain = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
 
         float db = vol == 0 ? gain.getMinimum() : (float) (20.0 * Math.log10(vol / 50.0));
@@ -360,22 +366,32 @@ public class AudioManager {
     }
 
     /**
-     * Enables or disables audio muting.
+     * Updates the global mute state without changing stored volume levels.
      *
-     * @param muted {@code true} to mute all audio,
-     *               {@code false} to restore audio
+     * @param value true to mute audio, false to restore audio
      */
-    public static void setMuted(boolean muted) {
+    public static synchronized void setMuted(boolean value) {
+        muted = value;
 
+        synchronized (BGM_MUTEX) {
+            applyVolume(bgmClip, bgmVolume);
+        }
+
+        synchronized (SFX_MUTEX) {
+            for (Clip clip : sfxClips.values()) {
+                applyVolume(clip, sfxVolume);
+            }
+        }
+
+        logger.info(value ? "Audio muted." : "Audio unmuted.");
     }
 
     /**
-     * Returns whether audio is currently muted.
+     * Returns the global mute setting.
      *
-     * @return {@code true} if audio is muted,
-     *         {@code false} otherwise
+     * @return true if muting is enabled, otherwise false
      */
     public static boolean isMuted() {
-        return false;
+        return muted;
     }
 }
