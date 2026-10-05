@@ -148,7 +148,8 @@ public class GameScreen extends Screen {
 	}
 
 	/**
-	 * Updates the elements on screen and checks for events.
+	 * Updates the elements on screen, checks for events, and plays the bonus
+	 * enemy appearance sound.
 	 */
 	protected final void update() {
 		super.update();
@@ -187,6 +188,7 @@ public class GameScreen extends Screen {
 			if (this.enemyShipSpecial == null
 					&& this.enemyShipSpecialCooldown.checkFinished()) {
 				this.enemyShipSpecial = new EnemyShip();
+				AudioManager.playSFX("audio/sfx/bonus_appear.wav");
 				this.enemyShipSpecialCooldown.reset();
 				this.logger.info("A special ship appears");
 			}
