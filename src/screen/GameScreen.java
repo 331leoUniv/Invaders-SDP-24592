@@ -557,6 +557,7 @@ public class GameScreen extends Screen {
                                     AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
                                     this.isLowHealthBGM = true;
                                 }
+								AudioManager.playSFX("audio/sfx/player_hit.wav");
 								this.logger.info("Hit on player ship, " + this.lives + " lives remaining.");
 							}
 						}
