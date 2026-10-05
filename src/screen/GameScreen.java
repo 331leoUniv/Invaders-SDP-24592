@@ -304,6 +304,7 @@ public class GameScreen extends Screen {
 					if (!this.annihilator.isCharging()) {
 						if (this.ship.shoot(this.bullets)) {
 							this.bulletsShot++;
+							AudioManager.playSFX("audio/sfx/player_shoot.wav");
 						}
 					}
 				}
