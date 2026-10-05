@@ -28,6 +28,7 @@ public class AudioControls {
     /** Preference key for the global mute state. */
     private static final String MUTED_KEY = "muted";
 
+    /** Volume used when no valid volume has been saved. */
     private static final int DEFAULT_VOLUME = 50;
 
     /**
@@ -74,6 +75,8 @@ public class AudioControls {
 
     /**
      * Loads the saved background music volume.
+     * Returns the default volume if nothing is saved.
+     * Invalid saved values are logged and replaced with the default volume.
      *
      * @return the BGM volume level, from 0 to 100
      */
@@ -90,6 +93,8 @@ public class AudioControls {
 
     /**
      * Loads the saved sound effect volume.
+     * Returns the default volume if nothing is saved.
+     * Invalid saved values are logged and replaced with the default volume.
      *
      * @return the SFX volume level, from 0 to 100
      */
@@ -106,6 +111,7 @@ public class AudioControls {
 
     /**
      * Loads the saved global mute state.
+     * Returns false if nothing is saved or the saved value is not true or false.
      *
      * @return true if audio is muted, otherwise false
      */
