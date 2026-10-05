@@ -28,6 +28,8 @@ public class AudioControls {
     /** Preference key for the global mute state. */
     private static final String MUTED_KEY = "muted";
 
+    private static final int DEFAULT_VOLUME = 50;
+
     /**
      * Saves the background music volume.
      * Invalid volume values are logged and ignored.
@@ -76,7 +78,14 @@ public class AudioControls {
      * @return the BGM volume level, from 0 to 100
      */
     public static int loadBGMVolume() {
-        return 0;
+        int vol = prefs.getInt(BGM_VOLUME_KEY, DEFAULT_VOLUME);
+
+        if (vol < 0 || vol > 100) {
+            logger.warning("Saved BGM volume " + vol + " is invalid. Using " + DEFAULT_VOLUME + ".");
+            return DEFAULT_VOLUME;
+        }
+
+        return vol;
     }
 
     /**
@@ -85,7 +94,14 @@ public class AudioControls {
      * @return the SFX volume level, from 0 to 100
      */
     public static int loadSFXVolume() {
-        return 0;
+        int vol = prefs.getInt(SFX_VOLUME_KEY, DEFAULT_VOLUME);
+
+        if (vol < 0 || vol > 100) {
+            logger.warning("Saved SFX volume " + vol + " is invalid. Using " + DEFAULT_VOLUME + ".");
+            return DEFAULT_VOLUME;
+        }
+
+        return vol;
     }
 
     /**
@@ -94,6 +110,6 @@ public class AudioControls {
      * @return true if audio is muted, otherwise false
      */
     public static boolean loadMuted() {
-        return false;
+        return prefs.getBoolean(MUTED_KEY, false);
     }
 }
