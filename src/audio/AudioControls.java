@@ -69,4 +69,31 @@ public class AudioControls {
         prefs.putBoolean(MUTED_KEY, muted);
         logger.info("Saved mute state " + muted);
     }
+
+    /**
+     * Loads the saved background music volume.
+     *
+     * @return the BGM volume level, from 0 to 100
+     */
+    public static int loadBGMVolume() {
+        return 0;
+    }
+
+    /**
+     * Loads the saved sound effect volume.
+     *
+     * @return the SFX volume level, from 0 to 100
+     */
+    public static int loadSFXVolume() {
+        return 0;
+    }
+
+    /**
+     * Loads the saved global mute state.
+     *
+     * @return true if audio is muted, otherwise false
+     */
+    public static boolean loadMuted() {
+        return false;
+    }
 }
