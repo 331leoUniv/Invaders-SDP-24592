@@ -18,6 +18,7 @@ import audio.AudioManager;
 
 /**
  * Implements the game screen, where the action happens.
+ * Plays sound effects for gameplay events.
  * 
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
  * 
@@ -272,7 +273,8 @@ public class GameScreen extends Screen {
 	}
 
 	/**
-	 * Manages collisions between bullets and ships.
+	 * Manages collisions between bullets and ships and plays the regular
+	 * enemy destruction sound.
 	 */
 	private void manageCollisions() {
 		Set<Bullet> recyclable = new HashSet<Bullet>();
@@ -294,6 +296,7 @@ public class GameScreen extends Screen {
 						this.score += enemyShip.getPointValue();
 						this.shipsDestroyed++;
 						this.enemyShipFormation.destroy(enemyShip);
+						AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
 						recyclable.add(bullet);
 					}
 				if (this.enemyShipSpecial != null
