@@ -12,13 +12,22 @@ import java.util.logging.Logger;
 /**
  * Publishes gameplay events to listeners registered for each event type.
  *
- * Event delivery is synchronous. A failing listener is logged and does
- * not prevent the remaining listeners from receiving the event.
+ * <p>Events must implement {@link GameplayEvent}. Listeners are matched
+ * using the event's exact concrete class.</p>
  * 
- * 각 이벤트 타입별로 등록된 리스너(listener)들에게 게임 플레이 이벤트를 전달합니다.
- * 이벤트 전달은 **동기식(synchronous)**으로 이루어집니다.
- * 어떤 리스너에서 오류가 발생하더라도 해당 오류는 로그에 기록될 뿐이며, 
- * 나머지 리스너들이 이벤트를 전달받는 것을 방해하지 않습니다.
+ * <p>Delivery is synchronous. Listener failures are logged without
+ * stopping delivery to other listeners.</p>
+ *
+ * <pre>{@code
+ * GameplayEventPublisher publisher = new GameplayEventPublisher();
+ *
+ * publisher.subscribe(WaveClearedEvent.class, listener);
+ * publisher.publish(new WaveClearedEvent(remainingHealth));
+ * publisher.unsubscribe(WaveClearedEvent.class, listener);
+ * }</pre>
+ *
+ * <p>The publisher only delivers gameplay facts. Achievement conditions
+ * and unlock logic belong to the achievement system.</p>
  */
 public final class GameplayEventPublisher {
 
@@ -65,7 +74,7 @@ public final class GameplayEventPublisher {
     /**
      * Removes a previously registered listener.
      * 
-     * “이전에 등록된 리스너를 제거합니다.
+     * 이전에 등록된 리스너를 제거합니다.
      */
     public <T extends GameplayEvent> void unsubscribe(
             final Class<T> eventType,
