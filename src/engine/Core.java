@@ -143,8 +143,15 @@ public final class Core {
 					frame.setScreen(currentScreen);
 					LOGGER.info("Closing game screen.");
 
+					boolean stageCleared = ((GameScreen) currentScreen).isStageCleared();
 					gameState = ((GameScreen) currentScreen).getGameState();
 
+					if (!stageCleared) {
+						LOGGER.info("Stage " + gameState.getLevel()
+								+ " failed. Not advancing.");
+						break;
+					}
+								
 					gameState = new GameState(gameState.getLevel() + 1,
 							gameState.getScore(),
 							gameState.getLivesRemaining(),
