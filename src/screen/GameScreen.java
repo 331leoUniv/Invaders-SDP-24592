@@ -70,6 +70,8 @@ public class GameScreen extends Screen {
 	private boolean levelFinished;
 	/** Checks if a bonus life is received. */
 	private boolean bonusLife;
+	/** Checks if the stage was cleared. */
+	private boolean stageCleared;	// 임의
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -199,10 +201,18 @@ public class GameScreen extends Screen {
 		cleanBullets();
 		draw();
 
-		if ((this.enemyShipFormation.isEmpty() || this.lives == 0)
-				&& !this.levelFinished) {
-			this.levelFinished = true;
-			this.screenFinishedCooldown.reset();
+		if (!this.levelFinished) {
+			if (this.lives == 0) {
+				this.levelFinished = true;
+				this.stageCleared = false;
+				this.screenFinishedCooldown.reset();
+				this.logger.info("Stage " + this.level + " failed.");
+			} else if (this.enemyShipFormation.isEmpty()) {
+				this.levelFinished = true;
+				this.stageCleared = true;
+				this.screenFinishedCooldown.reset();
+				this.logger.info("Stage " + this.level + " cleared.");
+			}
 		}
 
 		if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
@@ -337,5 +347,14 @@ public class GameScreen extends Screen {
 	public final GameState getGameState() {
 		return new GameState(this.level, this.score, this.lives,
 				this.bulletsShot, this.shipsDestroyed);
+	}
+
+	/**
+	 * Checks if the stage was cleared.
+	 *
+	 * @return True if all enemies were defeated with the ship alive.
+	 */
+	public final boolean isStageCleared() {		//임의
+		return this.stageCleared;
 	}
 }
