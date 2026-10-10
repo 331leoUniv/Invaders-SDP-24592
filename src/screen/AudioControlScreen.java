@@ -128,7 +128,7 @@ public class AudioControlScreen extends Screen {
 			}
 			// M toggles the mute state, whichever option is selected.
 			if (inputManager.isKeyDown(KeyEvent.VK_M)) {
-				toggleMute();
+				AudioControls.toggleMute();
 				this.selectionCooldown.reset();
 			}
 			// Esc closes the screen and returns to the caller of open.
@@ -181,16 +181,6 @@ public class AudioControlScreen extends Screen {
 		volume = Math.max(MIN_VOLUME, Math.min(MAX_VOLUME, volume));
 		AudioManager.setSFXVolume(volume);
 		AudioControls.saveSFXVolume();
-	}
-
-	/**
-	 * Turns the global mute on if it is off, and off if it is on.
-	 * The volume levels are kept, so they come back when unmuted.
-	 * The mute state is saved so it is kept after the game exits.
-	 */
-	private void toggleMute() {
-		AudioManager.setMuted(!AudioManager.isMuted());
-		AudioControls.saveMuted();
 	}
 
 	/**
