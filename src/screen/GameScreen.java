@@ -132,6 +132,10 @@ public class GameScreen extends Screen {
 		this.inputDelay = Core.getCooldown(INPUT_DELAY);
 		this.inputDelay.reset();
 
+		if (this.bonusLife) {
+			AudioManager.playSFX("audio/sfx/bonus_life.wav");
+		}
+
 		AudioManager.playBGM("audio/bgm/music_game.wav");
 	}
 
