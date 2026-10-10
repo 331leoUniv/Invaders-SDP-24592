@@ -119,4 +119,11 @@ public class AudioControls {
         AudioManager.setMuted(loadMuted());
         logger.info("Applied saved audio settings.");
     }
+
+    /**
+     * Toggles the global mute state.
+     */
+    public static void toggleMute() {
+
+    }
 }
