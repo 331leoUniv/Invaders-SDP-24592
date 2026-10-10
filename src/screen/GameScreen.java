@@ -72,6 +72,9 @@ public class GameScreen extends Screen {
 	/** Checks if a bonus life is received. */
 	private boolean bonusLife;
 
+	/** Flag to track if the urgent low-health BGM is currently playing. */
+	private boolean isLowHealthBGM = false;
+
 	/**
 	 * Constructor, establishes the properties of the screen.
 	 * 
@@ -282,6 +285,14 @@ public class GameScreen extends Screen {
 						this.lives--;
 						this.logger.info("Hit on player ship, " + this.lives
 								+ " lives remaining.");
+
+						if (this.lives == 1 && !isLowHealthBGM) {
+							AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+							isLowHealthBGM = true;
+						} else if (this.lives > 1 && isLowHealthBGM) {
+							AudioManager.playBGM("audio/bgm/music_game.wav");
+							isLowHealthBGM = false;
+						}
 					}
 				}
 			} else {
