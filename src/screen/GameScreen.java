@@ -221,6 +221,7 @@ public class GameScreen extends Screen {
 			} else if (this.enemyShipFormation.isEmpty()) {
 				this.levelFinished = true;
 				this.stageCleared = true;
+				AudioManager.playSFX("audio/sfx/level_clear.wav");
 				this.screenFinishedCooldown.reset();
 				this.logger.info("Stage " + this.level + " cleared.");
 			}
