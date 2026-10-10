@@ -19,3 +19,8 @@
     - **Title :** Nintendo Revolution
     - **Artist :** Rolla Coasta
     - **Source :** Epidemic Sound (https://www.epidemicsound.com)
+
+- **`music_game_urgent`** :
+  - **Title :** Time to Level Up
+  - **Artist :** Josef Bel Habib
+  - **Source :** Epidemic Sound (https://www.epidemicsound.com)
