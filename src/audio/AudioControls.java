@@ -124,6 +124,7 @@ public class AudioControls {
      * Toggles the global mute state.
      */
     public static void toggleMute() {
-
+        AudioManager.setMuted(!AudioManager.isMuted());
+        saveMuted();
     }
 }
