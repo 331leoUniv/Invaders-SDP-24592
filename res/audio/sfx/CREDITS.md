@@ -127,12 +127,6 @@ Third-party sound effects used in this project and their licenses.
 - License: No third-party license; original work for this project
 - Changes: None (16-bit / 44.1kHz mono WAV)
 
-## player_shoot.wav
-
-- Original: "Shoot 2" from "8-Bit Sound Effects Pack (Vol. 001)" by Deva (@Shades)
-- Source: https://opengameart.org/content/8-bit-sound-effect-pack-vol-001
-- License: CC0 (https://creativecommons.org/publicdomain/zero/1.0/)
-- Changes: Renamed.
 
 ## enemy_shoot.wav
 
