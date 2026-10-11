@@ -120,16 +120,11 @@ public final class Core {
                             break;
                         }
 
-                        // A stage is failed when the player has no lives left.
-                        // Keep its level (do not advance) so the score screen
-                        // can tell which stage was failed.
-                        if (gameState.getLivesRemaining() > 0) {
-                            gameState = new GameState(gameState.getLevel() + 1,
-                                    gameState.getScore(),
-                                    gameState.getLivesRemaining(),
-                                    gameState.getBulletsShot(),
-                                    gameState.getShipsDestroyed());
-                        }
+                        gameState = new GameState(gameState.getLevel() + 1,
+                                gameState.getScore(),
+                                gameState.getLivesRemaining(),
+                                gameState.getBulletsShot(),
+                                gameState.getShipsDestroyed());
 
                     } while (gameState.getLivesRemaining() > 0
                             && gameState.getLevel() <= NUM_LEVELS);
