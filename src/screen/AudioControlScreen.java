@@ -138,6 +138,17 @@ public class AudioControlScreen extends Screen {
 	}
 
 	/**
+	 * Turns off the global mute key, because update already toggles
+	 * the mute state with the M key on this screen.
+	 *
+	 * @return Always false.
+	 */
+	@Override
+	protected boolean usesGlobalMuteKey() {
+		return false;
+	}
+
+	/**
 	 * Shifts the focus to the next menu option.
 	 * Wraps around to the first option after the last one.
 	 */
