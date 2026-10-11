@@ -17,6 +17,10 @@ import screen.Screen;
 import screen.TitleScreen;
 import screen.SettingsScreen;
 
+import screen.ControlsSettingsScreen;
+import screen.GameplaySettingsScreen;
+import engine.GameplayConfig;
+
 /**
  * Implements core game logic.
  * 
@@ -107,15 +111,6 @@ public final class Core {
 		int width = frame.getWidth();
 		int height = frame.getHeight();
 
-		gameSettings = new ArrayList<GameSettings>();
-		gameSettings.add(SETTINGS_LEVEL_1);
-		gameSettings.add(SETTINGS_LEVEL_2);
-		gameSettings.add(SETTINGS_LEVEL_3);
-		gameSettings.add(SETTINGS_LEVEL_4);
-		gameSettings.add(SETTINGS_LEVEL_5);
-		gameSettings.add(SETTINGS_LEVEL_6);
-		gameSettings.add(SETTINGS_LEVEL_7);
-		
 		GameState gameState;
 
 		int returnCode = 1;
@@ -133,6 +128,7 @@ public final class Core {
 				break;
 			case 2:
 				// Game & score.
+				gameSettings = createGameSettings();
 				do {
 					// One extra live every few levels.
 					boolean bonusLife = gameState.getLevel()
@@ -184,6 +180,14 @@ public final class Core {
 				currentScreen = new AudioControlScreen(width, height, FPS);
 				returnCode = frame.setScreen(currentScreen);
 				break;
+			case 6:
+				currentScreen = new ControlsSettingsScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
+				break;
+			case 7:
+				currentScreen = new GameplaySettingsScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
+				break;
 			}
 
 		} while (returnCode != 0);
@@ -191,6 +195,30 @@ public final class Core {
 		fileHandler.flush();
 		fileHandler.close();
 		System.exit(0);
+	}
+
+	private static List<GameSettings> createGameSettings() {
+		GameSettings[] defaults = {
+			SETTINGS_LEVEL_1, SETTINGS_LEVEL_2, SETTINGS_LEVEL_3,
+			SETTINGS_LEVEL_4, SETTINGS_LEVEL_5, SETTINGS_LEVEL_6,
+			SETTINGS_LEVEL_7
+		};
+
+		double multiplier = GameplayConfig.getMultiplier();
+		List<GameSettings> result = new ArrayList<GameSettings>();
+
+		for (GameSettings settings : defaults) {
+			int speed = Math.max(1,
+					(int) Math.round(settings.getBaseSpeed() * multiplier));
+			int shootingInterval = Math.max(250,
+					(int) Math.round(
+							settings.getShootingFrecuency() * multiplier));
+
+			result.add(new GameSettings(settings.getFormationWidth(),
+					settings.getFormationHeight(), speed, shootingInterval));
+		}
+
+		return result;
 	}
 
 	/**

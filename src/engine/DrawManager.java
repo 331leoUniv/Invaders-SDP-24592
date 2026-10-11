@@ -571,10 +571,68 @@ public final class DrawManager {
 	}
 
 	public void drawSettingsMenu(final Screen screen, final int selectedOption) {
-		String[] options = { "Audio", "Back" };
+		String[] options = { "Audio", "Controls", "Gameplay", "Back" };
 
 		backBufferGraphics.setColor(Color.GREEN);
 		drawCenteredBigString(screen, "Settings", screen.getHeight() / 5);
+
+		for (int i = 0; i < options.length; i++) {
+			backBufferGraphics.setColor(
+					i == selectedOption ? Color.GREEN : Color.WHITE);
+			drawCenteredRegularString(screen, options[i],
+					screen.getHeight() / 2
+							+ i * fontRegularMetrics.getHeight() * 2);
+		}
+
+		backBufferGraphics.setColor(Color.GRAY);
+		drawCenteredRegularString(screen, "Up/Down: select  Space: confirm",
+				screen.getHeight() / 8 * 7);
+	}
+
+	public void drawControlsSettings(final Screen screen,
+			final int selectedOption, final boolean waitingForKey) {
+		String[] options = {
+			"Move Left", "Move Right", "Fire", "Back"
+		};
+		String[] keys = {
+			java.awt.event.KeyEvent.getKeyText(
+					ControlsConfig.getKey(ControlsConfig.LEFT)),
+			java.awt.event.KeyEvent.getKeyText(
+					ControlsConfig.getKey(ControlsConfig.RIGHT)),
+			java.awt.event.KeyEvent.getKeyText(
+					ControlsConfig.getKey(ControlsConfig.FIRE)),
+			""
+		};
+
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen, "Controls", screen.getHeight() / 5);
+
+		for (int i = 0; i < options.length; i++) {
+			String text = options[i];
+
+			if (i < 3) {
+				text += ": ";
+				text += waitingForKey && i == selectedOption
+						? "Press a key (Esc to cancel)" : keys[i];
+			}
+
+			backBufferGraphics.setColor(
+					i == selectedOption ? Color.GREEN : Color.WHITE);
+			drawCenteredRegularString(screen, text,
+					screen.getHeight() / 2
+							+ i * fontRegularMetrics.getHeight() * 2);
+		}
+
+		backBufferGraphics.setColor(Color.GRAY);
+		drawCenteredRegularString(screen, "Up/Down: select  Space: change",
+				screen.getHeight() / 8 * 7);
+	}
+
+	public void drawGameplaySettings(final Screen screen, final int selectedOption) {
+		String[] options = { "Easy", "Normal", "Hard" };
+
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen, "Gameplay", screen.getHeight() / 5);
 
 		for (int i = 0; i < options.length; i++) {
 			backBufferGraphics.setColor(
