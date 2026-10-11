@@ -6,7 +6,7 @@ import java.util.List;
 
 import engine.Core;
 import engine.Score;
-
+import audio.AudioManager;
 /**
  * Implements the high scores screen, it shows player records.
  * 
@@ -38,6 +38,8 @@ public class HighScoreScreen extends Screen {
 		} catch (NumberFormatException | IOException e) {
 			logger.warning("Couldn't load high scores!");
 		}
+
+
 	}
 
 	/**
@@ -59,8 +61,11 @@ public class HighScoreScreen extends Screen {
 
 		draw();
 		if (inputManager.isKeyDown(KeyEvent.VK_SPACE)
-				&& this.inputDelay.checkFinished())
+				&& this.inputDelay.checkFinished()) {
+			AudioManager.playSFX("audio/sfx/menu_back.wav");
 			this.isRunning = false;
+		}
+
 	}
 
 	/**
@@ -74,4 +79,7 @@ public class HighScoreScreen extends Screen {
 
 		drawManager.completeDrawing(this);
 	}
+
+
+
 }
