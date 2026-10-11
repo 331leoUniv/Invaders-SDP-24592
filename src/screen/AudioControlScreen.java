@@ -64,23 +64,6 @@ public class AudioControlScreen extends Screen {
 	}
 
 	/**
-	 * Opens the audio settings screen and waits until it is closed.
-	 * Other screens can call this method to show the audio settings.
-	 *
-	 * @param width
-	 *            Screen width.
-	 * @param height
-	 *            Screen height.
-	 * @param fps
-	 *            Frames per second, frame rate at which the game is run.
-	 */
-	public static void open(final int width, final int height, final int fps) {
-		AudioControlScreen screen = new AudioControlScreen(width, height, fps);
-		screen.initialize();
-		screen.run();
-	}
-
-	/**
 	 * Updates the elements on screen and checks for events.
 	 */
 	protected final void update() {
@@ -131,7 +114,7 @@ public class AudioControlScreen extends Screen {
 				toggleMute();
 				this.selectionCooldown.reset();
 			}
-			// Esc closes the screen and returns to the caller of open.
+			// Esc closes the screen.
 			if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE))
 				this.isRunning = false;
 		}
