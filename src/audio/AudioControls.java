@@ -33,15 +33,10 @@ public class AudioControls {
 
     /**
      * Saves the background music volume.
-     * Invalid volume values are logged and ignored.
-     *
-     * @param vol the volume level, from 0 to 100
+     * The current volume is read from the AudioManager.
      */
-    public static void saveBGMVolume(int vol) {
-        if (vol < 0 || vol > 100) {
-            logger.warning("Volume must be an integer between 0 and 100.");
-            return;
-        }
+    public static void saveBGMVolume() {
+        int vol = AudioManager.getBGMVolume();
 
         prefs.putInt(BGM_VOLUME_KEY, vol);
         logger.info("Saved BGM volume " + vol);
@@ -49,15 +44,10 @@ public class AudioControls {
 
     /**
      * Saves the sound effect volume.
-     * Invalid volume values are logged and ignored.
-     *
-     * @param vol the volume level, from 0 to 100
+     * The current volume is read from the AudioManager.
      */
-    public static void saveSFXVolume(int vol) {
-        if (vol < 0 || vol > 100) {
-            logger.warning("Volume must be an integer between 0 and 100.");
-            return;
-        }
+    public static void saveSFXVolume() {
+        int vol = AudioManager.getSFXVolume();
 
         prefs.putInt(SFX_VOLUME_KEY, vol);
         logger.info("Saved SFX volume " + vol);
@@ -65,10 +55,11 @@ public class AudioControls {
 
     /**
      * Saves the global mute state.
-     *
-     * @param muted true if audio is muted, otherwise false
+     * The current mute state is read from the AudioManager.
      */
-    public static void saveMuted(boolean muted) {
+    public static void saveMuted() {
+        boolean muted = AudioManager.isMuted();
+
         prefs.putBoolean(MUTED_KEY, muted);
         logger.info("Saved mute state " + muted);
     }
@@ -117,5 +108,15 @@ public class AudioControls {
      */
     public static boolean loadMuted() {
         return prefs.getBoolean(MUTED_KEY, false);
+    }
+
+    /**
+     * Applies the saved audio settings to the AudioManager.
+     */
+    public static void applySettings() {
+        AudioManager.setBGMVolume(loadBGMVolume());
+        AudioManager.setSFXVolume(loadSFXVolume());
+        AudioManager.setMuted(loadMuted());
+        logger.info("Applied saved audio settings.");
     }
 }
