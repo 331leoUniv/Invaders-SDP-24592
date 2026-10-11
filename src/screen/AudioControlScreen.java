@@ -57,7 +57,7 @@ public class AudioControlScreen extends Screen {
 		super(width, height, fps);
 
 		// Returns to the main menu when closed.
-		this.returnCode = 1;
+		this.returnCode = 4;
 		this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
 		this.selectionCooldown.reset();
 
