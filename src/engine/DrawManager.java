@@ -308,6 +308,7 @@ public final class DrawManager {
 	public void drawMenu(final Screen screen, final int option) {
 		String playString = "Play";
 		String highScoresString = "High scores";
+		String settingsString = "Settings";
 		String exitString = "exit";
 
 		if (option == 2)
@@ -322,12 +323,18 @@ public final class DrawManager {
 			backBufferGraphics.setColor(Color.WHITE);
 		drawCenteredRegularString(screen, highScoresString, screen.getHeight()
 				/ 3 * 2 + fontRegularMetrics.getHeight() * 2);
+		if (option == 4)
+			backBufferGraphics.setColor(Color.GREEN);
+		else
+			backBufferGraphics.setColor(Color.WHITE);
+		drawCenteredRegularString(screen, settingsString, screen.getHeight()
+				/ 3 * 2 + fontRegularMetrics.getHeight() * 4);
 		if (option == 0)
 			backBufferGraphics.setColor(Color.GREEN);
 		else
 			backBufferGraphics.setColor(Color.WHITE);
 		drawCenteredRegularString(screen, exitString, screen.getHeight() / 3
-				* 2 + fontRegularMetrics.getHeight() * 4);
+				* 2 + fontRegularMetrics.getHeight() * 6);
 	}
 
 	/**
@@ -561,6 +568,25 @@ public final class DrawManager {
 		else
 			drawCenteredBigString(screen, "GO!", screen.getHeight() / 2
 					+ fontBigMetrics.getHeight() / 3);
+	}
+
+	public void drawSettingsMenu(final Screen screen, final int selectedOption) {
+		String[] options = { "Audio", "Back" };
+
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen, "Settings", screen.getHeight() / 5);
+
+		for (int i = 0; i < options.length; i++) {
+			backBufferGraphics.setColor(
+					i == selectedOption ? Color.GREEN : Color.WHITE);
+			drawCenteredRegularString(screen, options[i],
+					screen.getHeight() / 2
+							+ i * fontRegularMetrics.getHeight() * 2);
+		}
+
+		backBufferGraphics.setColor(Color.GRAY);
+		drawCenteredRegularString(screen, "Up/Down: select  Space: confirm",
+				screen.getHeight() / 8 * 7);
 	}
 
 	/**
