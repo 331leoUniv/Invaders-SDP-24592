@@ -84,6 +84,12 @@ public class ScoreScreen extends Screen {
 			logger.warning("Couldn't load high scores!");
 		}
 
+		if (this.livesRemaining > 0){
+			AudioManager.playBGM("audio/bgm/music_end_victory.wav");
+		} else {
+			AudioManager.playBGM("audio/bgm/music_end_defeat.wav");
+		}
+
 
 	}
 

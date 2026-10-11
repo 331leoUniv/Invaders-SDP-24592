@@ -128,6 +128,8 @@ public class GameScreen extends Screen {
 		this.gameStartTime = System.currentTimeMillis();
 		this.inputDelay = Core.getCooldown(INPUT_DELAY);
 		this.inputDelay.reset();
+
+		AudioManager.playBGM("audio/bgm/music_game.wav");
 	}
 
 	/**
