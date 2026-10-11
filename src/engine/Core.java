@@ -16,11 +16,12 @@ import campaign.CampaignStageData;
 
 /**
  * Implements core game logic.
- *
+ * 
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- *
+ * 
  */
 public final class Core {
+
 	/** Width of current screen. */
 	private static final int WIDTH = 448;
 	/** Height of current screen. */
@@ -34,7 +35,7 @@ public final class Core {
 	private static final int EXTRA_LIFE_FRECUENCY = 3;
 	/** Total number of levels. */
 	private static final int NUM_LEVELS = 7;
-
+	
 	/** Frame to draw the screen on. */
 	private static Frame frame;
 	/** Screen currently shown. */
@@ -52,7 +53,7 @@ public final class Core {
 
 	/**
 	 * Test implementation.
-	 *
+	 * 
 	 * @param args
 	 *            Program args, ignored.
 	 */
@@ -102,7 +103,7 @@ public final class Core {
 					boolean bonusLife = gameState.getLevel()
 							% EXTRA_LIFE_FRECUENCY == 0
 							&& gameState.getLivesRemaining() < MAX_LIVES;
-
+					
 					currentScreen = new GameScreen(gameState,
 							CampaignStageData.getStageSettings(gameState.getLevel()),
 							bonusLife, width, height, FPS);
@@ -167,7 +168,7 @@ public final class Core {
 
 	/**
 	 * Controls access to the logger.
-	 *
+	 * 
 	 * @return Application logger.
 	 */
 	public static Logger getLogger() {
@@ -176,7 +177,7 @@ public final class Core {
 
 	/**
 	 * Controls access to the drawing manager.
-	 *
+	 * 
 	 * @return Application draw manager.
 	 */
 	public static DrawManager getDrawManager() {
@@ -185,7 +186,7 @@ public final class Core {
 
 	/**
 	 * Controls access to the input manager.
-	 *
+	 * 
 	 * @return Application input manager.
 	 */
 	public static InputManager getInputManager() {
@@ -194,7 +195,7 @@ public final class Core {
 
 	/**
 	 * Controls access to the file manager.
-	 *
+	 * 
 	 * @return Application file manager.
 	 */
 	public static FileManager getFileManager() {
@@ -203,7 +204,7 @@ public final class Core {
 
 	/**
 	 * Controls creation of new cooldowns.
-	 *
+	 * 
 	 * @param milliseconds
 	 *            Duration of the cooldown.
 	 * @return A new cooldown.
@@ -214,7 +215,7 @@ public final class Core {
 
 	/**
 	 * Controls creation of new cooldowns with variance.
-	 *
+	 * 
 	 * @param milliseconds
 	 *            Duration of the cooldown.
 	 * @param variance
