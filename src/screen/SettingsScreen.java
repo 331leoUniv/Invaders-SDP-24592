@@ -10,8 +10,10 @@ public class SettingsScreen extends Screen {
 
     private static final int SELECTION_TIME = 200;
     private static final int AUDIO_OPTION = 0;
-    private static final int BACK_OPTION = 1;
-    private static final int OPTION_COUNT = 2;
+    private static final int CONTROLS_OPTION = 1;
+    private static final int GAMEPLAY_OPTION = 2;
+    private static final int BACK_OPTION = 3;
+    private static final int OPTION_COUNT = 4;
 
     private Cooldown selectionCooldown;
     private int selectedOption;
@@ -40,8 +42,7 @@ public class SettingsScreen extends Screen {
             return;
         }
 
-        if (inputManager.isKeyDown(KeyEvent.VK_UP)
-                || inputManager.isKeyDown(KeyEvent.VK_W)) {
+        if (inputManager.isKeyDown(KeyEvent.VK_UP) || inputManager.isKeyDown(KeyEvent.VK_W)) {
             this.selectedOption =
                     (this.selectedOption - 1 + OPTION_COUNT) % OPTION_COUNT;
             this.selectionCooldown.reset();
@@ -53,7 +54,21 @@ public class SettingsScreen extends Screen {
             this.selectionCooldown.reset();
             AudioManager.playSFX("audio/sfx/menu_move.wav");
         } else if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
-            this.returnCode = this.selectedOption == AUDIO_OPTION ? 5 : 1;
+            switch (this.selectedOption) {
+            case AUDIO_OPTION:
+                this.returnCode = 5;
+                break;
+            case CONTROLS_OPTION:
+                this.returnCode = 6;
+                break;
+            case GAMEPLAY_OPTION:
+                this.returnCode = 7;
+                break;
+            case BACK_OPTION:
+            default:
+                this.returnCode = 1;
+                break;
+            }
             this.isRunning = false;
         } else if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
             this.returnCode = 1;
