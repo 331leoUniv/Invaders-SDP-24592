@@ -1,6 +1,7 @@
 package screen;
 
 import java.awt.event.KeyEvent;
+import audio.AudioManager;
 
 import engine.Cooldown;
 import engine.Core;
@@ -19,6 +20,7 @@ public class TitleScreen extends Screen {
 	/** Time between changes in user selection. */
 	private Cooldown selectionCooldown;
 
+
 	/**
 	 * Constructor, establishes the properties of the screen.
 	 * 
@@ -36,6 +38,7 @@ public class TitleScreen extends Screen {
 		this.returnCode = 2;
 		this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
 		this.selectionCooldown.reset();
+
 	}
 
 	/**
@@ -62,14 +65,18 @@ public class TitleScreen extends Screen {
 					|| inputManager.isKeyDown(KeyEvent.VK_W)) {
 				previousMenuItem();
 				this.selectionCooldown.reset();
+				AudioManager.playSFX("audio/sfx/menu_move.wav");
 			}
 			if (inputManager.isKeyDown(KeyEvent.VK_DOWN)
 					|| inputManager.isKeyDown(KeyEvent.VK_S)) {
 				nextMenuItem();
 				this.selectionCooldown.reset();
+				AudioManager.playSFX("audio/sfx/menu_move.wav");
 			}
-			if (inputManager.isKeyDown(KeyEvent.VK_SPACE))
+			if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
+				AudioManager.playSFX("audio/sfx/menu_select.wav");
 				this.isRunning = false;
+			}
 		}
 	}
 
@@ -108,4 +115,5 @@ public class TitleScreen extends Screen {
 
 		drawManager.completeDrawing(this);
 	}
+
 }
