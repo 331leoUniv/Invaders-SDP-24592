@@ -570,6 +570,25 @@ public final class DrawManager {
 					+ fontBigMetrics.getHeight() / 3);
 	}
 
+	public void drawSettingsMenu(final Screen screen, final int selectedOption) {
+		String[] options = { "Audio", "Back" };
+
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen, "Settings", screen.getHeight() / 5);
+
+		for (int i = 0; i < options.length; i++) {
+			backBufferGraphics.setColor(
+					i == selectedOption ? Color.GREEN : Color.WHITE);
+			drawCenteredRegularString(screen, options[i],
+					screen.getHeight() / 2
+							+ i * fontRegularMetrics.getHeight() * 2);
+		}
+
+		backBufferGraphics.setColor(Color.GRAY);
+		drawCenteredRegularString(screen, "Up/Down: select  Space: confirm",
+				screen.getHeight() / 8 * 7);
+	}
+
 	/**
 	 * Draws the audio settings screen.
 	 *
