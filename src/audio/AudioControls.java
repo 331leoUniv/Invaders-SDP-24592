@@ -121,7 +121,9 @@ public class AudioControls {
     }
 
     /**
-     * Toggles the global mute state.
+     * Toggles the global mute state and saves the new state.
+     * The volume levels are kept, so they come back when unmuted.
+     * The saved state is restored by applySettings the next time the game starts.
      */
     public static void toggleMute() {
         AudioManager.setMuted(!AudioManager.isMuted());
