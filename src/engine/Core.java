@@ -15,6 +15,7 @@ import screen.HighScoreScreen;
 import screen.ScoreScreen;
 import screen.Screen;
 import screen.TitleScreen;
+import screen.SettingsScreen;
 
 /**
  * Implements core game logic.
@@ -176,14 +177,12 @@ public final class Core {
 				LOGGER.info("Closing high score screen.");
 				break;
 			case 4:
-				// Audio settings.
-				currentScreen = new AudioControlScreen(width, height, FPS);
-				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
-						+ " audio settings screen at " + FPS + " fps.");
+				currentScreen = new SettingsScreen(width, height, FPS);
 				returnCode = frame.setScreen(currentScreen);
-				LOGGER.info("Closing audio settings screen.");
 				break;
-			default:
+			case 5:
+				currentScreen = new AudioControlScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
 				break;
 			}
 
