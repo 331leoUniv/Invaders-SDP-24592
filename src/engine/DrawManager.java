@@ -240,7 +240,13 @@ public final class DrawManager {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
 		String scoreString = String.format("%04d", score);
-		backBufferGraphics.drawString(scoreString, screen.getWidth() - 60, 25);
+		String scoreLabel = "SCORE ";
+
+		int scoreX = screen.getWidth() - 60;
+		int labelWidth = backBufferGraphics.getFontMetrics().stringWidth(scoreLabel);
+
+		backBufferGraphics.drawString(scoreLabel, scoreX - labelWidth, 25);
+		backBufferGraphics.drawString(scoreString, scoreX, 25);
 	}
 
 	/**
@@ -555,5 +561,143 @@ public final class DrawManager {
 		else
 			drawCenteredBigString(screen, "GO!", screen.getHeight() / 2
 					+ fontBigMetrics.getHeight() / 3);
+	}
+
+	/**
+	 * Draws the audio settings screen.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param option
+	 *            Option selected.
+	 * @param bgmVolume
+	 *            Current BGM volume, from 0 to 100.
+	 * @param sfxVolume
+	 *            Current SFX volume, from 0 to 100.
+	 * @param muted
+	 *            If the audio is muted.
+	 */
+	public void drawAudioSettings(final Screen screen, final int option,
+			final int bgmVolume, final int sfxVolume, final boolean muted) {
+		String titleString = "Audio Settings";
+		String selectString = "Up/Down: select";
+		String adjustString = "Left/Right: adjust  M: mute";
+		String returnString = "Press Esc to return";
+		// In the order of the options: BGM volume, SFX volume, mute.
+		String[] optionStrings = { "BGM Volume", "SFX Volume", "Mute" };
+		// Values shown on the right side of each option.
+		String[] valueStrings = { Integer.toString(bgmVolume),
+				Integer.toString(sfxVolume), muted ? "ON" : "OFF" };
+		// Volumes shown as bars. Only the volume options have a bar.
+		int[] barVolumes = { bgmVolume, sfxVolume };
+
+		// Centered column that holds the option names, values, and bars.
+		int columnWidth = 200;
+		int columnLeft = screen.getWidth() / 2 - columnWidth / 2;
+		// Vertical position of the first option and the space between options.
+		int firstOptionY = screen.getHeight() / 3;
+		int optionSpacing = fontRegularMetrics.getHeight() * 4;
+		// Mute is the last option.
+		int muteIndex = optionStrings.length - 1;
+		// Space taken by the widest value, so the brackets do not move.
+		int valueRight = columnLeft + columnWidth;
+		int valueLeft = valueRight - fontRegularMetrics.stringWidth("< 100 >");
+		int valueCenter = (valueLeft + valueRight) / 2;
+		// Volume bars are drawn right below the volume names.
+		int barGap = 6;
+		int barHeight = 8;
+
+		// Title.
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen, titleString, screen.getHeight() / 8);
+
+		// Control instructions.
+		backBufferGraphics.setColor(Color.GRAY);
+		drawCenteredRegularString(screen, selectString,
+				screen.getHeight() / 5);
+		drawCenteredRegularString(screen, adjustString,
+				screen.getHeight() / 5 + fontRegularMetrics.getHeight());
+
+		// Options, one row each.
+		backBufferGraphics.setFont(fontRegular);
+		for (int i = 0; i < optionStrings.length; i++) {
+			// The selected option is green and the others are white.
+			if (i == option)
+				backBufferGraphics.setColor(Color.GREEN);
+			else
+				backBufferGraphics.setColor(Color.WHITE);
+			// Option name on the left edge of the column.
+			backBufferGraphics.drawString(optionStrings[i], columnLeft,
+					firstOptionY + optionSpacing * i);
+			// Value centered in the value space.
+			backBufferGraphics.drawString(valueStrings[i], valueCenter
+					- fontRegularMetrics.stringWidth(valueStrings[i]) / 2,
+					firstOptionY + optionSpacing * i);
+			// Brackets at fixed positions around the volume values, to show
+			// that they can be changed with Left and Right.
+			if (i != muteIndex) {
+				backBufferGraphics.drawString("<", valueLeft,
+						firstOptionY + optionSpacing * i);
+				backBufferGraphics.drawString(">", valueRight
+						- fontRegularMetrics.stringWidth(">"),
+						firstOptionY + optionSpacing * i);
+			}
+			// Strike through the volume numbers while muted.
+			if (muted && i != muteIndex) {
+				int numberWidth = fontRegularMetrics
+						.stringWidth(valueStrings[i]);
+				backBufferGraphics.fillRect(valueCenter - numberWidth / 2 - 2,
+						firstOptionY + optionSpacing * i
+								- fontRegularMetrics.getAscent() / 2,
+						numberWidth + 4, 2);
+			}
+			// Volume bar below the volume names, gray while muted.
+			if (i < barVolumes.length) {
+				Color barColor;
+				if (muted)
+					barColor = Color.GRAY;
+				else if (i == option)
+					barColor = Color.GREEN;
+				else
+					barColor = Color.WHITE;
+				drawVolumeBar(columnLeft,
+						firstOptionY + optionSpacing * i + barGap,
+						columnWidth, barHeight, barVolumes[i], barColor);
+			}
+		}
+
+		// Return instruction near the bottom.
+		backBufferGraphics.setColor(Color.GRAY);
+		drawCenteredRegularString(screen, returnString,
+				screen.getHeight() / 8 * 7);
+	}
+
+	/**
+	 * Draws a horizontal volume bar.
+	 * The whole bar is drawn in dark gray, and the part up to the volume is
+	 * filled with the given color.
+	 *
+	 * @param positionX
+	 *            Left edge of the bar.
+	 * @param positionY
+	 *            Top edge of the bar.
+	 * @param width
+	 *            Width of the bar at volume 100.
+	 * @param height
+	 *            Height of the bar.
+	 * @param volume
+	 *            Volume to show, from 0 to 100.
+	 * @param color
+	 *            Color of the filled part.
+	 */
+	private void drawVolumeBar(final int positionX, final int positionY,
+			final int width, final int height, final int volume,
+			final Color color) {
+		backBufferGraphics.setColor(Color.DARK_GRAY);
+		backBufferGraphics.fillRect(positionX, positionY, width, height);
+
+		backBufferGraphics.setColor(color);
+		backBufferGraphics.fillRect(positionX, positionY,
+				width * volume / 100, height);
 	}
 }
