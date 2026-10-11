@@ -56,11 +56,24 @@ public class AudioControlScreen extends Screen {
 	public AudioControlScreen(final int width, final int height, final int fps) {
 		super(width, height, fps);
 
+		// Returns to the main menu when closed.
+		this.returnCode = 1;
 		this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
 		this.selectionCooldown.reset();
 
 		// Defaults to the BGM volume.
 		this.selectedOption = BGM_VOLUME_OPTION;
+	}
+
+	/**
+	 * Starts the action.
+	 *
+	 * @return Next screen code.
+	 */
+	public final int run() {
+		super.run();
+
+		return this.returnCode;
 	}
 
 	/**
