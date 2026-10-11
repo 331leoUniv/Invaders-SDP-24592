@@ -170,6 +170,3 @@ log*
 *.ttf
 !res/font.ttf
 .checkstyle
-out/
-.idea/
-*.iml
