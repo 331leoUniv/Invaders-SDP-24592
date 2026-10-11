@@ -42,7 +42,18 @@ public class SettingsScreen extends Screen {
             return;
         }
 
-        if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
+        if (inputManager.isKeyDown(KeyEvent.VK_UP) || inputManager.isKeyDown(KeyEvent.VK_W)) {
+            this.selectedOption =
+                    (this.selectedOption - 1 + OPTION_COUNT) % OPTION_COUNT;
+            this.selectionCooldown.reset();
+            AudioManager.playSFX("audio/sfx/menu_move.wav");
+        } else if (inputManager.isKeyDown(KeyEvent.VK_DOWN)
+                || inputManager.isKeyDown(KeyEvent.VK_S)) {
+            this.selectedOption =
+                    (this.selectedOption + 1) % OPTION_COUNT;
+            this.selectionCooldown.reset();
+            AudioManager.playSFX("audio/sfx/menu_move.wav");
+        } else if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
             switch (this.selectedOption) {
             case AUDIO_OPTION:
                 this.returnCode = 5;
@@ -53,10 +64,14 @@ public class SettingsScreen extends Screen {
             case GAMEPLAY_OPTION:
                 this.returnCode = 7;
                 break;
+            case BACK_OPTION:
             default:
                 this.returnCode = 1;
                 break;
             }
+            this.isRunning = false;
+        } else if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
+            this.returnCode = 1;
             this.isRunning = false;
         }
     }

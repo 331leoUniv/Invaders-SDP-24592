@@ -102,11 +102,16 @@ public class ControlsSettingsScreen extends Screen {
         this.waitingForKeyRelease = inputManager.isKeyDown(keyCode);
         this.selectionCooldown.reset();
 
-        // Escape cancels the rebinding operation.
-        if (keyCode != KeyEvent.VK_ESCAPE) {
-            ControlsConfig.setKey(this.selectedOption, keyCode);
-            AudioManager.playSFX("audio/sfx/menu_select.wav");
+        if (keyCode == KeyEvent.VK_ESCAPE) {
+            return;
         }
+        if (isKeyAssignedToAnotherAction(keyCode)) {
+            AudioManager.playSFX("audio/sfx/menu_back.wav");
+            return;
+        }
+
+        ControlsConfig.setKey(this.selectedOption, keyCode);
+        AudioManager.playSFX("audio/sfx/menu_select.wav");
     }
 
     private void draw() {
@@ -115,4 +120,13 @@ public class ControlsSettingsScreen extends Screen {
                 this.waitingForKey);
         drawManager.completeDrawing(this);
     }
+
+    private boolean isKeyAssignedToAnotherAction(final int keyCode) {
+    return (this.selectedOption != LEFT_OPTION
+            && ControlsConfig.getKey(ControlsConfig.LEFT) == keyCode)
+            || (this.selectedOption != RIGHT_OPTION
+                    && ControlsConfig.getKey(ControlsConfig.RIGHT) == keyCode)
+            || (this.selectedOption != FIRE_OPTION
+                    && ControlsConfig.getKey(ControlsConfig.FIRE) == keyCode);
+}
 }
