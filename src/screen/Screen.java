@@ -106,6 +106,13 @@ public class Screen {
 	}
 
 	/**
+	 * Toggles the mute state when the M key is pressed.
+	 */
+	private void handleMuteKey() {
+
+	}
+
+	/**
 	 * Getter for screen width.
 	 * 
 	 * @return Screen width.
