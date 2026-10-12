@@ -450,6 +450,25 @@ public final class DrawManager {
 	}
 
 	/**
+	 * Draws which stage was failed, right below the game over title.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param stage
+	 *            Number of the stage that was failed.
+	 * @param isNewRecord
+	 *            If the score is a new high score (changes the layout).
+	 */
+	public void drawStageFailed(final Screen screen, final int stage,
+			final boolean isNewRecord) {
+		int height = isNewRecord ? 4 : 2;
+
+		backBufferGraphics.setColor(Color.RED);
+		drawCenteredRegularString(screen, "Stage " + stage + " Failed",
+				screen.getHeight() / height - fontBigMetrics.getHeight());
+	}
+
+	/**
 	 * Draws high score screen title and instructions.
 	 * 
 	 * @param screen
