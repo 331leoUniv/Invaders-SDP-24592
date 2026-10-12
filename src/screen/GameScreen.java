@@ -15,7 +15,7 @@ import entity.EnemyShipFormation;
 import entity.Entity;
 import entity.Ship;
 import audio.AudioManager;
-import entity.OrbitalAnnihilator;
+import entity.item.OrbitalAnnihilator;
 
 /**
  * Implements the game screen, where the action happens.

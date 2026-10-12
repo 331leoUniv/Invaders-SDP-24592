@@ -1,4 +1,8 @@
-package entity;
+package entity.item;
+
+import entity.Entity;
+import entity.Ship;
+
 /**
  * Orbital Annihilator (Doomsday Laser).
  *
