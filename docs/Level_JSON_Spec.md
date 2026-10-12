@@ -9,10 +9,13 @@ contract:
 
 1. Does a rectangular cell grid with mixed enemy types and explicit empty cells
    cover the planned formations, or are arbitrary coordinates also needed?
-2. Should `mode` belong in a stage file, or should gameplay select the mode so
-   the same wave data can be reused across modes? Is classic mode retained?
-3. Which shared Java data classes and reader/writer interfaces should import,
-   export, and the campaign/wave controller use? Who owns their implementation?
+2. Review proposal: remove `mode` from the stage file and let gameplay select
+   it, keeping wave data reusable for Endless mode. Confirm this with the mode
+   owners; the sample retains `mode` until that decision is agreed. Is classic
+   mode retained?
+3. Review proposal: share `LevelDefinition`, `WaveDefinition`, and `EnemyCell`
+   through `LevelReader` / `LevelWriter` interfaces. Confirm their package,
+   signatures, implementation owners, and connection to the campaign controller.
 4. What limits fit the planned stages and gameplay geometry? Suggested limits
    below are review proposals, not agreed validation rules.
 5. Should unknown fields be rejected? Agree on compatibility behavior together
@@ -72,7 +75,7 @@ All fields below are required. No implicit defaults are applied.
 | `waves[].formation` | Object | One rectangular grid; cells may be empty. |
 | `waves[].formation.grid` | Array of arrays | At least one row and column, with equal row lengths; at least one occupied cell per wave. |
 | `waves[].formation.grid[][]` | Object or null | An enemy definition, or `null` for an empty cell. |
-| `waves[].formation.grid[][].enemyType` | String | Required on occupied cells: `A`, `B`, or `C`; logical enemy type, not an animation sprite name. |
+| `waves[].formation.grid[][].enemyType` | String | Required on occupied cells: proposed logical enemy identifier. The sample uses provisional `A` / `B` / `C`; final identifiers and supported values require cross-team agreement. |
 | `waves[].formation.grid[][].health` | Integer | Required on occupied cells: positive initial hit points for that enemy. The baseline sample uses `1`. |
 | `waves[].movementBaseFrames` | Integer | Nonnegative; maps to the existing `GameSettings.baseSpeed` parameter. See movement semantics below. |
 | `waves[].shootingIntervalMs` | Integer | Positive nominal interval between formation shots in milliseconds. |
@@ -86,9 +89,9 @@ table and must not silently become importer validation rules before agreement.
 | --- | --- | --- |
 | Stage/wave ID | At most 64 characters | Convenience limit without a confirmed requirement. |
 | Display name | At most 100 characters | Confirm against the eventual UI. |
-| Waves per stage | At most 100 | Confirm against planned campaign content. |
-| Formation | At most 10 columns and 8 rows | Fits the current initial placement, spacing, and enemy dimensions; recheck gameplay geometry. |
-| Enemy health | At most 100 | Balance limit without an agreed enemy-health design. |
+| Waves per stage | At most 10 | Reviewer proposal replacing 100; confirm against planned campaign content. |
+| Formation | At most 8 columns and 7 rows | Reviewer proposal matching the current largest stage; the earlier 10 × 8 proposal leaves little movement room. Confirm with gameplay owners. |
+| Enemy health | At most 10 | Reviewer proposal replacing 100 pending an agreed balance and enemy-health design. |
 | `movementBaseFrames` | At most 600 | Confirm intended movement timing and Java numeric safety. |
 | `shootingIntervalMs` | 100–60000 | Confirm intended firing rates and cooldown numeric safety. |
 
@@ -124,6 +127,40 @@ The grid expresses mixed and sparse formations at the existing regular spacing.
 Arbitrary pixel coordinates and per-cell spacing are outside this proposal.
 The special bonus ship remains governed by gameplay code.
 
+## Enemy identifiers — cross-team agreement required
+
+`enemyType` is a proposed JSON field, not an existing shared project identifier.
+The sample labels `A`, `B`, and `C` refer to the existing `EnemyShipA1/A2`,
+`EnemyShipB1/B2`, and `EnemyShipC1/C2` sprite families; the suffixes identify
+animation frames. This is an illustrative mapping, not a final enemy registry.
+
+The Player & Enemy Ship Variety team (KimchiBaguette) explicitly lists level
+integration for spawning new enemy types and mini-bosses in
+`teams/KimchiBaguette.md`. Before merging the contract, the wave developers and
+that team must agree on logical identifiers, supported enemy definitions, and
+the spawning interface. Do not constrain their future implementation to A/B/C
+or assume a sprite name alone defines an enemy's behavior. Also agree on whether
+per-cell health overrides are supported by their enemy model.
+
+Unknown enemy identifiers must be validated against the agreed registry when
+implemented. The sample's provisional values are not that registry.
+
+## Proposed shared Java contract — pending team discussion
+
+| Name | Proposed responsibility |
+| --- | --- |
+| `LevelDefinition` | Store stage identity, display name, and ordered waves; mode membership remains under review. |
+| `WaveDefinition` | Store wave identity, cell grid, and movement/shooting parameters. |
+| `EnemyCell` | Store one occupied cell's logical enemy identifier and health; a null grid entry preserves an empty cell. |
+| `LevelReader` | Read and validate a file into the agreed level definition. |
+| `LevelWriter` | Write the agreed level definition while preserving wave order and grid positions. |
+
+These names are reviewer suggestions, not implemented classes or agreed method
+signatures. Confirm the package and interaction with the existing
+`campaign.CampaignStageData` before implementation. Reader/writer code handles
+conversion; gameplay owns applying definitions and stage/wave transitions.
+Assign those owners and agree on success/error handling at the team meeting.
+
 ## Existing code mapping and required integration
 
 | JSON data | Current code connection |
@@ -154,8 +191,10 @@ without exposing the misleading name `baseSpeed` in the file.
 rate. Existing code adds a variation of 20 percent. The format does not override
 the game's movement step size, bullet speed, or shooting variation.
 
-The sample's first wave reproduces the current first stage's grid, row types,
-and difficulty values. Both sample waves use health `1`, matching the current
+The sample's first wave reproduces the current first stage's 5-column,
+4-row formation with row types **C, B, B, A** and its difficulty values.
+`EnemyShipFormation` selects C when the row ratio is below 0.2 and B below
+0.6; row index 2 of 4 has ratio 0.5, so it is B, not A. Both sample waves use health `1`, matching the current
 one-hit enemy behavior. The second wave demonstrates mixed enemy types, empty
 cells, an entirely empty column, and an entirely empty row. These layouts and
 multi-wave progression require gameplay integration before the complete sample
@@ -175,8 +214,8 @@ it is not included in the baseline sample or claimed as current game support.
 - Validate the entire file before applying any data. On failure, keep the
   previously loaded level unchanged and report the failing field or parse error.
 - Keep stage and wave IDs, array order, and all null cell positions when
-  exporting. Use two-space indentation and a final newline for readable diffs. Object key order is not
-  semantically significant.
+  exporting. Use two-space indentation and a final newline for readable diffs.
+  Object key order is not semantically significant.
 - Importing an exported valid definition must preserve its supported values.
   Formatting of the input text does not need to be preserved.
 - File selection, paths, overwrite prompts, and application to the game belong

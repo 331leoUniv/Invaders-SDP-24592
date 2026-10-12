@@ -54,23 +54,23 @@
           ],
           [
             {
-              "enemyType": "A",
+              "enemyType": "B",
               "health": 1
             },
             {
-              "enemyType": "A",
+              "enemyType": "B",
               "health": 1
             },
             {
-              "enemyType": "A",
+              "enemyType": "B",
               "health": 1
             },
             {
-              "enemyType": "A",
+              "enemyType": "B",
               "health": 1
             },
             {
-              "enemyType": "A",
+              "enemyType": "B",
               "health": 1
             }
           ],
