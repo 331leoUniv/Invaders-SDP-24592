@@ -556,4 +556,23 @@ public final class DrawManager {
 			drawCenteredBigString(screen, "GO!", screen.getHeight() / 2
 					+ fontBigMetrics.getHeight() / 3);
 	}
+
+
+
+	
+public void drawDifficultyMenu(final Screen screen, final int option) {
+    String[] labels = { "Easy", "Normal", "Hard" };
+
+    backBufferGraphics.setFont(fontBig);
+    backBufferGraphics.setColor(Color.GREEN);
+    drawCenteredBigString(screen, "Difficulty", screen.getHeight() / 3);
+
+    backBufferGraphics.setFont(fontRegular);
+    for (int i = 0; i < labels.length; i++) {
+        backBufferGraphics.setColor(i == option ? Color.GREEN : Color.WHITE);
+        drawCenteredRegularString(screen, labels[i],
+                screen.getHeight() / 3 + 60 + i * 40);
+    }
 }
+}
+

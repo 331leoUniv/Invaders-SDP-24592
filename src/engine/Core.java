@@ -13,6 +13,7 @@ import screen.HighScoreScreen;
 import screen.ScoreScreen;
 import screen.Screen;
 import screen.TitleScreen;
+import screen.DifficultyScreen;
 
 /**
  * Implements core game logic.
@@ -113,6 +114,7 @@ public final class Core {
 		gameSettings.add(SETTINGS_LEVEL_7);
 		
 		GameState gameState;
+		int startLevel = 1;
 
 		int returnCode = 1;
 		do {
@@ -126,6 +128,9 @@ public final class Core {
 						+ " title screen at " + FPS + " fps.");
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing title screen.");
+
+				if (returnCode == 2)    
+                    returnCode = 4; 
 				break;
 			case 2:
 				// Game & score.
@@ -174,6 +179,14 @@ public final class Core {
 				break;
 			default:
 				break;
+
+			case 4:
+                currentScreen = new DifficultyScreen(WIDTH, HEIGHT, FPS);
+                returnCode = frame.setScreen(currentScreen);
+                if (returnCode == 2)
+                    startLevel = ((DifficultyScreen) currentScreen)
+                    .getSelectedDifficulty() * 3 + 1;
+                break;
 			}
 
 		} while (returnCode != 0);
