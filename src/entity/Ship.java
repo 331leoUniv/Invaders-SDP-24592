@@ -27,6 +27,8 @@ public class Ship extends Entity {
 	/** Time spent inactive between hits. */
 	private Cooldown destructionCooldown;
 
+    private boolean isShieldActive = false;
+
 	/**
 	 * Constructor, establishes the ship's properties.
 	 * 
@@ -110,4 +112,12 @@ public class Ship extends Entity {
 	public final int getSpeed() {
 		return SPEED;
 	}
+    public boolean isShieldActive() {
+        return this.isShieldActive;
+    }
+
+    public void setShieldActive(final boolean active) {
+        this.isShieldActive = active;
+    }
 }
+

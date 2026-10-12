@@ -766,4 +766,25 @@ public final class DrawManager {
 		backBufferGraphics.fillRect(positionX, positionY,
 				width * volume / 100, height);
 	}
+    /**
+     * Dessine un bouclier protecteur autour du vaisseau.
+     *
+     * @param screen Écran de jeu cible.
+     * @param ship Vaisseau à entourer.
+     */
+    public void drawShield(final Screen screen, final entity.Ship ship) {
+        backBufferGraphics.setColor(new java.awt.Color(0, 200, 255, 120)); // Cyan semi-transparent
+        int padding = 4;
+        int x = ship.getPositionX() - padding;
+        int y = ship.getPositionY() - padding;
+        int width = ship.getWidth() + (padding * 2);
+        int height = ship.getHeight() + (padding * 2);
+
+        // Dessine l'intérieur lumineux du bouclier
+        backBufferGraphics.fillOval(x, y, width, height);
+
+        // Dessine le contour plus net du bouclier
+        backBufferGraphics.setColor(java.awt.Color.CYAN);
+        backBufferGraphics.drawOval(x, y, width, height);
+    }
 }

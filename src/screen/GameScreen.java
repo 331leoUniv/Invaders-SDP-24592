@@ -3,7 +3,8 @@ package screen;
 import java.awt.event.KeyEvent;
 import java.util.HashSet;
 import java.util.Set;
-
+import entity.item.ItemManager;
+import entity.item.ShieldItem;
 import engine.Cooldown;
 import engine.Core;
 import engine.GameSettings;
@@ -16,6 +17,7 @@ import entity.Entity;
 import entity.Ship;
 import audio.AudioManager;
 import entity.item.OrbitalAnnihilator;
+
 
 /**
  * Implements the game screen, where the action happens.
@@ -41,7 +43,7 @@ public class GameScreen extends Screen {
 	private static final int SEPARATION_LINE_HEIGHT = 40;
 	/** Time the space key must be held to trigger the Annihilator. */
 	private static final int ANNIHILATOR_HOLD_TIME = 1000;
-
+    private ItemManager itemManager;
 	/** Current game difficulty settings. */
 	private GameSettings gameSettings;
 	/** Current difficulty level number. */
@@ -124,6 +126,8 @@ public class GameScreen extends Screen {
 		enemyShipFormation = new EnemyShipFormation(this.gameSettings);
 		enemyShipFormation.attach(this);
 		this.ship = new Ship(this.width / 2, this.height - 30);
+        this.itemManager = new ItemManager(this.height);
+        this.itemManager.spawnItem(new entity.item.ShieldItem(this.width / 2, 70));
 		// Appears each 10-30 seconds.
 		this.enemyShipSpecialCooldown = Core.getVariableCooldown(
 				BONUS_SHIP_INTERVAL, BONUS_SHIP_VARIANCE);
@@ -234,7 +238,8 @@ public class GameScreen extends Screen {
 			this.enemyShipFormation.update();
 			this.enemyShipFormation.shoot(this.bullets);
 		}
-
+        this.itemManager.update(this.ship);
+        this.itemManager.checkCollisions(this.ship);
 		manageCollisions();
 		if (this.annihilator.isFiring())
 			manageAnnihilatorBeam();
@@ -273,6 +278,9 @@ public class GameScreen extends Screen {
 
 		drawManager.drawEntity(this.ship, this.ship.getPositionX(),
 				this.ship.getPositionY());
+        if (this.ship.isShieldActive() && !this.ship.isDestroyed()) {
+            drawManager.drawShield(this, this.ship);
+        }
 		if (this.enemyShipSpecial != null)
 			drawManager.drawEntity(this.enemyShipSpecial,
 					this.enemyShipSpecial.getPositionX(),
@@ -283,7 +291,7 @@ public class GameScreen extends Screen {
 		for (Bullet bullet : this.bullets)
 			drawManager.drawEntity(bullet, bullet.getPositionX(),
 					bullet.getPositionY());
-
+        this.itemManager.draw(this.drawManager);
 		// Interface.
 		drawManager.drawScore(this, this.score);
 		drawManager.drawLives(this, this.lives);
@@ -331,15 +339,22 @@ public class GameScreen extends Screen {
 		Set<Bullet> recyclable = new HashSet<Bullet>();
 		for (Bullet bullet : this.bullets)
 			if (bullet.getSpeed() > 0) {
-				if (checkCollision(bullet, this.ship) && !this.levelFinished) {
-					recyclable.add(bullet);
-					if (!this.ship.isDestroyed()) {
-						this.ship.destroy();
-						this.lives--;
-						this.logger.info("Hit on player ship, " + this.lives
-								+ " lives remaining.");
-					}
-				}
+                if (checkCollision(bullet, this.ship) && !this.levelFinished) {
+                    recyclable.add(bullet);
+                    if (!this.ship.isDestroyed()) {
+                        if (this.ship.isShieldActive()) {
+                            // Le bouclier absorbe l'impact : le tir est détruit mais le joueur survit
+                            this.logger.info("Enemy shot absorbed by Energy Shield.");
+                        } else {
+                            // Comportement standard : perte d'une vie et annulation des buffs actifs
+                            this.ship.destroy();
+                            this.lives--;
+                            this.itemManager.getBuffManager().resetAllBuffs(this.ship);
+                            this.logger.info("Hit on player ship, " + this.lives
+                                    + " lives remaining.");
+                        }
+                    }
+                }
 			} else {
 				for (EnemyShip enemyShip : this.enemyShipFormation)
 					if (!enemyShip.isDestroyed()
