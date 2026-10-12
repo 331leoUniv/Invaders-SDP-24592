@@ -67,6 +67,8 @@ public class GameScreen extends Screen {
 	private int shipsDestroyed;
 	/** Moment the game starts. */
 	private long gameStartTime;
+	/** Checks if the stage was cleared. */
+	private boolean stageCleared;
 	/** Checks if the level is finished. */
 	private boolean levelFinished;
 	/** Checks if a bonus life is received. */
@@ -341,6 +343,15 @@ public class GameScreen extends Screen {
 		int distanceY = Math.abs(centerAY - centerBY);
 
 		return distanceX < maxDistanceX && distanceY < maxDistanceY;
+	}
+
+	/**
+	 * Checks if the stage was cleared.
+	 *
+	 * @return True if all enemies were defeated with the ship alive.
+	 */
+	public final boolean isStageCleared() {
+		return this.stageCleared;
 	}
 
 	/**
