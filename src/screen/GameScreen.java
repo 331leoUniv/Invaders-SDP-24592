@@ -15,6 +15,7 @@ import entity.EnemyShipFormation;
 import entity.Entity;
 import entity.Ship;
 import audio.AudioManager;
+import entity.OrbitalAnnihilator;
 
 /**
  * Implements the game screen, where the action happens.
@@ -38,6 +39,8 @@ public class GameScreen extends Screen {
 	private static final int SCREEN_CHANGE_INTERVAL = 1500;
 	/** Height of the interface separation line. */
 	private static final int SEPARATION_LINE_HEIGHT = 40;
+	/** Time the space key must be held to trigger the Annihilator. */
+	private static final int ANNIHILATOR_HOLD_TIME = 1000;
 
 	/** Current game difficulty settings. */
 	private GameSettings gameSettings;
@@ -71,6 +74,10 @@ public class GameScreen extends Screen {
 	private boolean levelFinished;
 	/** Checks if a bonus life is received. */
 	private boolean bonusLife;
+	/** Orbital Annihilator (Doomsday Laser), only available on level 7. */
+	private OrbitalAnnihilator annihilator;
+	/** Moment the space key started being held, 0 if not held. */
+	private long spaceHeldSince;
 	/** Last countdown number that played a sound. */
 	private int lastCountdown = -1;
 
@@ -81,7 +88,7 @@ public class GameScreen extends Screen {
 	 *            Current game state.
 	 * @param gameSettings
 	 *            Current game settings.
-	 * @param bonnusLife
+	 * @param bonusLife
 	 *            Checks if a bonus life is awarded this level.
 	 * @param width
 	 *            Screen width.
@@ -123,6 +130,7 @@ public class GameScreen extends Screen {
 				.getCooldown(BONUS_SHIP_EXPLOSION);
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
 		this.bullets = new HashSet<Bullet>();
+		this.annihilator = new OrbitalAnnihilator();
 
 		// Special input delay / countdown.
 		this.gameStartTime = System.currentTimeMillis();
@@ -172,6 +180,30 @@ public class GameScreen extends Screen {
 				if (inputManager.isKeyDown(KeyEvent.VK_SPACE))
 					if (this.ship.shoot(this.bullets))
 						this.bulletsShot++;
+				// Orbital Annihilator: key E, level 7 only.
+				if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
+					// Normal shooting, except while the beam charges.
+					if (!this.annihilator.isCharging())
+						if (this.ship.shoot(this.bullets))
+							this.bulletsShot++;
+
+					// The hold only counts once the item is fully recharged.
+					if (!this.annihilator.isReady())
+						this.spaceHeldSince = 0;
+					else if (this.spaceHeldSince == 0)
+						this.spaceHeldSince = System.currentTimeMillis();
+					if (this.spaceHeldSince != 0
+							&& this.level == OrbitalAnnihilator.REQUIRED_LEVEL
+							&& System.currentTimeMillis()
+							- this.spaceHeldSince >= ANNIHILATOR_HOLD_TIME)
+						this.annihilator.trigger();
+				} else {
+					this.spaceHeldSince = 0;
+				}
+			} else {
+				// Hit while charging: the charge is lost.
+				this.annihilator.cancelCharge();
+				this.spaceHeldSince = 0;
 			}
 
 			if (this.enemyShipSpecial != null) {
@@ -194,11 +226,14 @@ public class GameScreen extends Screen {
 			}
 
 			this.ship.update();
+			this.annihilator.update();
 			this.enemyShipFormation.update();
 			this.enemyShipFormation.shoot(this.bullets);
 		}
 
 		manageCollisions();
+		if (this.annihilator.isFiring())
+			manageAnnihilatorBeam();
 		cleanBullets();
 		draw();
 
@@ -218,6 +253,11 @@ public class GameScreen extends Screen {
 	 */
 	private void draw() {
 		drawManager.initDrawing(this);
+		if (this.annihilator.isCharging() || this.annihilator.isFiring())
+			drawManager.drawOrbitalAnnihilator(this.ship,
+					OrbitalAnnihilator.BEAM_WIDTH, SEPARATION_LINE_HEIGHT,
+					this.annihilator.isFiring(),
+					this.annihilator.getChargeProgress());
 
 		drawManager.drawEntity(this.ship, this.ship.getPositionX(),
 				this.ship.getPositionY());
@@ -235,6 +275,9 @@ public class GameScreen extends Screen {
 		// Interface.
 		drawManager.drawScore(this, this.score);
 		drawManager.drawLives(this, this.lives);
+		if (this.level == OrbitalAnnihilator.REQUIRED_LEVEL)
+			drawManager.drawAnnihilatorGauge(this,
+					this.annihilator.getRechargeProgress());
 		drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
 
 		// Countdown to game start.
@@ -307,7 +350,36 @@ public class GameScreen extends Screen {
 		this.bullets.removeAll(recyclable);
 		BulletPool.recycle(recyclable);
 	}
+	/**
+	 * Applies the Orbital Annihilator beam: destroys every enemy in the
+	 * corridor and neutralizes enemy projectiles inside it.
+	 */
+	private void manageAnnihilatorBeam() {
+		for (EnemyShip enemyShip : this.enemyShipFormation)
+			if (!enemyShip.isDestroyed()
+					&& OrbitalAnnihilator.hits(this.ship, enemyShip)) {
+				this.score += enemyShip.getPointValue();
+				this.shipsDestroyed++;
+				this.enemyShipFormation.destroy(enemyShip);
+			}
 
+		if (this.enemyShipSpecial != null
+				&& !this.enemyShipSpecial.isDestroyed()
+				&& OrbitalAnnihilator.hits(this.ship, this.enemyShipSpecial)) {
+			this.score += this.enemyShipSpecial.getPointValue();
+			this.shipsDestroyed++;
+			this.enemyShipSpecial.destroy();
+			this.enemyShipSpecialExplosionCooldown.reset();
+		}
+
+		Set<Bullet> neutralized = new HashSet<Bullet>();
+		for (Bullet bullet : this.bullets)
+			if (bullet.getSpeed() > 0
+					&& OrbitalAnnihilator.hits(this.ship, bullet))
+				neutralized.add(bullet);
+		this.bullets.removeAll(neutralized);
+		BulletPool.recycle(neutralized);
+	}
 	/**
 	 * Checks if two entities are colliding.
 	 * 
