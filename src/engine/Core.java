@@ -7,6 +7,7 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import audio.AudioControls;
 import screen.GameScreen;
 import screen.HighScoreScreen;
 import screen.ScoreScreen;
@@ -33,8 +34,6 @@ public final class Core {
 	private static final int MAX_LIVES = 3;
 	/** Levels between extra life. */
 	private static final int EXTRA_LIFE_FRECUENCY = 3;
-	/** Total number of levels. */
-	private static final int NUM_LEVELS = 7;
 	
 	/** Frame to draw the screen on. */
 	private static Frame frame;
@@ -75,6 +74,7 @@ public final class Core {
 			// TODO handle exception
 			e.printStackTrace();
 		}
+		AudioControls.applySettings();
 
 		frame = new Frame(WIDTH, HEIGHT);
 		DrawManager.getInstance().setFrame(frame);
@@ -128,7 +128,7 @@ public final class Core {
 							gameState.getShipsDestroyed());
 
 				} while (gameState.getLivesRemaining() > 0
-						&& gameState.getLevel() <= NUM_LEVELS);
+						&& gameState.getLevel() <= CampaignStageData.getTotalStages());
 
 				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
 						+ " score screen at " + FPS + " fps, with a score of "

@@ -9,6 +9,7 @@ import engine.Cooldown;
 import engine.Core;
 import engine.GameState;
 import engine.Score;
+import audio.AudioManager;
 
 /**
  * Implements the score screen.
@@ -88,6 +89,8 @@ public class ScoreScreen extends Screen {
 		} catch (IOException e) {
 			logger.warning("Couldn't load high scores!");
 		}
+
+
 	}
 
 	/**
@@ -111,12 +114,14 @@ public class ScoreScreen extends Screen {
 		if (this.inputDelay.checkFinished()) {
 			if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
 				// Return to main menu.
+				AudioManager.playSFX("audio/sfx/menu_back.wav");
 				this.returnCode = 1;
 				this.isRunning = false;
 				if (this.isNewRecord)
 					saveScore();
 			} else if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
 				// Play again.
+				AudioManager.playSFX("audio/sfx/menu_select.wav");
 				this.returnCode = 2;
 				this.isRunning = false;
 				if (this.isNewRecord)
@@ -128,11 +133,13 @@ public class ScoreScreen extends Screen {
 					this.nameCharSelected = this.nameCharSelected == 2 ? 0
 							: this.nameCharSelected + 1;
 					this.selectionCooldown.reset();
+					AudioManager.playSFX("audio/sfx/name_cursor_move.wav");
 				}
 				if (inputManager.isKeyDown(KeyEvent.VK_LEFT)) {
 					this.nameCharSelected = this.nameCharSelected == 0 ? 2
 							: this.nameCharSelected - 1;
 					this.selectionCooldown.reset();
+					AudioManager.playSFX("audio/sfx/name_cursor_move.wav");
 				}
 				if (inputManager.isKeyDown(KeyEvent.VK_UP)) {
 					this.name[this.nameCharSelected] =
@@ -140,6 +147,7 @@ public class ScoreScreen extends Screen {
 									== LAST_CHAR ? FIRST_CHAR
 							: this.name[this.nameCharSelected] + 1);
 					this.selectionCooldown.reset();
+					AudioManager.playSFX("audio/sfx/name_char_change.wav");
 				}
 				if (inputManager.isKeyDown(KeyEvent.VK_DOWN)) {
 					this.name[this.nameCharSelected] =
@@ -147,6 +155,7 @@ public class ScoreScreen extends Screen {
 									== FIRST_CHAR ? LAST_CHAR
 							: this.name[this.nameCharSelected] - 1);
 					this.selectionCooldown.reset();
+					AudioManager.playSFX("audio/sfx/name_char_change.wav");
 				}
 			}
 		}
@@ -188,4 +197,5 @@ public class ScoreScreen extends Screen {
 
 		drawManager.completeDrawing(this);
 	}
+
 }
