@@ -1,6 +1,5 @@
 package engine;
 
-import java.util.List;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -8,12 +7,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import audio.AudioControls;
+import screen.AudioControlScreen;
 import screen.GameScreen;
 import screen.HighScoreScreen;
 import screen.ScoreScreen;
 import screen.Screen;
 import screen.TitleScreen;
 import campaign.CampaignStageData;
+import screen.SettingsScreen;
+import screen.ControlsSettingsScreen;
+import screen.GameplaySettingsScreen;
 
 /**
  * Implements core game logic.
@@ -39,8 +42,6 @@ public final class Core {
 	private static Frame frame;
 	/** Screen currently shown. */
 	private static Screen currentScreen;
-	/** Difficulty settings list. */
-	private static List<GameSettings> gameSettings;
 	/** Application logger. */
 	private static final Logger LOGGER = Logger.getLogger(Core.class
 			.getSimpleName());
@@ -105,7 +106,8 @@ public final class Core {
 							&& gameState.getLivesRemaining() < MAX_LIVES;
 					
 					currentScreen = new GameScreen(gameState,
-							CampaignStageData.getStageSettings(gameState.getLevel()),
+							applyDifficulty(CampaignStageData
+									.getStageSettings(gameState.getLevel())),
 							bonusLife, width, height, FPS);
 					LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
 							+ " game screen at " + FPS + " fps.");
@@ -148,7 +150,21 @@ public final class Core {
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing high score screen.");
 				break;
-			default:
+			case 4:
+				currentScreen = new SettingsScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
+				break;
+			case 5:
+				currentScreen = new AudioControlScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
+				break;
+			case 6:
+				currentScreen = new ControlsSettingsScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
+				break;
+			case 7:
+				currentScreen = new GameplaySettingsScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
 				break;
 			}
 
@@ -157,6 +173,20 @@ public final class Core {
 		fileHandler.flush();
 		fileHandler.close();
 		System.exit(0);
+	}
+
+	private static GameSettings applyDifficulty(
+			final GameSettings stageSettings) {
+		double multiplier = GameplayConfig.getMultiplier();
+		int movementInterval = Math.max(1,
+				(int) Math.round(stageSettings.getBaseSpeed() * multiplier));
+		int shootingInterval = Math.max(250,
+				(int) Math.round(
+						stageSettings.getShootingFrecuency() * multiplier));
+
+		return new GameSettings(stageSettings.getFormationWidth(),
+				stageSettings.getFormationHeight(), movementInterval,
+				shootingInterval);
 	}
 
 	/**
