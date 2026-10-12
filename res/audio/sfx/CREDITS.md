@@ -72,7 +72,7 @@ Third-party sound effects used in this project and their licenses.
 - Original: "retro explosion sfx.wav" by stumpbutt
 - Source: https://freesound.org/people/stumpbutt/sounds/381686/
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
-- Changes: Renamed file only; audio unchanged.
+- Changes: Renamed file and increased volume.
 
 ## bonus_explosion.wav
 
