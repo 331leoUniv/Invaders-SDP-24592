@@ -44,6 +44,7 @@ public class GameScreen extends Screen {
 	/** Time the space key must be held to trigger the Annihilator. */
 	private static final int ANNIHILATOR_HOLD_TIME = 1000;
     private ItemManager itemManager;
+    private boolean shieldDroppedThisLevel = false;
 	/** Current game difficulty settings. */
 	private GameSettings gameSettings;
 	/** Current difficulty level number. */
@@ -127,7 +128,7 @@ public class GameScreen extends Screen {
 		enemyShipFormation.attach(this);
 		this.ship = new Ship(this.width / 2, this.height - 30);
         this.itemManager = new ItemManager(this.height);
-        this.itemManager.spawnItem(new entity.item.ShieldItem(this.width / 2, 70));
+        this.shieldDroppedThisLevel = false;
 		// Appears each 10-30 seconds.
 		this.enemyShipSpecialCooldown = Core.getVariableCooldown(
 				BONUS_SHIP_INTERVAL, BONUS_SHIP_VARIANCE);
@@ -363,6 +364,19 @@ public class GameScreen extends Screen {
 						this.shipsDestroyed++;
 						this.enemyShipFormation.destroy(enemyShip);
 						recyclable.add(bullet);
+                        // --- DROP DU BOUCLIER ---
+                        if (!this.shieldDroppedThisLevel) {
+                            boolean shouldDrop = (Math.random() < 0.15) || (this.enemyShipFormation.isEmpty());
+                            if (shouldDrop) {
+                                this.itemManager.spawnItem(new entity.item.ShieldItem(
+                                        enemyShip.getPositionX(),
+                                        enemyShip.getPositionY()
+                                ));
+                                this.shieldDroppedThisLevel = true;
+                                this.logger.info("Shield item dropped from enemy ship at ("
+                                        + enemyShip.getPositionX() + ", " + enemyShip.getPositionY() + ").");
+                            }
+                        }
 					}
 				if (this.enemyShipSpecial != null
 						&& !this.enemyShipSpecial.isDestroyed()
