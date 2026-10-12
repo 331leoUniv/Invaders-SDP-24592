@@ -12,11 +12,15 @@ public class ZigzagEnemyShip extends EnemyShip {
 	private static final int ZIGZAG_AMPLITUDE = 40;
 	/** Sideways speed, in pixels per frame. */
 	private static final int LATERAL_SPEED = 2;
+	/** Scale applied to the downwards speed. */
+	private static final double FALL_SPEED_SCALE = 0.8;
 
 	/** Position in the x-axis the zigzag is centered on. */
 	private int originX;
 	/** Downwards speed, in pixels per frame. */
 	private int fallSpeed;
+	/** Fraction of a pixel of downwards movement not yet applied. */
+	private double fallRemainder;
 	/** Current sideways direction, 1 is right and -1 is left. */
 	private int direction;
 
@@ -50,7 +54,12 @@ public class ZigzagEnemyShip extends EnemyShip {
 				- this.originX) > ZIGZAG_AMPLITUDE)
 			this.direction = -this.direction;
 
-		move(this.direction * LATERAL_SPEED, this.fallSpeed);
+		// Positions are whole pixels, so the scaled speed is accumulated.
+		double fall = this.fallSpeed * FALL_SPEED_SCALE + this.fallRemainder;
+		int fallStep = (int) fall;
+		this.fallRemainder = fall - fallStep;
+
+		move(this.direction * LATERAL_SPEED, fallStep);
 	}
 
 	/**

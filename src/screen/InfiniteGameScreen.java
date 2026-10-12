@@ -2,6 +2,7 @@ package screen;
 
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -41,6 +42,10 @@ public class InfiniteGameScreen extends Screen {
 	private static final int MAXIMUM_FALL_SPEED = 3;
 	/** Time from the game ending to screen change. */
 	private static final int SCREEN_CHANGE_INTERVAL = 1500;
+	/** Chance an enemy fires on any given frame. */
+	private static final double ENEMY_FIRE_CHANCE = 0.003;
+	/** Downwards speed of the enemy bullets, in pixels per frame. */
+	private static final int ENEMY_BULLET_SPEED = 4;
 
 	/** Player's ship. */
 	private Ship ship;
@@ -48,6 +53,8 @@ public class InfiniteGameScreen extends Screen {
 	private List<ZigzagEnemyShip> enemies;
 	/** Set of all bullets fired by the player. */
 	private Set<Bullet> bullets;
+	/** Set of all bullets fired by the enemies. */
+	private Set<Bullet> enemyBullets;
 	/** Time between enemy spawns. */
 	private Cooldown spawnCooldown;
 	/** Time from the game ending to screen change. */
@@ -94,6 +101,7 @@ public class InfiniteGameScreen extends Screen {
 		this.ship = new Ship(this.width / 2, this.height - 30);
 		this.enemies = new ArrayList<ZigzagEnemyShip>();
 		this.bullets = new HashSet<Bullet>();
+		this.enemyBullets = new HashSet<Bullet>();
 		this.spawnCooldown = Core.getCooldown(INITIAL_SPAWN_INTERVAL);
 		this.spawnCooldown.reset();
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
@@ -148,6 +156,7 @@ public class InfiniteGameScreen extends Screen {
 			this.ship.update();
 			spawnEnemy();
 			moveEnemies();
+			shootEnemies();
 		}
 
 		manageCollisions();
@@ -212,6 +221,19 @@ public class InfiniteGameScreen extends Screen {
 	}
 
 	/**
+	 * Gives each enemy a small chance to fire a bullet downwards.
+	 */
+	private void shootEnemies() {
+		for (ZigzagEnemyShip enemy : this.enemies) {
+			if (Math.random() < ENEMY_FIRE_CHANCE)
+				this.enemyBullets.add(BulletPool.getBullet(
+						enemy.getPositionX() + enemy.getWidth() / 2,
+						enemy.getPositionY() + enemy.getHeight(),
+						ENEMY_BULLET_SPEED));
+		}
+	}
+
+	/**
 	 * Draws the elements associated with the screen.
 	 */
 	private void draw() {
@@ -225,6 +247,10 @@ public class InfiniteGameScreen extends Screen {
 					enemy.getPositionY());
 
 		for (Bullet bullet : this.bullets)
+			drawManager.drawEntity(bullet, bullet.getPositionX(),
+					bullet.getPositionY());
+
+		for (Bullet bullet : this.enemyBullets)
 			drawManager.drawEntity(bullet, bullet.getPositionX(),
 					bullet.getPositionY());
 
@@ -249,6 +275,15 @@ public class InfiniteGameScreen extends Screen {
 		}
 		this.bullets.removeAll(recyclable);
 		BulletPool.recycle(recyclable);
+
+		Set<Bullet> recyclableEnemy = new HashSet<Bullet>();
+		for (Bullet bullet : this.enemyBullets) {
+			bullet.update();
+			if (bullet.getPositionY() > this.height)
+				recyclableEnemy.add(bullet);
+		}
+		this.enemyBullets.removeAll(recyclableEnemy);
+		BulletPool.recycle(recyclableEnemy);
 	}
 
 	/**
@@ -275,6 +310,20 @@ public class InfiniteGameScreen extends Screen {
 
 		if (this.gameOver || this.ship.isDestroyed())
 			return;
+
+		Iterator<Bullet> bulletIterator = this.enemyBullets.iterator();
+		while (bulletIterator.hasNext()) {
+			Bullet bullet = bulletIterator.next();
+			if (checkCollision(bullet, this.ship)) {
+				bulletIterator.remove();
+				BulletPool.recycle(Collections.singleton(bullet));
+				this.ship.destroy();
+				this.lives--;
+				this.logger.info("Hit by enemy bullet, " + this.lives
+						+ " lives remaining.");
+				return;
+			}
+		}
 
 		Iterator<ZigzagEnemyShip> iterator = this.enemies.iterator();
 		while (iterator.hasNext()) {
