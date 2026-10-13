@@ -155,6 +155,22 @@ public final class Core {
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing high score screen.");
 				break;
+			case 4:
+				currentScreen = new SettingsScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
+				break;
+			case 5:
+				currentScreen = new AudioControlScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
+				break;
+			case 6:
+				currentScreen = new ControlsSettingsScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
+				break;
+			case 7:
+				currentScreen = new GameplaySettingsScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
+				break;
 			case 8:
 				// Infinite mode & score.
 				currentScreen = new InfiniteGameScreen(gameState, width, height,
@@ -176,22 +192,6 @@ public final class Core {
 						true);
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing score screen.");
-				break;
-			case 4:
-				currentScreen = new SettingsScreen(width, height, FPS);
-				returnCode = frame.setScreen(currentScreen);
-				break;
-			case 5:
-				currentScreen = new AudioControlScreen(width, height, FPS);
-				returnCode = frame.setScreen(currentScreen);
-				break;
-			case 6:
-				currentScreen = new ControlsSettingsScreen(width, height, FPS);
-				returnCode = frame.setScreen(currentScreen);
-				break;
-			case 7:
-				currentScreen = new GameplaySettingsScreen(width, height, FPS);
-				returnCode = frame.setScreen(currentScreen);
 				break;
 			}
 
