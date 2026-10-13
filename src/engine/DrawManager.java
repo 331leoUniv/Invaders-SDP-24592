@@ -821,4 +821,14 @@ public final class DrawManager {
 			return java.awt.event.KeyEvent.getKeyText(keyCode);
 		}
 	}
+		/**
+	 * Draws every live explosion particle.
+	 */
+	public void drawParticles(final vfx.ParticleSystem particleSystem) {
+		for (vfx.Particle p : particleSystem.getParticles()) {
+			backBufferGraphics.setColor(p.getColor());
+			backBufferGraphics.fillRect(p.getX(), p.getY(), p.getSize(),
+					p.getSize());
+		}
+	}
 }
