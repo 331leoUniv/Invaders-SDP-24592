@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import campaign.CampaignStageData;
 import engine.Cooldown;
 import engine.Core;
 import engine.GameState;
@@ -32,6 +33,8 @@ public class ScoreScreen extends Screen {
 	private int level;
 	/** Checks if the last stage was failed (no lives left). */
 	private boolean stageFailed;
+    /** Checks if every campaign stage was cleared. */
+    private boolean gameCleared;
 	/** Current score. */
 	private int score;
 	/** Player lives left. */
@@ -69,6 +72,8 @@ public class ScoreScreen extends Screen {
 
 		this.level = gameState.getLevel();
 		this.stageFailed = gameState.getLivesRemaining() == 0;
+        this.gameCleared = !this.stageFailed
+                && gameState.getLevel() > CampaignStageData.getTotalStages();
 		this.score = gameState.getScore();
 		this.livesRemaining = gameState.getLivesRemaining();
 		this.bulletsShot = gameState.getBulletsShot();
@@ -185,15 +190,14 @@ public class ScoreScreen extends Screen {
 		drawManager.initDrawing(this);
 
 		drawManager.drawGameOver(this, this.inputDelay.checkFinished(),
-				this.isNewRecord);
+				this.isNewRecord,this.gameCleared);
 		if (this.stageFailed)
 			drawManager.drawStageFailed(this, this.level, this.isNewRecord);
         // No shots fired means no misses: show 100% instead of NaN (0 / 0).
         float accuracy = this.bulletsShot == 0 ? 1f
                 : (float) this.shipsDestroyed / this.bulletsShot;
 		drawManager.drawResults(this, this.score, this.livesRemaining,
-				this.shipsDestroyed, (float) this.shipsDestroyed
-						/ this.bulletsShot, this.isNewRecord);
+				this.shipsDestroyed, accuracy, this.isNewRecord);
 
 		if (this.isNewRecord)
 			drawManager.drawNameInput(this, this.name, this.nameCharSelected);
