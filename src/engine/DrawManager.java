@@ -25,6 +25,19 @@ import entity.Ship;
  *
  */
 public final class DrawManager {
+	private int getNormalGameOverTitleY(final Screen screen) {
+		int regularHeight = fontRegularMetrics.getHeight();
+		int bigHeight = fontBigMetrics.getHeight();
+
+		int promptY = screen.getHeight() / 2 + regularHeight * 10;
+		int titleToAccuracy = bigHeight + regularHeight * 8;
+
+		return (promptY
+				- fontRegularMetrics.getAscent()
+				- titleToAccuracy
+				- fontRegularMetrics.getDescent()
+				+ fontBigMetrics.getAscent()) / 2;
+	}
 
     /** Singleton instance of the class. */
     private static DrawManager instance;
@@ -494,46 +507,48 @@ public final class DrawManager {
      * @param isNewRecord
      *            If the score is a new high score.
      */
-    public void drawResults(final Screen screen, final int score,
+	public void drawResults(final Screen screen, final int score,
                             final int livesRemaining, final int shipsDestroyed,
                             final float accuracy, final boolean isNewRecord) {
-        String scoreString = String.format("score %04d", score);
-        String livesRemainingString =
-                "lives remaining " + livesRemaining;
-        String shipsDestroyedString =
-                "enemies destroyed " + shipsDestroyed;
-        String accuracyString =
-                String.format("accuracy %.2f%%", accuracy * 100);
+		String scoreString = String.format("score %04d", score);
+		String livesRemainingString =
+				"lives remaining " + livesRemaining;
+		String shipsDestroyedString =
+				"enemies destroyed " + shipsDestroyed;
+		String accuracyString =
+				String.format("accuracy %.2f%%", accuracy * 100);
 
-        int height = isNewRecord ? 4 : 2;
+		int resultsY;
 
-        backBufferGraphics.setColor(Color.WHITE);
+		if (isNewRecord)
+			resultsY = screen.getHeight() / 4;
+		else
+			resultsY = getNormalGameOverTitleY(screen)
+					+ fontBigMetrics.getHeight()
+					+ fontRegularMetrics.getHeight() * 2;
 
-        drawCenteredRegularString(
-                screen, scoreString, screen.getHeight() / height
-        );
+		backBufferGraphics.setColor(Color.WHITE);
 
-        drawCenteredRegularString(
-                screen,
-                livesRemainingString,
-                screen.getHeight() / height
-                        + fontRegularMetrics.getHeight() * 2
-        );
+		drawCenteredRegularString(screen, scoreString, resultsY);
 
-        drawCenteredRegularString(
-                screen,
-                shipsDestroyedString,
-                screen.getHeight() / height
-                        + fontRegularMetrics.getHeight() * 4
-        );
+		drawCenteredRegularString(
+				screen,
+				livesRemainingString,
+				resultsY + fontRegularMetrics.getHeight() * 2
+		);
 
-        drawCenteredRegularString(
-                screen,
-                accuracyString,
-                screen.getHeight() / height
-                        + fontRegularMetrics.getHeight() * 6
-        );
-    }
+		drawCenteredRegularString(
+				screen,
+				shipsDestroyedString,
+				resultsY + fontRegularMetrics.getHeight() * 4
+		);
+
+		drawCenteredRegularString(
+				screen,
+				accuracyString,
+				resultsY + fontRegularMetrics.getHeight() * 6
+		);
+	}
 
     /**
      * Draws interactive characters for name input.
@@ -607,35 +622,36 @@ public final class DrawManager {
      * @param isNewRecord
      *            If the score is a new high score.
      */
-    public void drawGameOver(final Screen screen,
-                             final boolean acceptsInput, final boolean isNewRecord) {
-        String gameOverString = "Game Over";
-        String continueOrExitString =
-                "Press Space to play again, Escape to exit";
+	public void drawGameOver(final Screen screen,
+                             final boolean acceptsInput,
+                             final boolean isNewRecord) {
+		String gameOverString = "Game Over";
+		String continueOrExitString =
+				"Press Space to play again, Escape to exit";
 
-        int height = isNewRecord ? 4 : 2;
+		int gameOverY;
 
-        backBufferGraphics.setColor(Color.GREEN);
+		if (isNewRecord)
+			gameOverY = screen.getHeight() / 4
+					- fontBigMetrics.getHeight() * 2;
+		else
+			gameOverY = getNormalGameOverTitleY(screen);
 
-        drawCenteredBigString(
-                screen,
-                gameOverString,
-                screen.getHeight() / height
-                        - fontBigMetrics.getHeight() * 2
-        );
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen, gameOverString, gameOverY);
 
-        if (acceptsInput)
-            backBufferGraphics.setColor(Color.GREEN);
-        else
-            backBufferGraphics.setColor(Color.GRAY);
+		if (acceptsInput)
+			backBufferGraphics.setColor(Color.GREEN);
+		else
+			backBufferGraphics.setColor(Color.GRAY);
 
-        drawCenteredRegularString(
-                screen,
-                continueOrExitString,
-                screen.getHeight() / 2
-                        + fontRegularMetrics.getHeight() * 10
-        );
-    }
+		drawCenteredRegularString(
+				screen,
+				continueOrExitString,
+				screen.getHeight() / 2
+						+ fontRegularMetrics.getHeight() * 10
+		);
+	}
 
     /**
      * Draws which stage was failed, right below the game over title.
@@ -647,18 +663,25 @@ public final class DrawManager {
      * @param isNewRecord
      *            If the score is a new high score (changes the layout).
      */
-    public void drawStageFailed(final Screen screen, final int stage,
+	public void drawStageFailed(final Screen screen, final int stage,
                                 final boolean isNewRecord) {
-        int height = isNewRecord ? 4 : 2;
+		int stageFailedY;
 
-        backBufferGraphics.setColor(Color.RED);
+		if (isNewRecord)
+			stageFailedY = screen.getHeight() / 4
+					- fontBigMetrics.getHeight();
+		else
+			stageFailedY = getNormalGameOverTitleY(screen)
+					+ fontBigMetrics.getHeight();
 
-        drawCenteredRegularString(
-                screen,
-                "Stage " + stage + " Failed",
-                screen.getHeight() / height - fontBigMetrics.getHeight()
-        );
-    }
+		backBufferGraphics.setColor(Color.RED);
+
+		drawCenteredRegularString(
+				screen,
+				"Stage " + stage + " Failed",
+				stageFailedY
+		);
+	}
 
     /**
      * Draws high score screen title and instructions.
