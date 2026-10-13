@@ -128,7 +128,7 @@ public class GameScreen extends Screen {
 			final int width, final int height, final int fps) {
 		super(width, height, fps);
 
-		this.waves = new ArrayList<GameSettings>(waves);
+		this.waves = copyWaves(waves);
 		this.currentWave = 0;
 		this.gameSettings = this.waves.get(0);
 		this.bonusLife = bonusLife;
@@ -263,6 +263,27 @@ public class GameScreen extends Screen {
 		if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
 			this.isRunning = false;
 
+	}
+
+	/**
+	 * Copies the wave list after checking that it can be played.
+	 *
+	 * @param waves
+	 *            Settings of each wave, in play order.
+	 * @return A copy of the wave list.
+	 * @throws IllegalArgumentException
+	 *             If the list is null or empty, or contains a null wave.
+	 */
+	static List<GameSettings> copyWaves(final List<GameSettings> waves) {
+		if (waves == null || waves.isEmpty())
+			throw new IllegalArgumentException(
+					"A stage must contain at least one wave.");
+		List<GameSettings> copy = new ArrayList<GameSettings>(waves);
+		for (int i = 0; i < copy.size(); i++)
+			if (copy.get(i) == null)
+				throw new IllegalArgumentException(
+						"Wave " + (i + 1) + " must not be null.");
+		return copy;
 	}
 
 	/**
