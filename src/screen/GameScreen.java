@@ -8,12 +8,14 @@ import engine.Cooldown;
 import engine.Core;
 import engine.GameSettings;
 import engine.GameState;
+import engine.ControlsConfig;
 import entity.Bullet;
 import entity.BulletPool;
 import entity.EnemyShip;
 import entity.EnemyShipFormation;
 import entity.Entity;
 import entity.Ship;
+import audio.AudioManager;
 
 /**
  * Implements the game screen, where the action happens.
@@ -66,12 +68,14 @@ public class GameScreen extends Screen {
 	private int shipsDestroyed;
 	/** Moment the game starts. */
 	private long gameStartTime;
+	/** Checks if the stage was cleared. */
+	private boolean stageCleared;
 	/** Checks if the level is finished. */
 	private boolean levelFinished;
 	/** Checks if a bonus life is received. */
 	private boolean bonusLife;
-	/** Checks if the stage was cleared. */
-	private boolean stageCleared;	// 임의
+	/** Last countdown number that played a sound. */
+	private int lastCountdown = -1;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -154,10 +158,10 @@ public class GameScreen extends Screen {
 		if (this.inputDelay.checkFinished() && !this.levelFinished) {
 
 			if (!this.ship.isDestroyed()) {
-				boolean moveRight = inputManager.isKeyDown(KeyEvent.VK_RIGHT)
-						|| inputManager.isKeyDown(KeyEvent.VK_D);
-				boolean moveLeft = inputManager.isKeyDown(KeyEvent.VK_LEFT)
-						|| inputManager.isKeyDown(KeyEvent.VK_A);
+				boolean moveRight = inputManager.isKeyDown(
+						ControlsConfig.getKey(ControlsConfig.RIGHT));
+				boolean moveLeft = inputManager.isKeyDown(
+						ControlsConfig.getKey(ControlsConfig.LEFT));
 
 				boolean isRightBorder = this.ship.getPositionX()
 						+ this.ship.getWidth() + this.ship.getSpeed() > this.width - 1;
@@ -170,9 +174,12 @@ public class GameScreen extends Screen {
 				if (moveLeft && !isLeftBorder) {
 					this.ship.moveLeft();
 				}
-				if (inputManager.isKeyDown(KeyEvent.VK_SPACE))
-					if (this.ship.shoot(this.bullets))
+				if (inputManager.isKeyDown(
+						ControlsConfig.getKey(ControlsConfig.FIRE))) {
+					if (this.ship.shoot(this.bullets)) {
 						this.bulletsShot++;
+					}
+				}
 			}
 
 			if (this.enemyShipSpecial != null) {
@@ -251,6 +258,7 @@ public class GameScreen extends Screen {
 			int countdown = (int) ((INPUT_DELAY
 					- (System.currentTimeMillis()
 							- this.gameStartTime)) / 1000);
+			playCountdownSound(countdown);
 			drawManager.drawCountDown(this, this.level, countdown,
 					this.bonusLife);
 			drawManager.drawHorizontalLine(this, this.height / 2 - this.height
@@ -342,6 +350,15 @@ public class GameScreen extends Screen {
 	}
 
 	/**
+	 * Checks if the stage was cleared.
+	 *
+	 * @return True if all enemies were defeated with the ship alive.
+	 */
+	public final boolean isStageCleared() {
+		return this.stageCleared;
+	}
+
+	/**
 	 * Returns a GameState object representing the status of the game.
 	 * 
 	 * @return Current game state.
@@ -352,11 +369,18 @@ public class GameScreen extends Screen {
 	}
 
 	/**
-	 * Checks if the stage was cleared.
+	 * Plays the countdown sound once each time the countdown number changes.
 	 *
-	 * @return True if all enemies were defeated with the ship alive.
+	 * @param countdown
+	 *            Number currently shown in the countdown.
 	 */
-	public final boolean isStageCleared() {		//임의
-		return this.stageCleared;
+	private void playCountdownSound(final int countdown) {
+		if (countdown == this.lastCountdown)
+			return;
+		this.lastCountdown = countdown;
+		if (countdown == 0)
+			AudioManager.playSFX("audio/sfx/countdown_go.wav");
+		else if (countdown <= 3)
+			AudioManager.playSFX("audio/sfx/countdown_beep.wav");
 	}
 }
