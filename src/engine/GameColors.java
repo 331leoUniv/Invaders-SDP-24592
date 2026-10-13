@@ -2,7 +2,7 @@
 package engine;
 
 import java.awt.Color;
-
+/** Shared color palette for the whole game (requirement 2.1). */
 
 public final class GameColors {
 
@@ -28,6 +28,12 @@ public final class GameColors {
 
 
     public static final Color DAMAGE = new Color(235, 40, 40);
+
+    public static final Color EXPLOSION_RED = new Color(235, 64, 40);
+
+    public static final Color EXPLOSION_ORANGE = new Color(255, 150, 40);
+
+    public static final Color EXPLOSION_YELLOW = new Color(255, 220, 70);
 
 
     public static final Color POWERUP_SHIELD = new Color(80, 170, 255);
