@@ -6,6 +6,7 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import currency.PlayerAssets;
 import audio.AudioControls;
 import screen.AudioControlScreen;
 import screen.GameScreen;
@@ -42,6 +43,8 @@ public final class Core {
 	private static Frame frame;
 	/** Screen currently shown. */
 	private static Screen currentScreen;
+	/** Player assets shared across levels and new games in this session. */
+	private static PlayerAssets playerAssets;
 	/** Application logger. */
 	private static final Logger LOGGER = Logger.getLogger(Core.class
 			.getSimpleName());
@@ -82,6 +85,7 @@ public final class Core {
 		int width = frame.getWidth();
 		int height = frame.getHeight();
 
+		playerAssets = new PlayerAssets();
 		GameState gameState;
 
 		int returnCode = 1;
