@@ -1,7 +1,10 @@
 package screen;
 
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import engine.Cooldown;
@@ -42,6 +45,10 @@ public class GameScreen extends Screen {
 
 	/** Current game difficulty settings. */
 	private GameSettings gameSettings;
+	/** Settings of every wave in this stage, in play order. */
+	private List<GameSettings> waves;
+	/** Index of the wave currently being played. */
+	private int currentWave;
 	/** Current difficulty level number. */
 	private int level;
 	/** Formation of enemy ships. */
@@ -96,9 +103,34 @@ public class GameScreen extends Screen {
 	public GameScreen(final GameState gameState,
 			final GameSettings gameSettings, final boolean bonusLife,
 			final int width, final int height, final int fps) {
+		this(gameState, Collections.singletonList(gameSettings), bonusLife,
+			width, height, fps);
+	}
+
+	/**
+	 * Constructor for a stage with one or more waves.
+	 *
+	 * @param gameState
+	 * 			Current game state.
+	 * @param waves
+	 * 			Settings of each wave, in play order.
+	 * @param bonusLife
+	 * 			Checks if a bonus life is awarded this level.
+	 * @param width
+	 * 			Screen width.
+	 * @param height
+	 * 			Screen height.
+	 * @param fps
+	 * 			Frames per second, frame rate at which the game is run.
+	 */
+	public GameScreen(final GameState gameState,
+			final List<GameSettings> waves, final boolean bonusLife,
+			final int width, final int height, final int fps) {
 		super(width, height, fps);
 
-		this.gameSettings = gameSettings;
+		this.waves = copyWaves(waves);
+		this.currentWave = 0;
+		this.gameSettings = this.waves.get(0);
 		this.bonusLife = bonusLife;
 		this.level = gameState.getLevel();
 		this.score = gameState.getScore();
@@ -217,16 +249,55 @@ public class GameScreen extends Screen {
 				this.screenFinishedCooldown.reset();
 				this.logger.info("Stage " + this.level + " failed.");
 			} else if (this.enemyShipFormation.isEmpty()) {
-				this.levelFinished = true;
-				this.stageCleared = true;
-				this.screenFinishedCooldown.reset();
-				this.logger.info("Stage " + this.level + " cleared.");
+				if (this.currentWave < this.waves.size() - 1) {
+					startNextWave();
+				} else {
+					this.levelFinished = true;
+					this.stageCleared = true;
+					this.screenFinishedCooldown.reset();
+					this.logger.info("Stage " + this.level + " cleared.");
+				}
 			}
 		}
 
 		if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
 			this.isRunning = false;
 
+	}
+
+	/**
+	 * Copies the wave list after checking that it can be played.
+	 *
+	 * @param waves
+	 *            Settings of each wave, in play order.
+	 * @return A copy of the wave list.
+	 * @throws IllegalArgumentException
+	 *             If the list is null or empty, or contains a null wave.
+	 */
+	static List<GameSettings> copyWaves(final List<GameSettings> waves) {
+		if (waves == null || waves.isEmpty())
+			throw new IllegalArgumentException(
+					"A stage must contain at least one wave.");
+		List<GameSettings> copy = new ArrayList<GameSettings>(waves);
+		for (int i = 0; i < copy.size(); i++)
+			if (copy.get(i) == null)
+				throw new IllegalArgumentException(
+						"Wave " + (i + 1) + " must not be null.");
+		return copy;
+	}
+
+	/**
+	 * Replaces the empty formation with the next wave's formation.
+	 */
+	private void startNextWave() {
+		this.logger.info("Stage " + this.level + " wave " +
+			(this.currentWave + 1) + " cleared.");
+		this.currentWave++;
+		this.gameSettings = this.waves.get(this.currentWave);
+		this.enemyShipFormation = new EnemyShipFormation(this.gameSettings);
+		this.enemyShipFormation.attach(this);
+		this.logger.info("Stage " + this.level + " wave " + (this.currentWave + 1) +
+			" of " + this.waves.size() + " started.");
 	}
 
 	/**
