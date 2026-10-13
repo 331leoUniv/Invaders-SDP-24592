@@ -1,19 +1,23 @@
 package engine;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import currency.PlayerAssets;
 import audio.AudioControls;
+import screen.AudioControlScreen;
 import screen.GameScreen;
 import screen.HighScoreScreen;
 import screen.ScoreScreen;
 import screen.Screen;
 import screen.TitleScreen;
+import campaign.CampaignStageData;
+import screen.SettingsScreen;
+import screen.ControlsSettingsScreen;
+import screen.GameplaySettingsScreen;
 
 /**
  * Implements core game logic.
@@ -34,37 +38,13 @@ public final class Core {
 	private static final int MAX_LIVES = 3;
 	/** Levels between extra life. */
 	private static final int EXTRA_LIFE_FRECUENCY = 3;
-	/** Total number of levels. */
-	private static final int NUM_LEVELS = 7;
-	
-	/** Difficulty settings for level 1. */
-	private static final GameSettings SETTINGS_LEVEL_1 =
-			new GameSettings(5, 4, 60, 2000);
-	/** Difficulty settings for level 2. */
-	private static final GameSettings SETTINGS_LEVEL_2 =
-			new GameSettings(5, 5, 50, 2500);
-	/** Difficulty settings for level 3. */
-	private static final GameSettings SETTINGS_LEVEL_3 =
-			new GameSettings(6, 5, 40, 1500);
-	/** Difficulty settings for level 4. */
-	private static final GameSettings SETTINGS_LEVEL_4 =
-			new GameSettings(6, 6, 30, 1500);
-	/** Difficulty settings for level 5. */
-	private static final GameSettings SETTINGS_LEVEL_5 =
-			new GameSettings(7, 6, 20, 1000);
-	/** Difficulty settings for level 6. */
-	private static final GameSettings SETTINGS_LEVEL_6 =
-			new GameSettings(7, 7, 10, 1000);
-	/** Difficulty settings for level 7. */
-	private static final GameSettings SETTINGS_LEVEL_7 =
-			new GameSettings(8, 7, 2, 500);
 	
 	/** Frame to draw the screen on. */
 	private static Frame frame;
 	/** Screen currently shown. */
 	private static Screen currentScreen;
-	/** Difficulty settings list. */
-	private static List<GameSettings> gameSettings;
+	/** Player assets shared across levels and new games in this session. */
+	private static PlayerAssets playerAssets;
 	/** Application logger. */
 	private static final Logger LOGGER = Logger.getLogger(Core.class
 			.getSimpleName());
@@ -105,15 +85,7 @@ public final class Core {
 		int width = frame.getWidth();
 		int height = frame.getHeight();
 
-		gameSettings = new ArrayList<GameSettings>();
-		gameSettings.add(SETTINGS_LEVEL_1);
-		gameSettings.add(SETTINGS_LEVEL_2);
-		gameSettings.add(SETTINGS_LEVEL_3);
-		gameSettings.add(SETTINGS_LEVEL_4);
-		gameSettings.add(SETTINGS_LEVEL_5);
-		gameSettings.add(SETTINGS_LEVEL_6);
-		gameSettings.add(SETTINGS_LEVEL_7);
-		
+		playerAssets = new PlayerAssets();
 		GameState gameState;
 
 		int returnCode = 1;
@@ -138,14 +110,22 @@ public final class Core {
 							&& gameState.getLivesRemaining() < MAX_LIVES;
 					
 					currentScreen = new GameScreen(gameState,
-							gameSettings.get(gameState.getLevel() - 1),
+							applyDifficulty(CampaignStageData
+									.getStageSettings(gameState.getLevel())),
 							bonusLife, width, height, FPS);
 					LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
 							+ " game screen at " + FPS + " fps.");
 					frame.setScreen(currentScreen);
 					LOGGER.info("Closing game screen.");
 
+					boolean stageCleared = ((GameScreen) currentScreen).isStageCleared();
 					gameState = ((GameScreen) currentScreen).getGameState();
+
+					if (!stageCleared) {
+						LOGGER.info("Stage " + gameState.getLevel()
+								+ " failed. Not advancing.");
+						break;
+					}
 
 					gameState = new GameState(gameState.getLevel() + 1,
 							gameState.getScore(),
@@ -154,7 +134,7 @@ public final class Core {
 							gameState.getShipsDestroyed());
 
 				} while (gameState.getLivesRemaining() > 0
-						&& gameState.getLevel() <= NUM_LEVELS);
+						&& gameState.getLevel() <= CampaignStageData.getTotalStages());
 
 				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
 						+ " score screen at " + FPS + " fps, with a score of "
@@ -174,7 +154,21 @@ public final class Core {
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing high score screen.");
 				break;
-			default:
+			case 4:
+				currentScreen = new SettingsScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
+				break;
+			case 5:
+				currentScreen = new AudioControlScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
+				break;
+			case 6:
+				currentScreen = new ControlsSettingsScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
+				break;
+			case 7:
+				currentScreen = new GameplaySettingsScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
 				break;
 			}
 
@@ -183,6 +177,20 @@ public final class Core {
 		fileHandler.flush();
 		fileHandler.close();
 		System.exit(0);
+	}
+
+	private static GameSettings applyDifficulty(
+			final GameSettings stageSettings) {
+		double multiplier = GameplayConfig.getMultiplier();
+		int movementInterval = Math.max(1,
+				(int) Math.round(stageSettings.getBaseSpeed() * multiplier));
+		int shootingInterval = Math.max(250,
+				(int) Math.round(
+						stageSettings.getShootingFrecuency() * multiplier));
+
+		return new GameSettings(stageSettings.getFormationWidth(),
+				stageSettings.getFormationHeight(), movementInterval,
+				shootingInterval);
 	}
 
 	/**
