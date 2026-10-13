@@ -38,7 +38,7 @@ public class GameScreen extends Screen {
     private static final int LIFE_SCORE = 100;
 
     /** Minimum time between bonus ship's appearances. */
-    private static final int BONUS_SHIP_INTERVAL = 20000;
+    private static final int BONUS_SHIP_INTERVAL = 15000; //modifier le temps au lieu de 20000 I
 
     /** Maximum variance in the time between bonus ship's appearances. */
     private static final int BONUS_SHIP_VARIANCE = 10000;
