@@ -9,7 +9,8 @@ public class DifficultyScreen extends Screen { //Implementation of the difficult
 
 	
 	private static final int SELECTION_TIME = 200;
-	private static final int NUM_CHOICES = 3; //Number of difficulty choices (easy, normal, hard).
+	private static final int NUM_CHOICES = 3; //Number of difficulty choices (campaign, endless, back).
+	private static final int BACK_OPTION = NUM_CHOICES - 1;
 
 	private int selected;
 	private Cooldown selectionCooldown;
@@ -47,7 +48,7 @@ public class DifficultyScreen extends Screen { //Implementation of the difficult
 				this.selectionCooldown.reset();
 			}
 			if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
-				this.returnCode = 2;
+				this.returnCode = this.selected == BACK_OPTION ? 1 : 2;
 				this.isRunning = false;
 			}
 			if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
