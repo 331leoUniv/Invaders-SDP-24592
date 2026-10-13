@@ -115,6 +115,7 @@ public final class Core {
 			case 2:
 				// Game & score.
 				RunSession runSession = new RunSession(UUID.randomUUID().toString());
+                recordsService.startRun(runSession.getRunId());
 				do {
 					// One extra live every few levels.
 					boolean bonusLife = gameState.getLevel()

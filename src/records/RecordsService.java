@@ -25,13 +25,14 @@ public final class RecordsService {
     private final Map<String, Long> unlockTimes = new LinkedHashMap<String, Long>();
 
 
-
-
-
+    private final Set<String> seenDefeatEvents = new HashSet<String>();
+    private String activeRunId;
+    private int activeRunDefeats;
     private boolean writesBlocked;
     private boolean closed;
     private final String loadWarning;
     private volatile String saveError;
+    private long saveRevision;
 
     public RecordsService(final Path file) {
         this.store = new ProfileStore(file);
@@ -55,28 +56,67 @@ public final class RecordsService {
         this.loadWarning = this.store.getLoadWarning();
     }
 
+    public synchronized void startRun(final String runId) {
+        if (this.closed) throw new IllegalStateException("Records service is closed.");
+        if (runId == null || runId.trim().isEmpty()) throw new IllegalArgumentException("runId must not be blank.");
+        this.activeRunId = runId;
+        this.activeRunDefeats = 0;
+        this.seenDefeatEvents.clear();
+
+    }
 
     /** Accepts each source event once; safe for a future shared enemy event hook. */
-
-
-
-    private void enqueueSave() {
-        if (this.writesBlocked || this.closed)
-            return;
-        final ProfileSnapshot snapshot = snapshot();
-        this.saveError = "Saving profile…";
-		this.writer.execute(new Runnable() {
-			public void run() {
-				try {
-					store.write(snapshot);
-					saveError = null;
-				} catch (IOException exception) {
-					saveError = "Save failed; previous data was preserved: "
-							+ exception.getMessage();
-				}
-			}
-		});
+    public synchronized boolean enemyDefeated(final String runId,
+            final String eventId) {
+        if (this.closed || runId == null || !runId.equals(this.activeRunId)
+                || eventId == null || eventId.trim().length() == 0
+                || !this.seenDefeatEvents.add(eventId))
+            return false;
+        this.activeRunDefeats++;
+        unlock(Achievement.FIRST_ENEMY, System.currentTimeMillis());
+        if (this.activeRunDefeats >= 20)
+            unlock(Achievement.TWENTY_ENEMIES, System.currentTimeMillis());
+        return true;
     }
+
+    public synchronized void activeDuration(final String runId,
+            final long durationMillis) {
+        if (!this.closed && runId != null && runId.equals(this.activeRunId)
+                && durationMillis >= 60000L)
+            unlock(Achievement.SIXTY_SECONDS, System.currentTimeMillis());
+    }
+
+    public synchronized boolean completeRun(final RunRecord record) {
+        if (this.closed || record == null || this.records.containsKey(record.getRunId()))
+            return false;
+        boolean firstRun = this.records.isEmpty();
+        int previousBest = Integer.MIN_VALUE;
+        for (RunRecord prior : this.records.values())
+            previousBest = Math.max(previousBest, prior.getScore());
+        // Every save containing a completion achievement also contains its run.
+        this.records.put(record.getRunId(), record);
+        if (record.getEnemiesDefeated() >= 1) unlock(Achievement.FIRST_ENEMY, record.getCompletionTimeMillis());
+        if (record.getEnemiesDefeated() >= 20) unlock(Achievement.TWENTY_ENEMIES, record.getCompletionTimeMillis());
+        if (record.getActiveDurationMillis() >= 60000L) unlock(Achievement.SIXTY_SECONDS, record.getCompletionTimeMillis());
+        if (firstRun)
+            unlock(Achievement.FIRST_RUN, record.getCompletionTimeMillis());
+        if (!firstRun && record.getScore() > previousBest)
+            unlock(Achievement.BEAT_HIGH_SCORE, record.getCompletionTimeMillis());
+        if (record.getRunId().equals(this.activeRunId))
+            this.activeRunId = null;
+        enqueueSave();
+        return true;
+    }
+
+    private void unlock(final Achievement achievement, final long timeMillis) {
+        if (this.unlockTimes.containsKey(achievement.getId()))
+            return;
+        this.unlockTimes.put(achievement.getId(), Long.valueOf(timeMillis));
+
+
+        enqueueSave();
+    }
+
 
     private ProfileSnapshot snapshot() {
         return new ProfileSnapshot(new ArrayList<RunRecord>(this.records.values()),
@@ -150,8 +190,18 @@ public final class RecordsService {
         }
     }
 
-    public synchronized boolean completeRun(final RunRecord record) {
-        if (this.closed || record == null || this.records.containsKey(record.getRunId())) return false;
-        this.records.put(record.getRunId(), record); enqueueSave(); return true;
+    private void enqueueSave() {
+        if (this.writesBlocked || this.closed) return;
+        final ProfileSnapshot state=snapshot();
+        final long revision=++this.saveRevision;
+        this.saveError="Saving profile...";
+        this.writer.execute(new Runnable() {
+            public void run() {
+                String error=null;
+                try { store.write(state); }
+                catch (IOException exception) { error="Save failed; previous data was preserved: "+exception.getMessage(); }
+                synchronized (RecordsService.this) { if (revision==saveRevision) saveError=error; }
+            }
+        });
     }
 }
