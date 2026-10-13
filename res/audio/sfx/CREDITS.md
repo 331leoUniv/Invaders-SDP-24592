@@ -2,13 +2,13 @@
 
 Third-party sound effects used in this project and their licenses.
 
+
 ## menu_back.wav
 
 - Original: "Cancel (Pixel SFX Free)" by heyheytheree
 - Source: https://freesound.org/people/heyheytheree/sounds/871877/
 - License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 - Changes: None (used as-is, 16-bit / 44.1kHz WAV)
-
 
 
 ## name_char_change.wav
@@ -18,9 +18,50 @@ Third-party sound effects used in this project and their licenses.
 - License: CC BY-NC 4.0 (https://creativecommons.org/licenses/by-nc/4.0/)
 - Changes: Converted to 16-bit / 44.1kHz WAV.
 
+
 ## name_cursor_move.wav
 
 - Original: "Blip or Select" by Jofae
 - Source: https://freesound.org/people/Jofae/sounds/379339/
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
 - Changes: Converted to 16-bit / 44.1kHz WAV.
+
+
+## menu_move.wav
+
+- Original: "blip2.wav" by nsstudios
+- Source: https://freesound.org/people/nsstudios/sounds/321104/
+- License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+- Changes: Renamed to menu_move.wav.
+
+
+## menu_select.wav
+
+- Original: "sf3-sfx-menu-select.wav" by broumbroum
+- Source: https://freesound.org/people/broumbroum/sounds/50561/
+- License: CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)
+- Changes: Renamed to menu_select.wav.
+
+
+## item_coin.wav
+
+- Original: "8-Bit Coin" by TheDweebMan
+- Source: https://freesound.org/people/TheDweebMan/sounds/277215/
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed to item_coin.wav.
+
+
+## countdown_beep.wav
+
+- Original: "beep.wav" by jeckkech
+- Source: https://freesound.org/people/jeckkech/sounds/391650/
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed to countdown_beep.wav.
+
+
+## countdown_go.wav
+
+- Original: "Game Start" by CasperThePancake
+- Source: https://freesound.org/people/CasperThePancake/sounds/521939/
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed to countdown_go.wav.

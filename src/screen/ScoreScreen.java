@@ -28,6 +28,10 @@ public class ScoreScreen extends Screen {
 	/** Code of last mayus character. */
 	private static final int LAST_CHAR = 90;
 
+	/** Level (stage) that was being played when the game ended. */
+	private int level;
+	/** Checks if the last stage was failed (no lives left). */
+	private boolean stageFailed;
 	/** Current score. */
 	private int score;
 	/** Player lives left. */
@@ -63,6 +67,8 @@ public class ScoreScreen extends Screen {
 			final GameState gameState) {
 		super(width, height, fps);
 
+		this.level = gameState.getLevel();
+		this.stageFailed = gameState.getLivesRemaining() == 0;
 		this.score = gameState.getScore();
 		this.livesRemaining = gameState.getLivesRemaining();
 		this.bulletsShot = gameState.getBulletsShot();
@@ -186,6 +192,8 @@ public class ScoreScreen extends Screen {
 
 		drawManager.drawGameOver(this, this.inputDelay.checkFinished(),
 				this.isNewRecord);
+		if (this.stageFailed)
+			drawManager.drawStageFailed(this, this.level, this.isNewRecord);
 		drawManager.drawResults(this, this.score, this.livesRemaining,
 				this.shipsDestroyed, (float) this.shipsDestroyed
 						/ this.bulletsShot, this.isNewRecord);
