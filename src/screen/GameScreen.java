@@ -131,7 +131,7 @@ public class GameScreen extends Screen {
 		this.shipType = shipType;
 		this.level = gameState.getLevel();
 		this.score = gameState.getScore();
-
+		
 		int initialLives = gameState.getLivesRemaining()
 				+ (this.bonusLife ? 1 : 0);
 
@@ -207,9 +207,9 @@ public class GameScreen extends Screen {
 				if (moveLeft && !isLeftBorder) {
 					this.ship.moveLeft();
 				}
-				if (inputManager.isKeyDown(KeyEvent.VK_SPACE))
-					if (this.ship.shoot(this.bullets))
-						this.bulletsShot++;
+				if (inputManager.isKeyDown(KeyEvent.VK_SPACE)){
+					    this.bulletsShot += this.ship.shoot(this.bullets);
+				}
 			}
 
 			if (this.enemyShipSpecial != null) {
@@ -232,6 +232,11 @@ public class GameScreen extends Screen {
 			}
 
 			this.ship.update();
+
+			if (!this.ship.isDestroyed()) {
+    			this.bulletsShot += this.ship.updateBurst(this.bullets);
+			}
+
 			this.enemyShipFormation.update();
 			this.enemyShipFormation.shoot(this.bullets);
 		}

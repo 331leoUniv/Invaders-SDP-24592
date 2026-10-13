@@ -14,14 +14,22 @@ import engine.DrawManager.SpriteType;
  */
 public class Ship extends Entity {
 
-	/** Speed of the bullets shot by the ship. */
-	private static final int BULLET_SPEED = -6;
+	/** The type of bullet the ship is currently using	*/
+	private BulletType currentBulletType = BulletType.NORMAL;
+	/** Remaining number of Bullets */
+	private int remainingShots = 0;
+	/** Delay between shots */
+	private long nextShotTime = 0;
+	/** shooting interval */
+	private int shootingInterval;
 
+	/** Speed of the bullets shot by the ship. */
+	private int bulletSpeed = currentBulletType.getSpeed();
+	/** Movement of the ship for each unit of time. */
+	private int speed;
+	
 	/** Type of ship selected by the player. */
 	private final ShipType shipType;
-
-	/** Movement speed of the ship. */
-	private final int speed;
 
 	/** Minimum time between shots. */
 	private Cooldown shootingCooldown;
@@ -38,35 +46,26 @@ public class Ship extends Entity {
 	 * @param positionY
 	 *            Initial position of the ship in the Y axis.
 	 */
-	public Ship(final int positionX, final int positionY) {
+	public Ship(final int positionX, final int positionY){
 		this(positionX, positionY, ShipType.STANDARD);
 	}
 
-	/**
-	 * Constructor with a selectable ship type.
-	 *
-	 * @param positionX
-	 *            Initial position of the ship in the X axis.
-	 * @param positionY
-	 *            Initial position of the ship in the Y axis.
-	 * @param shipType
-	 *            Selected player ship type.
-	 */
-	public Ship(final int positionX, final int positionY,
-			final ShipType shipType) {
-
+	public Ship(final int positionX, final int positionY, final ShipType shipType) {
 		super(positionX, positionY, 13 * 2, 8 * 2, Color.GREEN);
 
 		if (shipType == null)
-			throw new IllegalArgumentException(
-					"Ship type cannot be null.");
+            throw new IllegalArgumentException("Ship type cannot be null.");
 
-		this.shipType = shipType;
-		this.speed = shipType.getSpeed();
+        this.shipType = shipType;
+        this.speed = shipType.getSpeed();
+		this.shootingInterval = shipType.getShootingInterval();
+
+		this.currentBulletType = shipType.getBulletType();
+		this.bulletSpeed = currentBulletType.getSpeed();
 
 		this.spriteType = SpriteType.Ship;
-		this.shootingCooldown =
-				Core.getCooldown(shipType.getShootingInterval());
+
+		this.shootingCooldown = Core.getCooldown(this.getShootingInterval());
 		this.destructionCooldown = Core.getCooldown(1000);
 	}
 
@@ -91,19 +90,69 @@ public class Ship extends Entity {
 	 *            List of bullets on screen, to add the new bullet.
 	 * @return Checks if the bullet was shot correctly.
 	 */
-	public final boolean shoot(final Set<Bullet> bullets) {
-		if (this.shootingCooldown.checkFinished()) {
-			this.shootingCooldown.reset();
-
-			bullets.add(BulletPool.getBullet(
-					positionX + this.width / 2,
-					positionY,
-					BULLET_SPEED));
-
-			return true;
+	public final int shoot(final Set<Bullet> bullets) {
+		if (!this.shootingCooldown.checkFinished()) {
+			return 0;
 		}
 
-		return false;
+		this.shootingCooldown.reset();
+
+		int x = positionX + this.width / 2;
+		int y = positionY;
+
+		if (currentBulletType == BulletType.MULTI) {
+			int count = 0;
+
+			if (bullets.add(BulletPool.getBullet(x, y, bulletSpeed, -2)))
+				count++;
+
+			if (bullets.add(BulletPool.getBullet(x, y, bulletSpeed, 0)))
+				count++;
+
+			if (bullets.add(BulletPool.getBullet(x, y, bulletSpeed, 2)))
+				count++;
+
+			return count;
+		}
+
+		boolean added = bullets.add(
+				BulletPool.getBullet(x, y, bulletSpeed));
+
+		remainingShots = currentBulletType.getShotCount() - 1;
+		nextShotTime = System.currentTimeMillis()
+				+ currentBulletType.getShotDelay();
+
+		return added ? 1 : 0;
+	}
+
+	/**
+	 * Fires remaining bullets in a RAPID burst.
+	 *
+	 * @param bullets Bullets currently on screen.
+	 * @return Number of bullets successfully added.
+	 */
+	public final int updateBurst(final Set<Bullet> bullets) {
+		if (this.remainingShots <= 0 || this.isDestroyed()) {
+			return 0;
+		}
+
+		long currentTime = System.currentTimeMillis();
+
+		if (currentTime < this.nextShotTime) {
+			return 0;
+		}
+
+		int x = this.positionX + this.width / 2;
+		int y = this.positionY;
+
+		boolean added = bullets.add(
+				BulletPool.getBullet(x, y, this.bulletSpeed));
+
+		this.remainingShots--;
+		this.nextShotTime = currentTime
+				+ this.currentBulletType.getShotDelay();
+
+		return added ? 1 : 0;
 	}
 
 	/**
@@ -121,6 +170,10 @@ public class Ship extends Entity {
 	 */
 	public final void destroy() {
 		this.destructionCooldown.reset();
+
+		// Cancel pending brust shots
+		this.remainingShots = 0;
+		this.nextShotTime = 0;
 	}
 
 	/**
@@ -139,6 +192,36 @@ public class Ship extends Entity {
 	 */
 	public final int getSpeed() {
 		return this.speed;
+	}
+
+	public void setBulletType(BulletType bulletType) {
+		this.currentBulletType = bulletType;
+		this.bulletSpeed = bulletType.getSpeed();
+		this.remainingShots =0;
+		this.nextShotTime = 0;
+	}
+
+	public final void setSpeed(final int speed) {
+		if (speed <= 0) {
+			throw new IllegalArgumentException(
+					"Speed must be positive.");
+		}
+
+		this.speed = speed;
+	}
+	public final int getShootingInterval() {
+		return this.shootingInterval;
+	}
+
+	public final void setShootingInterval(final int shootingInterval) {
+
+		if (shootingInterval <= 0) {
+			throw new IllegalArgumentException(
+					"Shooting interval must be positive.");
+		}
+
+		this.shootingCooldown.setDuration(shootingInterval);
+		this.shootingInterval = shootingInterval;
 	}
 
 	/**
