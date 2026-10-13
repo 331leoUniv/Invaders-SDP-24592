@@ -20,8 +20,9 @@ public final class GameColors {
 
     public static final Color PLAYER_BULLET = new Color(120, 200, 255);
 
-    public static final Color ENEMY = new Color(232, 234, 246);
-
+    public static final Color ENEMY_A = new Color(232, 234, 246);
+    public static final Color ENEMY_B = new Color(80, 210, 230);
+    public static final Color ENEMY_C = new Color(240, 100, 200);
     public static final Color ENEMY_SPECIAL = new Color(235, 64, 64);
 
     public static final Color ENEMY_BULLET = new Color(255, 150, 40);
