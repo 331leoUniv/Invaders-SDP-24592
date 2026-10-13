@@ -7,6 +7,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import currency.PlayerAssets;
+import java.util.UUID;
+import records.RunSession;
+import records.RunRecord;
+import records.RunRecordFormatter;
+import records.RecordsService;
 import audio.AudioControls;
 import screen.AudioControlScreen;
 import screen.GameScreen;
@@ -45,6 +50,7 @@ public final class Core {
 	private static Screen currentScreen;
 	/** Player assets shared across levels and new games in this session. */
 	private static PlayerAssets playerAssets;
+	private static RecordsService recordsService;
 	/** Application logger. */
 	private static final Logger LOGGER = Logger.getLogger(Core.class
 			.getSimpleName());
@@ -86,6 +92,7 @@ public final class Core {
 		int height = frame.getHeight();
 
 		playerAssets = new PlayerAssets();
+		recordsService = new RecordsService();
 		GameState gameState;
 
 		int returnCode = 1;
@@ -103,6 +110,7 @@ public final class Core {
 				break;
 			case 2:
 				// Game & score.
+				RunSession runSession = new RunSession(UUID.randomUUID().toString());
 				do {
 					// One extra live every few levels.
 					boolean bonusLife = gameState.getLevel()
@@ -112,7 +120,7 @@ public final class Core {
 					currentScreen = new GameScreen(gameState,
 							applyDifficulty(CampaignStageData
 									.getStageSettings(gameState.getLevel())),
-							bonusLife, width, height, FPS);
+							bonusLife, width, height, FPS, runSession);
 					LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
 							+ " game screen at " + FPS + " fps.");
 					frame.setScreen(currentScreen);
@@ -135,6 +143,11 @@ public final class Core {
 
 				} while (gameState.getLivesRemaining() > 0
 						&& gameState.getLevel() <= CampaignStageData.getTotalStages());
+
+                RunRecord completedRun = runSession.finish(gameState.getScore(),
+                        gameState.getShipsDestroyed(), System.currentTimeMillis());
+                if (recordsService.completeRun(completedRun))
+                    LOGGER.info("Completed run recorded:\n" + RunRecordFormatter.format(completedRun));
 
 				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
 						+ " score screen at " + FPS + " fps, with a score of "
@@ -260,4 +273,6 @@ public final class Core {
 			final int variance) {
 		return new Cooldown(milliseconds, variance);
 	}
+
+    public static RecordsService getRecordsService() { return recordsService; }
 }

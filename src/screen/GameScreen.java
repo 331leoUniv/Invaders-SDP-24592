@@ -16,6 +16,7 @@ import entity.EnemyShipFormation;
 import entity.Entity;
 import entity.Ship;
 import audio.AudioManager;
+import records.RunSession;
 
 /**
  * Implements the game screen, where the action happens.
@@ -76,6 +77,7 @@ public class GameScreen extends Screen {
 	private boolean bonusLife;
 	/** Last countdown number that played a sound. */
 	private int lastCountdown = -1;
+	private RunSession runSession;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -94,9 +96,16 @@ public class GameScreen extends Screen {
 	 *            Frames per second, frame rate at which the game is run.
 	 */
 	public GameScreen(final GameState gameState,
-			final GameSettings gameSettings, final boolean bonusLife,
-			final int width, final int height, final int fps) {
-		super(width, height, fps);
+            final GameSettings gameSettings, final boolean bonusLife,
+            final int width, final int height, final int fps) {
+        this(gameState, gameSettings, bonusLife, width, height, fps, null);
+    }
+
+    public GameScreen(final GameState gameState,
+            final GameSettings gameSettings, final boolean bonusLife,
+            final int width, final int height, final int fps, final RunSession runSession) {
+        super(width, height, fps);
+        this.runSession = runSession;
 
 		this.gameSettings = gameSettings;
 		this.bonusLife = bonusLife;
@@ -139,7 +148,8 @@ public class GameScreen extends Screen {
 	 * @return Next screen code.
 	 */
 	public final int run() {
-		super.run();
+        try { super.run(); }
+        finally { if (this.runSession != null) this.runSession.stopActiveSegment(System.nanoTime()); }
 
 		// Life bonus is only awarded when the stage was cleared.
 		if (this.stageCleared)
@@ -155,7 +165,8 @@ public class GameScreen extends Screen {
 	protected final void update() {
 		super.update();
 
-		if (this.inputDelay.checkFinished() && !this.levelFinished) {
+        if (this.inputDelay.checkFinished() && !this.levelFinished) {
+            if (this.runSession != null) this.runSession.startActiveSegment(System.nanoTime());
 
 			if (!this.ship.isDestroyed()) {
 				boolean moveRight = inputManager.isKeyDown(
@@ -224,6 +235,9 @@ public class GameScreen extends Screen {
 			}
 		}
 
+        if (this.levelFinished && this.runSession != null)
+            this.runSession.stopActiveSegment(System.nanoTime());
+
 		if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
 			this.isRunning = false;
 
@@ -289,6 +303,7 @@ public class GameScreen extends Screen {
 	 * Manages collisions between bullets and ships.
 	 */
 	private void manageCollisions() {
+        if (this.levelFinished) return;
 		Set<Bullet> recyclable = new HashSet<Bullet>();
 		for (Bullet bullet : this.bullets)
 			if (bullet.getSpeed() > 0) {
