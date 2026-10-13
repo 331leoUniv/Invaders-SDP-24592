@@ -11,12 +11,16 @@ public final class RecordsSmokeTest {
     private static int checks;
     private interface CheckedAction { void run(); }
     public static void main(final String[] args) throws Exception {
+        if (args.length==2 && "--shutdown-probe".equals(args[0])) { runShutdownProbe(Paths.get(args[1])); return; }
         testRunRecordValidation();
         testRepositoryDeduplication();
         testRunSessionTimingAndFinish();
         testFormatterOutput();
         testPersonalBests();
         testRankingOrderAndLimit();
+        testCorruptProfileRecovery();
+        testProfilePersistence();
+        testShutdownHookFlush();
         System.out.println("RecordsSmokeTest passed: "+checks+" checks.");
     }
 private static void testRunRecordValidation() {
@@ -161,8 +165,8 @@ private static void testFormatterOutput() {
 		}, "formatter rejects null");
 	}
 
-private static void testPersonalBests() {
-    RecordsService service = new RecordsService();
+private static void testPersonalBests() throws Exception {
+    RecordsService service = new RecordsService(testDirectory("personal-bests").resolve("profile.properties"));
     assertEquals(0, service.getHighestScore(), "empty score best");
     service.completeRun(new RunRecord("a", -50, 4, 9000, 1));
     service.completeRun(new RunRecord("b", -60, 7, 8000, 2));
@@ -170,12 +174,13 @@ private static void testPersonalBests() {
     assertEquals(-50, service.getHighestScore(), "score best and ties");
     assertEquals(7, service.getMostEnemiesDefeated(), "enemy best and ties");
     assertEquals(9000L, service.getLongestSurvivalMillis(), "duration best and ties");
+    service.close();
 }
 private static void testRankingOrderAndLimit() {
 		try {
 			Path profile = testDirectory("invaders-ranking-test")
 					.resolve("profile.properties");
-			RecordsService service = new RecordsService();
+			RecordsService service = new RecordsService(profile);
 			service.completeRun(new RunRecord("z", 100, 0, 0, 20));
 			service.completeRun(new RunRecord("a", 100, 0, 0, 10));
 			service.completeRun(new RunRecord("b", 100, 0, 0, 10));
@@ -186,10 +191,109 @@ private static void testRankingOrderAndLimit() {
 			assertEquals("a", top.get(0).getRunId(), "earlier tie sorts first");
 			assertEquals("b", top.get(1).getRunId(), "run ID breaks timestamp tie");
 			assertEquals("z", top.get(2).getRunId(), "later completion follows");
-
+			service.close();
 		} catch (IOException exception) {
 			throw new AssertionError("ranking test failed", exception);
 		}
+	}
+
+private static void testCorruptProfileRecovery() {
+		try {
+			Path directory = testDirectory("invaders-recovery-test");
+			Path profile = directory.resolve("profile.properties");
+			ProfileStore store = new ProfileStore(profile);
+			List<RunRecord> records = new ArrayList<RunRecord>();
+			records.add(new RunRecord("recover-me", 42, 1, 2000, 77));
+			ProfileSnapshot first = new ProfileSnapshot(records,
+					new LinkedHashMap<String, Long>());
+			store.write(first);
+			records.add(new RunRecord("newer", 43, 1, 2000, 78));
+			store.write(new ProfileSnapshot(records,
+					new LinkedHashMap<String, Long>()));
+			Files.write(profile, "broken profile".getBytes(StandardCharsets.UTF_8));
+			assertEquals(1, store.load().getRecords().size(),
+					"valid backup is restored after corruption");
+			assertTrue(store.getLoadWarning() != null,
+					"backup recovery reports possible lost newer progress");
+			try (java.nio.file.DirectoryStream<Path> preserved =
+					Files.newDirectoryStream(directory, "profile.properties.corrupt-*")) {
+				assertTrue(preserved.iterator().hasNext(),
+						"a separate corrupt copy is preserved after recovery");
+			}
+
+			Path unrecoverable = directory.resolve("unrecoverable.properties");
+			byte[] corrupt = "keep these bytes".getBytes(StandardCharsets.UTF_8);
+			Files.write(unrecoverable, corrupt);
+			RecordsService blocked = new RecordsService(unrecoverable);
+			assertTrue(blocked.isWritesBlocked(),
+					"invalid data without a backup blocks automatic writes");
+			blocked.completeRun(new RunRecord("ephemeral", 9, 0, 0, 100));
+			blocked.close();
+			assertTrue(java.util.Arrays.equals(corrupt,
+					Files.readAllBytes(unrecoverable)),
+					"unrecoverable source bytes remain untouched");
+		} catch (IOException exception) {
+			throw new AssertionError("profile recovery test failed", exception);
+		}
+	}
+
+private static void testProfilePersistence() throws Exception {
+    Path profile = testDirectory("profile-persistence").resolve("profile.properties");
+    RecordsService service = new RecordsService(profile);
+    service.completeRun(new RunRecord("persist", 100, 3, 12000, 1));
+    service.close(); service.close();
+    assertTrue(service.getSaveError() == null, "profile writes successfully");
+    RecordsService restored = new RecordsService(profile);
+    assertEquals(1, restored.getRecordCount(), "records restore");
+    assertEquals(100, restored.getHighestScore(), "best restores from records");
+    restored.close();
+    Path protectedProfile = testDirectory("protected-primary").resolve("profile.properties");
+    new ProfileStore(protectedProfile).write(new ProfileSnapshot(
+            java.util.Arrays.asList(new RunRecord("original",100,0,0,1)), new LinkedHashMap<String,Long>()));
+    byte[] original = Files.readAllBytes(protectedProfile);
+    Path backup = protectedProfile.resolveSibling("profile.properties.bak");
+    Files.createDirectory(backup);
+    Files.write(backup.resolve("keep"), new byte[] {42});
+    RecordsService blocked = new RecordsService(protectedProfile);
+    blocked.completeRun(new RunRecord("blocked", 200, 4, 20000, 2));
+    blocked.close();
+    assertTrue(blocked.getSaveError() != null, "backup failure is reported");
+    assertTrue(java.util.Arrays.equals(original, Files.readAllBytes(protectedProfile)), "backup failure preserves primary");
+    assertFalse(blocked.completeRun(new RunRecord("late", 0, 0, 0, 3)), "closed service rejects completions");
+}
+private static void testShutdownHookFlush() throws Exception {
+		Path profile = testDirectory("shutdown-probe").resolve("profile.properties")
+				.toAbsolutePath();
+		String javaExecutable = Paths.get(System.getProperty("java.home"), "bin", "java.exe").toString();
+		Process child = new ProcessBuilder(javaExecutable, "-Djava.awt.headless=true", "-cp",
+				System.getProperty("java.class.path"), RecordsSmokeTest.class.getName(),
+				"--shutdown-probe", profile.toString()).redirectErrorStream(true).start();
+		if (!child.waitFor(20, java.util.concurrent.TimeUnit.SECONDS)) {
+			child.destroyForcibly();
+			throw new AssertionError("shutdown probe timed out");
+		}
+		assertEquals(0, child.exitValue(), "shutdown probe exits normally");
+		RecordsService restored = new RecordsService(profile);
+		try {
+			assertEquals(80, restored.getRecordCount(),
+					"production shutdown hook drains all pending record writes");
+			assertEquals(79, restored.getHighestScore(),
+					"the final queued snapshot survives process restart");
+		} finally {
+			restored.close();
+		}
+	}
+
+private static void runShutdownProbe(final Path profile) throws Exception {
+		RecordsService service = new RecordsService(profile);
+		java.lang.reflect.Method register = engine.Core.class.getDeclaredMethod(
+				"registerRecordsShutdownHook", RecordsService.class);
+		register.setAccessible(true);
+		register.invoke(null, service);
+		for (int i = 0; i < 80; i++)
+			service.completeRun(new RunRecord("shutdown-" + i, i, 0, 0, i + 1));
+		// Intentionally omit close(): the production hook must flush this queue.
+		System.exit(0);
 	}
 
 	private static void assertTrue(final boolean actual,

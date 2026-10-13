@@ -26,9 +26,9 @@ import screen.GameplaySettingsScreen;
 
 /**
  * Implements core game logic.
- * 
+ *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
 public final class Core {
 
@@ -43,7 +43,7 @@ public final class Core {
 	private static final int MAX_LIVES = 3;
 	/** Levels between extra life. */
 	private static final int EXTRA_LIFE_FRECUENCY = 3;
-	
+
 	/** Frame to draw the screen on. */
 	private static Frame frame;
 	/** Screen currently shown. */
@@ -62,7 +62,7 @@ public final class Core {
 
 	/**
 	 * Test implementation.
-	 * 
+	 *
 	 * @param args
 	 *            Program args, ignored.
 	 */
@@ -92,7 +92,11 @@ public final class Core {
 		int height = frame.getHeight();
 
 		playerAssets = new PlayerAssets();
-		recordsService = new RecordsService();
+		recordsService = new RecordsService(new java.io.File(System.getProperty("user.home"),
+                ".space-invaders/records-achievements.properties").toPath());
+        registerRecordsShutdownHook(recordsService);
+        if (recordsService.getSaveError() != null) LOGGER.warning(recordsService.getSaveError());
+        if (recordsService.getLoadWarning() != null) LOGGER.warning(recordsService.getLoadWarning());
 		GameState gameState;
 
 		int returnCode = 1;
@@ -116,7 +120,7 @@ public final class Core {
 					boolean bonusLife = gameState.getLevel()
 							% EXTRA_LIFE_FRECUENCY == 0
 							&& gameState.getLivesRemaining() < MAX_LIVES;
-					
+
 					currentScreen = new GameScreen(gameState,
 							applyDifficulty(CampaignStageData
 									.getStageSettings(gameState.getLevel())),
@@ -187,6 +191,8 @@ public final class Core {
 
 		} while (returnCode != 0);
 
+        recordsService.close();
+        if (recordsService.getSaveError() != null) LOGGER.warning(recordsService.getSaveError());
 		fileHandler.flush();
 		fileHandler.close();
 		System.exit(0);
@@ -215,7 +221,7 @@ public final class Core {
 
 	/**
 	 * Controls access to the logger.
-	 * 
+	 *
 	 * @return Application logger.
 	 */
 	public static Logger getLogger() {
@@ -224,7 +230,7 @@ public final class Core {
 
 	/**
 	 * Controls access to the drawing manager.
-	 * 
+	 *
 	 * @return Application draw manager.
 	 */
 	public static DrawManager getDrawManager() {
@@ -233,7 +239,7 @@ public final class Core {
 
 	/**
 	 * Controls access to the input manager.
-	 * 
+	 *
 	 * @return Application input manager.
 	 */
 	public static InputManager getInputManager() {
@@ -242,7 +248,7 @@ public final class Core {
 
 	/**
 	 * Controls access to the file manager.
-	 * 
+	 *
 	 * @return Application file manager.
 	 */
 	public static FileManager getFileManager() {
@@ -251,7 +257,7 @@ public final class Core {
 
 	/**
 	 * Controls creation of new cooldowns.
-	 * 
+	 *
 	 * @param milliseconds
 	 *            Duration of the cooldown.
 	 * @return A new cooldown.
@@ -262,7 +268,7 @@ public final class Core {
 
 	/**
 	 * Controls creation of new cooldowns with variance.
-	 * 
+	 *
 	 * @param milliseconds
 	 *            Duration of the cooldown.
 	 * @param variance
@@ -275,4 +281,14 @@ public final class Core {
 	}
 
     public static RecordsService getRecordsService() { return recordsService; }
+
+    private static void registerRecordsShutdownHook(final RecordsService service) {
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+			public void run() {
+				service.close();
+				if (service.getSaveError() != null)
+					LOGGER.warning(service.getSaveError());
+			}
+		}, "records-profile-shutdown"));
+	}
 }
