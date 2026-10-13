@@ -1,5 +1,6 @@
 package entity;
 
+
 import java.awt.Color;
 import java.util.Set;
 
@@ -16,15 +17,21 @@ import engine.DrawManager.SpriteType;
 public class Ship extends Entity {
 
 	/** Time between shots. */
-	private static final int SHOOTING_INTERVAL = 750;
+	private static final int SHOOTING_INTERVAL = 400;
 	/** Speed of the bullets shot by the ship. */
 	private static final int BULLET_SPEED = -6;
 	/** Movement of the ship for each unit of time. */
 	private static final int SPEED = 2;
-	
-	/** Minimum time between shots. */
-	private Cooldown shootingCooldown;
-	/** Time spent inactive between hits. */
+
+
+
+    /** Whether the Hyperfire buff is currently enabled. */
+    private boolean hyperfireEnabled = false;
+
+    /** Time of the last shot. */
+    private long lastShotTime = 0;
+
+    /** Time spent inactive between hits. */
 	private Cooldown destructionCooldown;
 
     private boolean isShieldActive = false;
@@ -41,7 +48,7 @@ public class Ship extends Entity {
 		super(positionX, positionY, 13 * 2, 8 * 2, Color.GREEN);
 
 		this.spriteType = SpriteType.Ship;
-		this.shootingCooldown = Core.getCooldown(SHOOTING_INTERVAL);
+
 		this.destructionCooldown = Core.getCooldown(1000);
 	}
 
@@ -68,17 +75,52 @@ public class Ship extends Entity {
 	 *            List of bullets on screen, to add the new bullet.
 	 * @return Checks if the bullet was shot correctly.
 	 */
-	public final boolean shoot(final Set<Bullet> bullets) {
-		if (this.shootingCooldown.checkFinished()) {
-			this.shootingCooldown.reset();
-			bullets.add(BulletPool.getBullet(positionX + this.width / 2,
-					positionY, BULLET_SPEED));
-			return true;
-		}
-		return false;
-	}
 
-	/**
+    public final boolean shoot(final Set<Bullet> bullets) {
+        long currentTime = System.currentTimeMillis();
+
+        int shootingInterval = SHOOTING_INTERVAL;
+
+        if (this.hyperfireEnabled) {
+            shootingInterval = (int) (SHOOTING_INTERVAL * 0.40);
+        }
+
+        if (lastShotTime == 0 ||
+                currentTime - lastShotTime >= shootingInterval) {
+
+            lastShotTime = currentTime;
+
+            bullets.add(BulletPool.getBullet(
+                    positionX + this.width / 2,
+                    positionY,
+                    BULLET_SPEED
+            ));
+
+            return true;
+        }
+
+        return false;
+    }
+
+
+    /**
+     * Enables or disables the Hyperfire shooting buff.
+     *
+     * @param enabled True to enable Hyperfire, false to disable it.
+     */
+    public final void setHyperfireEnabled(final boolean enabled) {
+        this.hyperfireEnabled = enabled;
+    }
+    /**
+     * Checks whether Hyperfire is currently enabled.
+     */
+    public final boolean isHyperfireEnabled() {
+        return this.hyperfireEnabled;
+    }
+
+
+
+    /**
 	 * Updates status of the ship.
 	 */
 	public final void update() {

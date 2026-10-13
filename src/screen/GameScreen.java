@@ -17,8 +17,9 @@ import entity.EnemyShipFormation;
 import entity.Entity;
 import entity.Ship;
 import audio.AudioManager;
-import entity.item.OrbitalAnnihilator;
+import entity.item.Hyperfire;
 
+import entity.item.OrbitalAnnihilator;
 
 /**
  * Implements the game screen, where the action happens.
@@ -87,6 +88,9 @@ public class GameScreen extends Screen {
 	/** Last countdown number that played a sound. */
 	private int lastCountdown = -1;
 
+    /** Prevents repeated activation while holding H. */
+    private boolean hyperfireKeyPressed = false;
+
 	/**
 	 * Constructor, establishes the properties of the screen.
 	 * 
@@ -130,6 +134,7 @@ public class GameScreen extends Screen {
 		this.ship = new Ship(this.width / 2, this.height - 30);
         this.itemManager = new ItemManager(this.height);
         this.shieldDroppedThisLevel = false;
+        this.hyperfireKeyPressed = false;
 		// Appears each 10-30 seconds.
 		this.enemyShipSpecialCooldown = Core.getVariableCooldown(
 				BONUS_SHIP_INTERVAL, BONUS_SHIP_VARIANCE);
@@ -168,6 +173,8 @@ public class GameScreen extends Screen {
 	protected final void update() {
 		super.update();
 
+
+
 		if (this.inputDelay.checkFinished() && !this.levelFinished) {
 
 			if (!this.ship.isDestroyed()) {
@@ -187,37 +194,51 @@ public class GameScreen extends Screen {
 				if (moveLeft && !isLeftBorder) {
 					this.ship.moveLeft();
 				}
-				if (inputManager.isKeyDown(
-						ControlsConfig.getKey(ControlsConfig.FIRE))) {
-					if (this.ship.shoot(this.bullets)) {
-						this.bulletsShot++;
-					}
-				}
-				// Orbital Annihilator: key E, level 7 only.
-				if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
-					// Normal shooting, except while the beam charges.
-					if (!this.annihilator.isCharging())
-						if (this.ship.shoot(this.bullets))
-							this.bulletsShot++;
 
-					// The hold only counts once the item is fully recharged.
-					if (!this.annihilator.isReady())
-						this.spaceHeldSince = 0;
-					else if (this.spaceHeldSince == 0)
-						this.spaceHeldSince = System.currentTimeMillis();
-					if (this.spaceHeldSince != 0
-							&& this.level == OrbitalAnnihilator.REQUIRED_LEVEL
-							&& System.currentTimeMillis()
-							- this.spaceHeldSince >= ANNIHILATOR_HOLD_TIME)
-						this.annihilator.trigger();
-				} else {
-					this.spaceHeldSince = 0;
-				}
-			} else {
-				// Hit while charging: the charge is lost.
-				this.annihilator.cancelCharge();
-				this.spaceHeldSince = 0;
-			}
+        // Normal shooting using configured controls.
+        if (inputManager.isKeyDown(
+                ControlsConfig.getKey(ControlsConfig.FIRE))) {
+            if (!this.annihilator.isCharging()) {
+                if (this.ship.shoot(this.bullets)) {
+                    this.bulletsShot++;
+                }
+            }
+        }
+
+        // Hyperfire test activation with the H key.
+        boolean hyperfireKeyDown =
+                inputManager.isKeyDown(KeyEvent.VK_H);
+
+        if (hyperfireKeyDown && !this.hyperfireKeyPressed) {
+            this.itemManager.getBuffManager().addBuff(
+                    new Hyperfire(0, 0), this.ship);
+        }
+
+        this.hyperfireKeyPressed = hyperfireKeyDown;
+
+        // Orbital Annihilator charging mechanic.
+        if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
+            if (!this.annihilator.isReady()) {
+                this.spaceHeldSince = 0;
+            } else if (this.spaceHeldSince == 0) {
+                this.spaceHeldSince = System.currentTimeMillis();
+            }
+
+            if (this.spaceHeldSince != 0
+                    && this.level == OrbitalAnnihilator.REQUIRED_LEVEL
+                    && System.currentTimeMillis() - this.spaceHeldSince
+                    >= ANNIHILATOR_HOLD_TIME) {
+                this.annihilator.trigger();
+            }
+        } else {
+            this.spaceHeldSince = 0;
+        }
+    } else {
+        // Cancel charging when the ship is destroyed.
+        this.annihilator.cancelCharge();
+        this.spaceHeldSince = 0;
+    }
+
 
 			if (this.enemyShipSpecial != null) {
 				if (!this.enemyShipSpecial.isDestroyed())
