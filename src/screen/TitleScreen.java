@@ -22,6 +22,7 @@ public class TitleScreen extends Screen {
 
 	/** Time between changes in user selection. */
 	private Cooldown selectionCooldown;
+	private boolean wasMousePressed = false;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -69,6 +70,20 @@ public class TitleScreen extends Screen {
 		if (hoveredOption != -1 && hoveredOption != this.returnCode) {
 			this.returnCode = hoveredOption;
 			AudioManager.playSFX("audio/sfx/menu_move.wav");
+		}
+
+		boolean mousePressed = inputManager.isMousePressed();
+		boolean newMouseClick = mousePressed && !wasMousePressed;
+
+		wasMousePressed = mousePressed;
+
+		if (newMouseClick
+				&& hoveredOption != -1
+				&& this.inputDelay.checkFinished()) {
+
+			this.returnCode = hoveredOption;
+			AudioManager.playSFX("audio/sfx/menu_select.wav");
+			this.isRunning = false;
 		}
 
 		draw();
