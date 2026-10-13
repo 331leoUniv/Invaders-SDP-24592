@@ -188,6 +188,9 @@ public class ScoreScreen extends Screen {
 				this.isNewRecord);
 		if (this.stageFailed)
 			drawManager.drawStageFailed(this, this.level, this.isNewRecord);
+        // No shots fired means no misses: show 100% instead of NaN (0 / 0).
+        float accuracy = this.bulletsShot == 0 ? 1f
+                : (float) this.shipsDestroyed / this.bulletsShot;
 		drawManager.drawResults(this, this.score, this.livesRemaining,
 				this.shipsDestroyed, (float) this.shipsDestroyed
 						/ this.bulletsShot, this.isNewRecord);
