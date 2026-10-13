@@ -47,6 +47,8 @@ public class GameScreen extends Screen {
 	private static final int ANNIHILATOR_HOLD_TIME = 1000;
     private ItemManager itemManager;
     private boolean shieldDroppedThisLevel = false;
+    /** Prevents Hyperfire from dropping more than once per level. */
+    private boolean hyperfireDroppedThisLevel = false;
 	/** Current game difficulty settings. */
 	private GameSettings gameSettings;
 	/** Current difficulty level number. */
@@ -88,8 +90,7 @@ public class GameScreen extends Screen {
 	/** Last countdown number that played a sound. */
 	private int lastCountdown = -1;
 
-    /** Prevents repeated activation while holding H. */
-    private boolean hyperfireKeyPressed = false;
+
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -134,7 +135,8 @@ public class GameScreen extends Screen {
 		this.ship = new Ship(this.width / 2, this.height - 30);
         this.itemManager = new ItemManager(this.height);
         this.shieldDroppedThisLevel = false;
-        this.hyperfireKeyPressed = false;
+        this.hyperfireDroppedThisLevel = false;
+
 		// Appears each 10-30 seconds.
 		this.enemyShipSpecialCooldown = Core.getVariableCooldown(
 				BONUS_SHIP_INTERVAL, BONUS_SHIP_VARIANCE);
@@ -205,16 +207,7 @@ public class GameScreen extends Screen {
             }
         }
 
-        // Hyperfire test activation with the H key.
-        boolean hyperfireKeyDown =
-                inputManager.isKeyDown(KeyEvent.VK_H);
 
-        if (hyperfireKeyDown && !this.hyperfireKeyPressed) {
-            this.itemManager.getBuffManager().addBuff(
-                    new Hyperfire(0, 0), this.ship);
-        }
-
-        this.hyperfireKeyPressed = hyperfireKeyDown;
 
         // Orbital Annihilator charging mechanic.
         if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
@@ -403,16 +396,32 @@ public class GameScreen extends Screen {
                             }
                         }
 					}
-				if (this.enemyShipSpecial != null
-						&& !this.enemyShipSpecial.isDestroyed()
-						&& checkCollision(bullet, this.enemyShipSpecial)) {
-					this.score += this.enemyShipSpecial.getPointValue();
-					this.shipsDestroyed++;
-					this.enemyShipSpecial.destroy();
-					this.enemyShipSpecialExplosionCooldown.reset();
-					recyclable.add(bullet);
-				}
-			}
+
+                if (this.enemyShipSpecial != null
+                        && !this.enemyShipSpecial.isDestroyed()
+                        && checkCollision(bullet, this.enemyShipSpecial)) {
+
+                    this.score += this.enemyShipSpecial.getPointValue();
+                    this.shipsDestroyed++;
+
+                    // Drop Hyperfire when the red UFO is destroyed.
+                    // Only one Hyperfire item can drop per level.
+                    if (!this.hyperfireDroppedThisLevel) {
+                        this.itemManager.spawnItem(new Hyperfire(
+                                this.enemyShipSpecial.getPositionX(),
+                                this.enemyShipSpecial.getPositionY()
+                        ));
+
+                        this.hyperfireDroppedThisLevel = true;
+                        this.logger.info("Hyperfire dropped from red UFO.");
+                    }
+
+                    this.enemyShipSpecial.destroy();
+                    this.enemyShipSpecialExplosionCooldown.reset();
+                    recyclable.add(bullet);
+                }
+
+            }
 		this.bullets.removeAll(recyclable);
 		BulletPool.recycle(recyclable);
 	}
