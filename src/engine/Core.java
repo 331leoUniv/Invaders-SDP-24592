@@ -11,6 +11,7 @@ import audio.AudioControls;
 import screen.AudioControlScreen;
 import screen.GameScreen;
 import screen.HighScoreScreen;
+import screen.InfiniteGameScreen;
 import screen.ScoreScreen;
 import screen.Screen;
 import screen.TitleScreen;
@@ -169,6 +170,28 @@ public final class Core {
 			case 7:
 				currentScreen = new GameplaySettingsScreen(width, height, FPS);
 				returnCode = frame.setScreen(currentScreen);
+				break;
+			case 8:
+				// Infinite mode & score.
+				currentScreen = new InfiniteGameScreen(gameState, width, height,
+						FPS);
+				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
+						+ " infinite game screen at " + FPS + " fps.");
+				frame.setScreen(currentScreen);
+				LOGGER.info("Closing infinite game screen.");
+
+				gameState = ((InfiniteGameScreen) currentScreen).getGameState();
+
+				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
+						+ " score screen at " + FPS + " fps, with a score of "
+						+ gameState.getScore() + ", "
+						+ gameState.getBulletsShot() + " bullets shot and "
+						+ gameState.getShipsDestroyed() + " ships destroyed.");
+				// Infinite mode score screen, Space plays infinite mode again.
+				currentScreen = new ScoreScreen(width, height, FPS, gameState,
+						true);
+				returnCode = frame.setScreen(currentScreen);
+				LOGGER.info("Closing score screen.");
 				break;
 			}
 
