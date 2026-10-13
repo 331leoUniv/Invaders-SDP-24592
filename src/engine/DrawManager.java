@@ -291,7 +291,7 @@ public final class DrawManager {
         String scoreString = String.format("%04d", score);
         String scoreLabel = "SCORE ";
 
-        int scoreX = screen.getWidth() - 60;
+        int scoreX = screen.getWidth() - 67;
         int labelWidth =
                 backBufferGraphics.getFontMetrics().stringWidth(scoreLabel);
 
