@@ -14,6 +14,9 @@ import engine.Core;
  */
 public class TitleScreen extends Screen {
 
+	// Variable to track which menu option is selected (0 = first choice)
+	private int selectedMenuOption = 0;
+
 	/** Milliseconds between changes in user selection. */
 	private static final int SELECTION_TIME = 200;
 	
@@ -118,5 +121,3 @@ public class TitleScreen extends Screen {
 	}
 
 }
-
-#Testperso 
