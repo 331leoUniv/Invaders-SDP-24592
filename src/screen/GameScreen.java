@@ -8,6 +8,7 @@ import engine.Cooldown;
 import engine.Core;
 import engine.GameSettings;
 import engine.GameState;
+import engine.ControlsConfig;
 import entity.Bullet;
 import entity.BulletPool;
 import entity.EnemyShip;
@@ -157,10 +158,10 @@ public class GameScreen extends Screen {
 		if (this.inputDelay.checkFinished() && !this.levelFinished) {
 
 			if (!this.ship.isDestroyed()) {
-				boolean moveRight = inputManager.isKeyDown(KeyEvent.VK_RIGHT)
-						|| inputManager.isKeyDown(KeyEvent.VK_D);
-				boolean moveLeft = inputManager.isKeyDown(KeyEvent.VK_LEFT)
-						|| inputManager.isKeyDown(KeyEvent.VK_A);
+				boolean moveRight = inputManager.isKeyDown(
+						ControlsConfig.getKey(ControlsConfig.RIGHT));
+				boolean moveLeft = inputManager.isKeyDown(
+						ControlsConfig.getKey(ControlsConfig.LEFT));
 
 				boolean isRightBorder = this.ship.getPositionX()
 						+ this.ship.getWidth() + this.ship.getSpeed() > this.width - 1;
@@ -173,9 +174,12 @@ public class GameScreen extends Screen {
 				if (moveLeft && !isLeftBorder) {
 					this.ship.moveLeft();
 				}
-				if (inputManager.isKeyDown(KeyEvent.VK_SPACE))
-					if (this.ship.shoot(this.bullets))
+				if (inputManager.isKeyDown(
+						ControlsConfig.getKey(ControlsConfig.FIRE))) {
+					if (this.ship.shoot(this.bullets)) {
 						this.bulletsShot++;
+					}
+				}
 			}
 
 			if (this.enemyShipSpecial != null) {
