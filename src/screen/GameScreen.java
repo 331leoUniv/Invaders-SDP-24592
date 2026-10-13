@@ -130,7 +130,14 @@ public class GameScreen extends Screen {
 		this.inputDelay = Core.getCooldown(INPUT_DELAY);
 		this.inputDelay.reset();
 
-		AudioManager.playBGM("audio/bgm/music_game.wav");
+		if (this.lives == 1) {
+			AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+			this.isLowHealthBGM = true;
+		} else {
+			AudioManager.playBGM("audio/bgm/music_game.wav");
+			this.isLowHealthBGM = false;
+		}
+
 	}
 
 	/**
@@ -286,12 +293,9 @@ public class GameScreen extends Screen {
 						this.logger.info("Hit on player ship, " + this.lives
 								+ " lives remaining.");
 
-						if (this.lives == 1 && !isLowHealthBGM) {
+						if (this.lives == 1 && !this.isLowHealthBGM) {
 							AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
-							isLowHealthBGM = true;
-						} else if (this.lives > 1 && isLowHealthBGM) {
-							AudioManager.playBGM("audio/bgm/music_game.wav");
-							isLowHealthBGM = false;
+							this.isLowHealthBGM = true;
 						}
 					}
 				}
