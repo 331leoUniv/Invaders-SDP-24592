@@ -15,6 +15,7 @@ public final class RecordsSmokeTest {
         testRepositoryDeduplication();
         testRunSessionTimingAndFinish();
         testFormatterOutput();
+        testPersonalBests();
         System.out.println("RecordsSmokeTest passed: "+checks+" checks.");
     }
 private static void testRunRecordValidation() {
@@ -159,6 +160,16 @@ private static void testFormatterOutput() {
 		}, "formatter rejects null");
 	}
 
+private static void testPersonalBests() {
+    RecordsService service = new RecordsService();
+    assertEquals(0, service.getHighestScore(), "empty score best");
+    service.completeRun(new RunRecord("a", -50, 4, 9000, 1));
+    service.completeRun(new RunRecord("b", -60, 7, 8000, 2));
+    service.completeRun(new RunRecord("c", -50, 7, 9000, 3));
+    assertEquals(-50, service.getHighestScore(), "score best and ties");
+    assertEquals(7, service.getMostEnemiesDefeated(), "enemy best and ties");
+    assertEquals(9000L, service.getLongestSurvivalMillis(), "duration best and ties");
+}
 	private static void assertTrue(final boolean actual,
 			final String message) {
 		checks++;
