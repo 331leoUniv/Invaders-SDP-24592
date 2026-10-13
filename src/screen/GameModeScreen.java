@@ -5,18 +5,18 @@ import java.awt.event.KeyEvent;
 import engine.Cooldown;
 import engine.Core;
 
-public class DifficultyScreen extends Screen { //Implementation of the difficulty selection screen.
+public class GameModeScreen extends Screen { //Implementation of the game mode selection screen.
 
 	
 	private static final int SELECTION_TIME = 200;
-	private static final int NUM_CHOICES = 3; //Number of difficulty choices (campaign, endless, back).
+	private static final int NUM_CHOICES = 3; //Number of game mode choices (campaign, endless, back).
 	private static final int BACK_OPTION = NUM_CHOICES - 1;
 
 	private int selected;
 	private Cooldown selectionCooldown;
 
 
-	public DifficultyScreen(final int width, final int height, final int fps) {
+	public GameModeScreen(final int width, final int height, final int fps) {
 		super(width, height, fps);
 		this.selected = 0; // Defaults to "Easy".
 		this.returnCode = 2; // Defaults to "Play" 
@@ -59,14 +59,14 @@ public class DifficultyScreen extends Screen { //Implementation of the difficult
 	}
 
 	
-	public final int getSelectedDifficulty() {
+	public final int getSelectedGameMode() {
 		return this.selected;
 	}
 
 	private void draw() {
 		drawManager.initDrawing(this);
 
-		drawManager.drawDifficultyMenu(this, this.selected);
+		drawManager.drawGameModeMenu(this, this.selected);
 
 		drawManager.completeDrawing(this);
 	}

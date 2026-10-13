@@ -20,7 +20,7 @@ import screen.SettingsScreen;
 import screen.ControlsSettingsScreen;
 import screen.GameplaySettingsScreen;
 
-import screen.DifficultyScreen;
+import screen.GameModeScreen;
 
 /**
  * Implements core game logic.
@@ -179,11 +179,11 @@ public final class Core {
 				break;
 
 			case 8:
-                currentScreen = new DifficultyScreen(WIDTH, HEIGHT, FPS);
+                currentScreen = new GameModeScreen(WIDTH, HEIGHT, FPS);
                 returnCode = frame.setScreen(currentScreen);
                 if (returnCode == 2)
-                    startLevel = ((DifficultyScreen) currentScreen)
-                    .getSelectedDifficulty() * 3 + 1;
+                    startLevel = ((GameModeScreen) currentScreen)
+                    .getSelectedGameMode() * 3 + 1;
                 break;
 			}
 

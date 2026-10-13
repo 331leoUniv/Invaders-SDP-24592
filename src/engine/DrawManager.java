@@ -823,12 +823,12 @@ public final class DrawManager {
 	}
 	
 	
-    public void drawDifficultyMenu(final Screen screen, final int option) {
+    public void drawGameModeMenu(final Screen screen, final int option) {
         String[] labels = { "Campaign Mode", "Endless Mode", "Back" };
 
         backBufferGraphics.setFont(fontBig);
         backBufferGraphics.setColor(Color.GREEN);
-        drawCenteredBigString(screen, "Difficulty", screen.getHeight() / 3);
+        drawCenteredBigString(screen, "Game Mode", screen.getHeight() / 3);
 
         backBufferGraphics.setFont(fontRegular);
         for (int i = 0; i < labels.length; i++) {
