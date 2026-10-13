@@ -9,6 +9,7 @@ import engine.Cooldown;
 import engine.Core;
 import engine.GameState;
 import engine.Score;
+import audio.AudioManager;
 
 /**
  * Implements the score screen.
@@ -27,6 +28,10 @@ public class ScoreScreen extends Screen {
 	/** Code of last mayus character. */
 	private static final int LAST_CHAR = 90;
 
+	/** Level (stage) that was being played when the game ended. */
+	private int level;
+	/** Checks if the last stage was failed (no lives left). */
+	private boolean stageFailed;
 	/** Current score. */
 	private int score;
 	/** Player lives left. */
@@ -62,6 +67,8 @@ public class ScoreScreen extends Screen {
 			final GameState gameState) {
 		super(width, height, fps);
 
+		this.level = gameState.getLevel();
+		this.stageFailed = gameState.getLivesRemaining() == 0;
 		this.score = gameState.getScore();
 		this.livesRemaining = gameState.getLivesRemaining();
 		this.bulletsShot = gameState.getBulletsShot();
@@ -82,6 +89,8 @@ public class ScoreScreen extends Screen {
 		} catch (IOException e) {
 			logger.warning("Couldn't load high scores!");
 		}
+
+
 	}
 
 	/**
@@ -105,12 +114,14 @@ public class ScoreScreen extends Screen {
 		if (this.inputDelay.checkFinished()) {
 			if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
 				// Return to main menu.
+				AudioManager.playSFX("audio/sfx/menu_back.wav");
 				this.returnCode = 1;
 				this.isRunning = false;
 				if (this.isNewRecord)
 					saveScore();
 			} else if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
 				// Play again.
+				AudioManager.playSFX("audio/sfx/menu_select.wav");
 				this.returnCode = 2;
 				this.isRunning = false;
 				if (this.isNewRecord)
@@ -122,11 +133,13 @@ public class ScoreScreen extends Screen {
 					this.nameCharSelected = this.nameCharSelected == 2 ? 0
 							: this.nameCharSelected + 1;
 					this.selectionCooldown.reset();
+					AudioManager.playSFX("audio/sfx/name_cursor_move.wav");
 				}
 				if (inputManager.isKeyDown(KeyEvent.VK_LEFT)) {
 					this.nameCharSelected = this.nameCharSelected == 0 ? 2
 							: this.nameCharSelected - 1;
 					this.selectionCooldown.reset();
+					AudioManager.playSFX("audio/sfx/name_cursor_move.wav");
 				}
 				if (inputManager.isKeyDown(KeyEvent.VK_UP)) {
 					this.name[this.nameCharSelected] =
@@ -134,6 +147,7 @@ public class ScoreScreen extends Screen {
 									== LAST_CHAR ? FIRST_CHAR
 							: this.name[this.nameCharSelected] + 1);
 					this.selectionCooldown.reset();
+					AudioManager.playSFX("audio/sfx/name_char_change.wav");
 				}
 				if (inputManager.isKeyDown(KeyEvent.VK_DOWN)) {
 					this.name[this.nameCharSelected] =
@@ -141,6 +155,7 @@ public class ScoreScreen extends Screen {
 									== FIRST_CHAR ? LAST_CHAR
 							: this.name[this.nameCharSelected] - 1);
 					this.selectionCooldown.reset();
+					AudioManager.playSFX("audio/sfx/name_char_change.wav");
 				}
 			}
 		}
@@ -171,6 +186,8 @@ public class ScoreScreen extends Screen {
 
 		drawManager.drawGameOver(this, this.inputDelay.checkFinished(),
 				this.isNewRecord);
+		if (this.stageFailed)
+			drawManager.drawStageFailed(this, this.level, this.isNewRecord);
 		drawManager.drawResults(this, this.score, this.livesRemaining,
 				this.shipsDestroyed, (float) this.shipsDestroyed
 						/ this.bulletsShot, this.isNewRecord);
@@ -180,4 +197,5 @@ public class ScoreScreen extends Screen {
 
 		drawManager.completeDrawing(this);
 	}
+
 }

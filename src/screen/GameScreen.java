@@ -8,12 +8,14 @@ import engine.Cooldown;
 import engine.Core;
 import engine.GameSettings;
 import engine.GameState;
+import engine.ControlsConfig;
 import entity.Bullet;
 import entity.BulletPool;
 import entity.EnemyShip;
 import entity.EnemyShipFormation;
 import entity.Entity;
 import entity.Ship;
+import audio.AudioManager;
 
 /**
  * Implements the game screen, where the action happens.
@@ -66,10 +68,14 @@ public class GameScreen extends Screen {
 	private int shipsDestroyed;
 	/** Moment the game starts. */
 	private long gameStartTime;
+	/** Checks if the stage was cleared. */
+	private boolean stageCleared;
 	/** Checks if the level is finished. */
 	private boolean levelFinished;
 	/** Checks if a bonus life is received. */
 	private boolean bonusLife;
+	/** Last countdown number that played a sound. */
+	private int lastCountdown = -1;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -135,7 +141,9 @@ public class GameScreen extends Screen {
 	public final int run() {
 		super.run();
 
-		this.score += LIFE_SCORE * (this.lives - 1);
+		// Life bonus is only awarded when the stage was cleared.
+		if (this.stageCleared)
+			this.score += LIFE_SCORE * (this.lives - 1);
 		this.logger.info("Screen cleared with a score of " + this.score);
 
 		return this.returnCode;
@@ -150,10 +158,10 @@ public class GameScreen extends Screen {
 		if (this.inputDelay.checkFinished() && !this.levelFinished) {
 
 			if (!this.ship.isDestroyed()) {
-				boolean moveRight = inputManager.isKeyDown(KeyEvent.VK_RIGHT)
-						|| inputManager.isKeyDown(KeyEvent.VK_D);
-				boolean moveLeft = inputManager.isKeyDown(KeyEvent.VK_LEFT)
-						|| inputManager.isKeyDown(KeyEvent.VK_A);
+				boolean moveRight = inputManager.isKeyDown(
+						ControlsConfig.getKey(ControlsConfig.RIGHT));
+				boolean moveLeft = inputManager.isKeyDown(
+						ControlsConfig.getKey(ControlsConfig.LEFT));
 
 				boolean isRightBorder = this.ship.getPositionX()
 						+ this.ship.getWidth() + this.ship.getSpeed() > this.width - 1;
@@ -166,9 +174,12 @@ public class GameScreen extends Screen {
 				if (moveLeft && !isLeftBorder) {
 					this.ship.moveLeft();
 				}
-				if (inputManager.isKeyDown(KeyEvent.VK_SPACE))
-					if (this.ship.shoot(this.bullets))
+				if (inputManager.isKeyDown(
+						ControlsConfig.getKey(ControlsConfig.FIRE))) {
+					if (this.ship.shoot(this.bullets)) {
 						this.bulletsShot++;
+					}
+				}
 			}
 
 			if (this.enemyShipSpecial != null) {
@@ -199,10 +210,18 @@ public class GameScreen extends Screen {
 		cleanBullets();
 		draw();
 
-		if ((this.enemyShipFormation.isEmpty() || this.lives == 0)
-				&& !this.levelFinished) {
-			this.levelFinished = true;
-			this.screenFinishedCooldown.reset();
+		if (!this.levelFinished) {
+			if (this.lives == 0) {
+				this.levelFinished = true;
+				this.stageCleared = false;
+				this.screenFinishedCooldown.reset();
+				this.logger.info("Stage " + this.level + " failed.");
+			} else if (this.enemyShipFormation.isEmpty()) {
+				this.levelFinished = true;
+				this.stageCleared = true;
+				this.screenFinishedCooldown.reset();
+				this.logger.info("Stage " + this.level + " cleared.");
+			}
 		}
 
 		if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
@@ -239,6 +258,7 @@ public class GameScreen extends Screen {
 			int countdown = (int) ((INPUT_DELAY
 					- (System.currentTimeMillis()
 							- this.gameStartTime)) / 1000);
+			playCountdownSound(countdown);
 			drawManager.drawCountDown(this, this.level, countdown,
 					this.bonusLife);
 			drawManager.drawHorizontalLine(this, this.height / 2 - this.height
@@ -276,7 +296,7 @@ public class GameScreen extends Screen {
 					recyclable.add(bullet);
 					if (!this.ship.isDestroyed()) {
 						this.ship.destroy();
-						this.lives--;
+						this.lives = Math.max(0, this.lives - 1);
 						this.logger.info("Hit on player ship, " + this.lives
 								+ " lives remaining.");
 					}
@@ -330,6 +350,15 @@ public class GameScreen extends Screen {
 	}
 
 	/**
+	 * Checks if the stage was cleared.
+	 *
+	 * @return True if all enemies were defeated with the ship alive.
+	 */
+	public final boolean isStageCleared() {
+		return this.stageCleared;
+	}
+
+	/**
 	 * Returns a GameState object representing the status of the game.
 	 * 
 	 * @return Current game state.
@@ -337,5 +366,21 @@ public class GameScreen extends Screen {
 	public final GameState getGameState() {
 		return new GameState(this.level, this.score, this.lives,
 				this.bulletsShot, this.shipsDestroyed);
+	}
+
+	/**
+	 * Plays the countdown sound once each time the countdown number changes.
+	 *
+	 * @param countdown
+	 *            Number currently shown in the countdown.
+	 */
+	private void playCountdownSound(final int countdown) {
+		if (countdown == this.lastCountdown)
+			return;
+		this.lastCountdown = countdown;
+		if (countdown == 0)
+			AudioManager.playSFX("audio/sfx/countdown_go.wav");
+		else if (countdown <= 3)
+			AudioManager.playSFX("audio/sfx/countdown_beep.wav");
 	}
 }
