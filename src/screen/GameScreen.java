@@ -296,7 +296,7 @@ public class GameScreen extends Screen {
 					recyclable.add(bullet);
 					if (!this.ship.isDestroyed()) {
 						this.ship.destroy();
-						this.lives--;
+						this.lives = Math.max(0, this.lives - 1);
 						this.logger.info("Hit on player ship, " + this.lives
 								+ " lives remaining.");
 					}
