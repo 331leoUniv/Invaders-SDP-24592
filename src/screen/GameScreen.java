@@ -374,7 +374,7 @@ public class GameScreen extends Screen {
                         } else {
                             // Comportement standard : perte d'une vie et annulation des buffs actifs
                             this.ship.destroy();
-                            this.lives--;
+                            this.lives = Math.max(0, this.lives - 1);
                             this.itemManager.getBuffManager().resetAllBuffs(this.ship);
                             this.logger.info("Hit on player ship, " + this.lives
                                     + " lives remaining.");
