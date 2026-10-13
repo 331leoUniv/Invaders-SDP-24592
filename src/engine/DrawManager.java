@@ -155,6 +155,7 @@ public final class DrawManager {
 		backBufferGraphics.setColor(Color.BLACK);
 		backBufferGraphics
 				.fillRect(0, 0, screen.getWidth(), screen.getHeight());
+		screen.drawBackground(backBufferGraphics);
 
 		fontRegularMetrics = backBufferGraphics.getFontMetrics(fontRegular);
 		fontBigMetrics = backBufferGraphics.getFontMetrics(fontBig);
