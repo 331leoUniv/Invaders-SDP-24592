@@ -31,6 +31,8 @@ public class ScoreScreen extends Screen {
 	private int level;
 	/** Checks if the last stage was failed (no lives left). */
 	private boolean stageFailed;
+	/** Checks if the game that just ended was the infinite mode. */
+	private boolean infiniteMode;
 	/** Current score. */
 	private int score;
 	/** Player lives left. */
@@ -64,7 +66,28 @@ public class ScoreScreen extends Screen {
 	 */
 	public ScoreScreen(final int width, final int height, final int fps,
 			final GameState gameState) {
+		this(width, height, fps, gameState, false);
+	}
+
+	/**
+	 * Constructor, establishes the properties of the screen.
+	 *
+	 * @param width
+	 *            Screen width.
+	 * @param height
+	 *            Screen height.
+	 * @param fps
+	 *            Frames per second, frame rate at which the game is run.
+	 * @param gameState
+	 *            Current game state.
+	 * @param infiniteMode
+	 *            If the game that just ended was the infinite mode.
+	 */
+	public ScoreScreen(final int width, final int height, final int fps,
+			final GameState gameState, final boolean infiniteMode) {
 		super(width, height, fps);
+
+		this.infiniteMode = infiniteMode;
 
 		this.level = gameState.getLevel();
 		this.stageFailed = gameState.getLivesRemaining() == 0;
@@ -117,7 +140,8 @@ public class ScoreScreen extends Screen {
 					saveScore();
 			} else if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
 				// Play again.
-				this.returnCode = 2;
+				// The infinite mode (8) restarts itself instead of the campaign.
+				this.returnCode = this.infiniteMode ? 8 : 2;
 				this.isRunning = false;
 				if (this.isNewRecord)
 					saveScore();
@@ -177,7 +201,7 @@ public class ScoreScreen extends Screen {
 
 		drawManager.drawGameOver(this, this.inputDelay.checkFinished(),
 				this.isNewRecord);
-		if (this.stageFailed)
+		if (this.stageFailed && !this.infiniteMode)
 			drawManager.drawStageFailed(this, this.level, this.isNewRecord);
 		drawManager.drawResults(this, this.score, this.livesRemaining,
 				this.shipsDestroyed, (float) this.shipsDestroyed

@@ -72,7 +72,7 @@ public class TitleScreen extends Screen {
 				this.isRunning = false;
 			// Shortcut to the infinite mode, until it gets a menu entry.
 			if (inputManager.isKeyDown(KeyEvent.VK_I)) {
-				this.returnCode = 4;
+				this.returnCode = 8;
 				this.isRunning = false;
 			}
 		}

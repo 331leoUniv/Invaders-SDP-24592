@@ -149,7 +149,7 @@ public final class Core {
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing high score screen.");
 				break;
-			case 4:
+			case 8:
 				// Infinite mode & score.
 				currentScreen = new InfiniteGameScreen(gameState, width, height,
 						FPS);
@@ -165,7 +165,9 @@ public final class Core {
 						+ gameState.getScore() + ", "
 						+ gameState.getBulletsShot() + " bullets shot and "
 						+ gameState.getShipsDestroyed() + " ships destroyed.");
-				currentScreen = new ScoreScreen(width, height, FPS, gameState);
+				// Infinite mode score screen, Space plays infinite mode again.
+				currentScreen = new ScoreScreen(width, height, FPS, gameState,
+						true);
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing score screen.");
 				break;
