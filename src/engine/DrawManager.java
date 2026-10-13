@@ -436,9 +436,9 @@ public final class DrawManager {
 	 * @param isNewRecord
 	 *            If the score is a new high score.
 	 */
-	public void drawGameOver(final Screen screen, final boolean acceptsInput,
-			final boolean isNewRecord) {
-		String gameOverString = "Game Over";
+    public void drawGameOver(final Screen screen, final boolean acceptsInput,
+                             final boolean isNewRecord, final boolean gameCleared) {
+        String gameOverString = gameCleared ? "Game Clear" : "Game Over";
 		String continueOrExitString =
 				"Press Space to play again, Escape to exit";
 
