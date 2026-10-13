@@ -16,6 +16,7 @@ import screen.ScoreScreen;
 import screen.Screen;
 import screen.TitleScreen;
 import campaign.CampaignStageData;
+import campaign.CampaignManager;
 import screen.SettingsScreen;
 import screen.ControlsSettingsScreen;
 import screen.GameplaySettingsScreen;
@@ -128,7 +129,13 @@ public final class Core {
 						break;
 					}
 
-					gameState = new GameState(gameState.getLevel() + 1,
+                    CampaignManager.updateMaxCampaignStage(
+                            Math.min(gameState.getLevel() + 1,
+                                    CampaignStageData.getTotalStages())
+                    );
+                    LOGGER.info("Highest Stage is: " + CampaignManager.getMaxCampaignStage());
+
+                    gameState = new GameState(gameState.getLevel() + 1,
 							gameState.getScore(),
 							gameState.getLivesRemaining(),
 							gameState.getBulletsShot(),
