@@ -824,7 +824,7 @@ public final class DrawManager {
 	
 	
     public void drawDifficultyMenu(final Screen screen, final int option) {
-        String[] labels = { "Easy", "Normal", "Hard" };
+        String[] labels = { "Campaign Mode", "Endless Mode", "Back" };
 
         backBufferGraphics.setFont(fontBig);
         backBufferGraphics.setColor(Color.GREEN);
