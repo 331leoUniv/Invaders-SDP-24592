@@ -19,6 +19,7 @@ import screen.HighScoreScreen;
 import screen.ScoreScreen;
 import screen.Screen;
 import screen.TitleScreen;
+import screen.PlayerRecordsScreen;
 import campaign.CampaignStageData;
 import screen.SettingsScreen;
 import screen.ControlsSettingsScreen;
@@ -173,6 +174,10 @@ public final class Core {
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing high score screen.");
 				break;
+            case 8:
+                currentScreen = new PlayerRecordsScreen(width,height,FPS,recordsService);
+                returnCode = frame.setScreen(currentScreen);
+                break;
 			case 4:
 				currentScreen = new SettingsScreen(width, height, FPS);
 				returnCode = frame.setScreen(currentScreen);
