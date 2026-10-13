@@ -16,6 +16,7 @@ public final class RecordsSmokeTest {
         testRunSessionTimingAndFinish();
         testFormatterOutput();
         testPersonalBests();
+        testRankingOrderAndLimit();
         System.out.println("RecordsSmokeTest passed: "+checks+" checks.");
     }
 private static void testRunRecordValidation() {
@@ -170,6 +171,27 @@ private static void testPersonalBests() {
     assertEquals(7, service.getMostEnemiesDefeated(), "enemy best and ties");
     assertEquals(9000L, service.getLongestSurvivalMillis(), "duration best and ties");
 }
+private static void testRankingOrderAndLimit() {
+		try {
+			Path profile = testDirectory("invaders-ranking-test")
+					.resolve("profile.properties");
+			RecordsService service = new RecordsService();
+			service.completeRun(new RunRecord("z", 100, 0, 0, 20));
+			service.completeRun(new RunRecord("a", 100, 0, 0, 10));
+			service.completeRun(new RunRecord("b", 100, 0, 0, 10));
+			for (int i = 0; i < 9; i++)
+				service.completeRun(new RunRecord("low-" + i, i, 0, 0, 30 + i));
+			List<RunRecord> top = service.getTopRuns();
+			assertEquals(10, top.size(), "ranking is capped at ten entries");
+			assertEquals("a", top.get(0).getRunId(), "earlier tie sorts first");
+			assertEquals("b", top.get(1).getRunId(), "run ID breaks timestamp tie");
+			assertEquals("z", top.get(2).getRunId(), "later completion follows");
+
+		} catch (IOException exception) {
+			throw new AssertionError("ranking test failed", exception);
+		}
+	}
+
 	private static void assertTrue(final boolean actual,
 			final String message) {
 		checks++;
