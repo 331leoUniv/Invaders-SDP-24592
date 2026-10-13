@@ -57,7 +57,7 @@ public class AudioControlScreen extends Screen {
 		super(width, height, fps);
 
 		// Returns to the main menu when closed.
-		this.returnCode = 1;
+		this.returnCode = 4;
 		this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
 		this.selectionCooldown.reset();
 
@@ -91,11 +91,18 @@ public class AudioControlScreen extends Screen {
 					|| inputManager.isKeyDown(KeyEvent.VK_W)) {
 				previousOption();
 				this.selectionCooldown.reset();
+				AudioManager.playSFX("audio/sfx/menu_move.wav");
 			}
 			if (inputManager.isKeyDown(KeyEvent.VK_DOWN)
 					|| inputManager.isKeyDown(KeyEvent.VK_S)) {
 				nextOption();
 				this.selectionCooldown.reset();
+				AudioManager.playSFX("audio/sfx/menu_move.wav");
+			}
+			if (inputManager.isKeyDown(KeyEvent.VK_SPACE)
+        	&& this.selectedOption == MUTE_OPTION) {
+    		toggleMute();
+    		this.selectionCooldown.reset();
 			}
 			// Left and right change the volume of the selected option only.
 			if (this.selectedOption == BGM_VOLUME_OPTION) {
@@ -103,11 +110,13 @@ public class AudioControlScreen extends Screen {
 						|| inputManager.isKeyDown(KeyEvent.VK_A)) {
 					changeBGMVolume(-VOLUME_STEP);
 					this.selectionCooldown.reset();
+					AudioManager.playSFX("audio/sfx/menu_move.wav");
 				}
 				if (inputManager.isKeyDown(KeyEvent.VK_RIGHT)
 						|| inputManager.isKeyDown(KeyEvent.VK_D)) {
 					changeBGMVolume(VOLUME_STEP);
 					this.selectionCooldown.reset();
+					AudioManager.playSFX("audio/sfx/menu_move.wav");
 				}
 			}
 			if (this.selectedOption == SFX_VOLUME_OPTION) {
@@ -115,11 +124,13 @@ public class AudioControlScreen extends Screen {
 						|| inputManager.isKeyDown(KeyEvent.VK_A)) {
 					changeSFXVolume(-VOLUME_STEP);
 					this.selectionCooldown.reset();
+					AudioManager.playSFX("audio/sfx/menu_move.wav");
 				}
 				if (inputManager.isKeyDown(KeyEvent.VK_RIGHT)
 						|| inputManager.isKeyDown(KeyEvent.VK_D)) {
 					changeSFXVolume(VOLUME_STEP);
 					this.selectionCooldown.reset();
+					AudioManager.playSFX("audio/sfx/menu_move.wav");
 				}
 			}
 			// M toggles the mute state, whichever option is selected.
@@ -128,8 +139,10 @@ public class AudioControlScreen extends Screen {
 				this.selectionCooldown.reset();
 			}
 			// Esc closes the screen.
-			if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE))
+			if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)){
+				AudioManager.playSFX("audio/sfx/menu_back.wav");
 				this.isRunning = false;
+		}
 		}
 	}
 
