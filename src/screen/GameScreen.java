@@ -18,6 +18,7 @@ import entity.Ship;
 import audio.AudioManager;
 import records.RunSession;
 import records.RecordsService;
+import records.Achievement;
 import event.EnemyDefeatedEvent;
 import event.GameplayEventListener;
 import event.GameplayEventPublisher;
@@ -86,6 +87,8 @@ public class GameScreen extends Screen {
 	private int lastCountdown = -1;
 	private RunSession runSession;
     private RecordsService recordsService;
+    private Achievement visibleAchievement;
+    private long achievementNoticeUntil;
     private final GameplayEventPublisher recordsEvents = new GameplayEventPublisher();
     private final Map<EnemyShip,String> defeatIds = new IdentityHashMap<EnemyShip,String>();
 
@@ -182,6 +185,13 @@ public class GameScreen extends Screen {
 	 */
 	protected final void update() {
 		super.update();
+        if (this.recordsService != null) {
+            long now = System.currentTimeMillis();
+            if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
+                this.visibleAchievement = this.recordsService.pollNotification();
+                this.achievementNoticeUntil = this.visibleAchievement == null ? 0 : now + 3000;
+            }
+        }
 
         if (this.inputDelay.checkFinished() && !this.levelFinished) {
             if (this.runSession != null) this.runSession.startActiveSegment(System.nanoTime());
@@ -302,6 +312,8 @@ public class GameScreen extends Screen {
 					/ 12);
 		}
 
+        if (this.visibleAchievement != null)
+            drawManager.drawAchievementNotice(this, this.visibleAchievement);
 		drawManager.completeDrawing(this);
 	}
 

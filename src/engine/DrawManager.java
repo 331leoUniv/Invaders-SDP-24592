@@ -13,6 +13,10 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import screen.Screen;
+import records.Achievement;
+import records.RecordsService;
+import java.text.DateFormat;
+import java.util.Date;
 import entity.Entity;
 import entity.Ship;
 
@@ -145,23 +149,7 @@ public final class DrawManager {
 	 * @param screen
 	 *            Screen to draw in.
 	 */
-	public void initDrawing(final Screen screen) {
-		backBuffer = new BufferedImage(screen.getWidth(), screen.getHeight(),
-				BufferedImage.TYPE_INT_RGB);
 
-		graphics = frame.getGraphics();
-		backBufferGraphics = backBuffer.getGraphics();
-
-		backBufferGraphics.setColor(Color.BLACK);
-		backBufferGraphics
-				.fillRect(0, 0, screen.getWidth(), screen.getHeight());
-
-		fontRegularMetrics = backBufferGraphics.getFontMetrics(fontRegular);
-		fontBigMetrics = backBufferGraphics.getFontMetrics(fontBig);
-
-		// drawBorders(screen);
-		// drawGrid(screen);
-	}
 
 	/**
 	 * Draws the completed drawing on screen.
@@ -169,10 +157,7 @@ public final class DrawManager {
 	 * @param screen
 	 *            Screen to draw on.
 	 */
-	public void completeDrawing(final Screen screen) {
-		graphics.drawImage(backBuffer, frame.getInsets().left,
-				frame.getInsets().top, frame);
-	}
+
 
 	/**
 	 * Draws an entity, using the apropiate image.
@@ -387,44 +372,7 @@ public final class DrawManager {
 	 * @param nameCharSelected
 	 *            Current character selected for modification.
 	 */
-	public void drawNameInput(final Screen screen, final char[] name,
-			final int nameCharSelected) {
-		String newRecordString = "New Record!";
-		String introduceNameString = "Introduce name:";
 
-		backBufferGraphics.setColor(Color.GREEN);
-		drawCenteredRegularString(screen, newRecordString, screen.getHeight()
-				/ 4 + fontRegularMetrics.getHeight() * 10);
-		backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, introduceNameString,
-				screen.getHeight() / 4 + fontRegularMetrics.getHeight() * 12);
-
-		// 3 letters name.
-		int positionX = screen.getWidth()
-				/ 2
-				- (fontRegularMetrics.getWidths()[name[0]]
-						+ fontRegularMetrics.getWidths()[name[1]]
-						+ fontRegularMetrics.getWidths()[name[2]]
-								+ fontRegularMetrics.getWidths()[' ']) / 2;
-
-		for (int i = 0; i < 3; i++) {
-			if (i == nameCharSelected)
-				backBufferGraphics.setColor(Color.GREEN);
-			else
-				backBufferGraphics.setColor(Color.WHITE);
-
-			positionX += fontRegularMetrics.getWidths()[name[i]] / 2;
-			positionX = i == 0 ? positionX
-					: positionX
-							+ (fontRegularMetrics.getWidths()[name[i - 1]]
-									+ fontRegularMetrics.getWidths()[' ']) / 2;
-
-			backBufferGraphics.drawString(Character.toString(name[i]),
-					positionX,
-					screen.getHeight() / 4 + fontRegularMetrics.getHeight()
-							* 14);
-		}
-	}
 
 	/**
 	 * Draws basic content of game over screen.
@@ -821,4 +769,139 @@ public final class DrawManager {
 			return java.awt.event.KeyEvent.getKeyText(keyCode);
 		}
 	}
+
+    public void initDrawing(final Screen screen) {
+		backBuffer = new BufferedImage(screen.getWidth(), screen.getHeight(),
+				BufferedImage.TYPE_INT_RGB);
+
+		graphics = frame == null ? null : frame.getGraphics();
+		backBufferGraphics = backBuffer.getGraphics();
+
+		backBufferGraphics.setColor(Color.BLACK);
+		backBufferGraphics
+				.fillRect(0, 0, screen.getWidth(), screen.getHeight());
+
+		fontRegularMetrics = backBufferGraphics.getFontMetrics(fontRegular);
+		fontBigMetrics = backBufferGraphics.getFontMetrics(fontBig);
+
+		// drawBorders(screen);
+		// drawGrid(screen);
+	}
+
+    public void completeDrawing(final Screen screen) {
+		try {
+			if (graphics != null)
+				graphics.drawImage(backBuffer, frame.getInsets().left,
+						frame.getInsets().top, frame);
+		} finally {
+			backBufferGraphics.dispose();
+			if (graphics != null)
+				graphics.dispose();
+		}
+	}
+
+    public void drawNameInput(final Screen screen, final char[] name,
+			final int nameCharSelected) {
+		drawNameInputAt(screen, name, nameCharSelected, screen.getHeight()
+				/ 4 + fontRegularMetrics.getHeight() * 10,
+				fontRegularMetrics.getHeight() * 2);
+	}
+
+    private void drawNameInputAt(final Screen screen, final char[] name,
+			final int nameCharSelected, final int y, final int spacing) {
+		String newRecordString = "New Record!";
+		String introduceNameString = "Introduce name:";
+
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredRegularString(screen, newRecordString, y);
+		backBufferGraphics.setColor(Color.WHITE);
+		drawCenteredRegularString(screen, introduceNameString, y + spacing);
+
+		// 3 letters name.
+		int positionX = screen.getWidth()
+				/ 2
+				- (fontRegularMetrics.getWidths()[name[0]]
+						+ fontRegularMetrics.getWidths()[name[1]]
+						+ fontRegularMetrics.getWidths()[name[2]]
+								+ fontRegularMetrics.getWidths()[' ']) / 2;
+
+		for (int i = 0; i < 3; i++) {
+			if (i == nameCharSelected)
+				backBufferGraphics.setColor(Color.GREEN);
+			else
+				backBufferGraphics.setColor(Color.WHITE);
+
+			positionX += fontRegularMetrics.getWidths()[name[i]] / 2;
+			positionX = i == 0 ? positionX
+					: positionX
+							+ (fontRegularMetrics.getWidths()[name[i - 1]]
+									+ fontRegularMetrics.getWidths()[' ']) / 2;
+
+			backBufferGraphics.drawString(Character.toString(name[i]),
+					positionX,
+					y + spacing * 2);
+		}
+	}
+
+    public void drawAchievementNotice(final Screen screen,
+			final Achievement achievement) {
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredRegularString(screen, "Achievement unlocked: "
+				+ achievement.getName(), screen.getHeight() / 7);
+		backBufferGraphics.setColor(Color.WHITE);
+		drawCenteredRegularString(screen, achievement.getCondition(),
+				screen.getHeight() / 7 + fontRegularMetrics.getHeight());
+	}
+
+    public void drawAchievementResults(final Screen screen, final int score,
+			final int lives, final int enemies, final float accuracy,
+			final boolean isNewRecord, final char[] name, final int selected,
+			final List<Achievement> achievements, final boolean acceptsInput, final int failedStage) {
+		int spacing = fontRegularMetrics.getHeight();
+		int y = fontBigMetrics.getHeight() + 10;
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen, "Game Over", y);
+        if (failedStage > 0) {
+            y += spacing;
+            backBufferGraphics.setColor(Color.RED);
+            drawCenteredRegularString(screen, "Stage " + failedStage + " Failed", y);
+        }
+		y += spacing * 2;
+		backBufferGraphics.setColor(Color.WHITE);
+		String[] results = { "Score " + score, "Lives remaining " + lives,
+				"Enemies destroyed " + enemies,
+				String.format("Accuracy %.2f%%", accuracy * 100) };
+		for (String result : results) {
+			drawCenteredRegularString(screen, result, y);
+			y += spacing;
+		}
+		if (isNewRecord) {
+			y += spacing;
+			drawNameInputAt(screen, name, selected, y, spacing);
+			y += spacing * 3;
+		}
+		y += spacing;
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredRegularString(screen, "New achievements:", y);
+		backBufferGraphics.setColor(Color.WHITE);
+		for (Achievement achievement : achievements) {
+			y += spacing;
+			drawCenteredRegularString(screen, achievement.getName(), y);
+		}
+		backBufferGraphics.setColor(acceptsInput ? Color.GREEN : Color.GRAY);
+		drawCenteredRegularString(screen, "Space: play again   Esc: menu",
+				screen.getHeight() - spacing);
+	}
+
+    public void drawAchievementList(final Screen screen, final RecordsService service, int y) {
+        for (Achievement achievement : Achievement.values()) {
+            Long unlocked = service.getUnlockTime(achievement);
+            backBufferGraphics.setColor(unlocked == null ? Color.WHITE : Color.GREEN);
+            drawCenteredRegularString(screen, achievement.getName() + (unlocked == null ? " [Locked]" : " [Unlocked]"), y);
+            backBufferGraphics.setColor(Color.GRAY);
+            drawCenteredRegularString(screen, achievement.getCondition(),y+fontRegularMetrics.getHeight());
+            if (unlocked != null) drawCenteredRegularString(screen,"Unlocked: " + DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(new Date(unlocked)), y+fontRegularMetrics.getHeight()*2);
+            y += fontRegularMetrics.getHeight()*3+4;
+        }
+    }
 }

@@ -10,6 +10,8 @@ import engine.Core;
 import engine.GameState;
 import engine.Score;
 import audio.AudioManager;
+import records.Achievement;
+import java.util.ArrayList;
 
 /**
  * Implements the score screen.
@@ -32,6 +34,7 @@ public class ScoreScreen extends Screen {
 	private int level;
 	/** Checks if the last stage was failed (no lives left). */
 	private boolean stageFailed;
+    private final List<Achievement> runUnlocks;
 	/** Current score. */
 	private int score;
 	/** Player lives left. */
@@ -63,9 +66,13 @@ public class ScoreScreen extends Screen {
 	 * @param gameState
 	 *            Current game state.
 	 */
-	public ScoreScreen(final int width, final int height, final int fps,
-			final GameState gameState) {
-		super(width, height, fps);
+    public ScoreScreen(final int width, final int height, final int fps, final GameState state) {
+        this(width,height,fps,state,Collections.<Achievement>emptyList());
+    }
+    public ScoreScreen(final int width, final int height, final int fps,
+            final GameState gameState, final List<Achievement> unlocks) {
+        super(width,height,fps);
+        this.runUnlocks = new ArrayList<Achievement>(unlocks);
 
 		this.level = gameState.getLevel();
 		this.stageFailed = gameState.getLivesRemaining() == 0;
@@ -183,14 +190,20 @@ public class ScoreScreen extends Screen {
 	 */
 	private void draw() {
 		drawManager.initDrawing(this);
+        float accuracy = this.bulletsShot == 0 ? 0 : (float)this.shipsDestroyed / this.bulletsShot;
+        if (!this.runUnlocks.isEmpty()) {
+            drawManager.drawAchievementResults(this,this.score,this.livesRemaining,
+                    this.shipsDestroyed,accuracy,this.isNewRecord,this.name,this.nameCharSelected,
+                    this.runUnlocks,this.inputDelay.checkFinished(), this.stageFailed ? this.level : 0);
+            drawManager.completeDrawing(this); return;
+        }
 
 		drawManager.drawGameOver(this, this.inputDelay.checkFinished(),
 				this.isNewRecord);
 		if (this.stageFailed)
 			drawManager.drawStageFailed(this, this.level, this.isNewRecord);
 		drawManager.drawResults(this, this.score, this.livesRemaining,
-				this.shipsDestroyed, (float) this.shipsDestroyed
-						/ this.bulletsShot, this.isNewRecord);
+				this.shipsDestroyed, accuracy, this.isNewRecord);
 
 		if (this.isNewRecord)
 			drawManager.drawNameInput(this, this.name, this.nameCharSelected);
