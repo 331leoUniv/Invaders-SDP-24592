@@ -26,6 +26,10 @@ public class Ship extends Entity {
 
     /** Distance from the ship center to each barrel of the Twin Cannon. */
     private static final int TWIN_CANNON_OFFSET = 8;
+    /** Minimum time between two grenade launches. */
+    private static final int GRENADE_COOLDOWN = 800;
+    /** Maximum number of grenades the ship can carry. */
+    private static final int MAX_GRENADES = 1;
 
     /** Whether the Hyperfire buff is currently enabled. */
     private boolean hyperfireEnabled = false;
@@ -54,6 +58,10 @@ public class Ship extends Entity {
     private Color colorBeforeChameleon;
     private double chameleonMovementRemainder;
 
+    /** Grenades left (given by the Cluster Grenade item). */
+    private int grenadeCount = 0;
+    /** Minimum time between two grenade launches. */
+    private Cooldown grenadeCooldown;
     private int widthBeforeChameleon;
     private int heightBeforeChameleon;
     private int normalPositionY;
@@ -71,6 +79,7 @@ public class Ship extends Entity {
 
         this.spriteType = SpriteType.Ship;
         this.destructionCooldown = Core.getCooldown(1000);
+        this.grenadeCooldown = Core.getCooldown(GRENADE_COOLDOWN);
     }
 
     /**
@@ -308,5 +317,50 @@ public class Ship extends Entity {
         if (this.chameleonHullActive && !isDestroyed()) {
             this.positionY += (int) getMovementSpeed();
         }
+    }
+    /**
+     * Adds grenades to the ship's stock.
+     *
+     * @param amount
+     *            Number of grenades to add.
+     */
+    public void addGrenades(final int amount) {
+        this.grenadeCount = Math.min(MAX_GRENADES,
+                this.grenadeCount + amount);
+    }
+
+    /**
+     * Getter for the number of grenades left.
+     *
+     * @return Number of grenades left.
+     */
+    public int getGrenadeCount() {
+        return this.grenadeCount;
+    }
+
+    /**
+     * Launches a grenade upwards if the ship has one and the launcher is
+     * ready. Like the bullets, grenades cannot be launched while the
+     * Chameleon Hull is active.
+     *
+     * @param grenades
+     *            Set of grenades on screen, to add the new grenade.
+     * @param detonationY
+     *            Altitude at which the grenade explodes if it hits nothing.
+     * @return True if a grenade was launched.
+     */
+    public boolean launchGrenade(final Set<Grenade> grenades,
+                                 final int detonationY) {
+        if (this.chameleonHullActive) {
+            return false;
+        }
+        if (this.grenadeCount > 0 && this.grenadeCooldown.checkFinished()) {
+            this.grenadeCooldown.reset();
+            this.grenadeCount--;
+            grenades.add(new Grenade(positionX + this.width / 2, positionY,
+                    detonationY));
+            return true;
+        }
+        return false;
     }
 }

@@ -21,6 +21,9 @@ import entity.item.Hyperfire;
 import entity.item.OrbitalAnnihilator;
 import entity.item.AnnihilatorItem;
 import entity.item.TwinCanon;
+import entity.item.ClusterGrenadeItem;
+import entity.Grenade;
+import entity.GrenadeFragment;
 
 /**
  * Implements the game screen, where the action happens.
@@ -46,6 +49,12 @@ public class GameScreen extends Screen {
     private static final int SEPARATION_LINE_HEIGHT = 40;
     /** Time the space key must be held to trigger the Annihilator. */
     private static final int ANNIHILATOR_HOLD_TIME = 1000;
+    /** Chance for a destroyed enemy ship to drop a Cluster Grenade item. */
+    private static final double GRENADE_DROP_CHANCE = 0.15;
+    /** Fixed altitude (Y) where a grenade explodes if it hits nothing. */
+    private static final int GRENADE_DETONATION_Y = 200;
+    /** Maximum number of Cluster Grenade items dropped in one level. */
+    private static final int MAX_GRENADE_DROPS_PER_LEVEL = 2;
 
     private ItemManager itemManager;
     private boolean shieldDroppedThisLevel = false;
@@ -55,6 +64,14 @@ public class GameScreen extends Screen {
     private static final double ANNIHILATOR_DROP_CHANCE = 0.05;
     private boolean annihilatorDroppedThisLevel = false;
     private boolean hyperfireKeyPressed = false;
+    /** Grenades launched by the player and not exploded yet. */
+    private Set<Grenade> grenades;
+    /** Fragments of exploded grenades. */
+    private Set<GrenadeFragment> fragments;
+    /** Prevents launching several grenades while holding G. */
+    private boolean grenadeKeyPressed = false;
+    /** Number of Cluster Grenade items dropped in this level. */
+    private int grenadeDropsThisLevel = 0;
     private int shipsDestroyedAtStart;
     private boolean twinCanonSpawned;
     private TwinCanon twinCanonItem;
@@ -135,6 +152,10 @@ public class GameScreen extends Screen {
         this.annihilatorDroppedThisLevel = false;
 
         this.hyperfireKeyPressed = false;
+        this.grenades = new HashSet<Grenade>();
+        this.fragments = new HashSet<GrenadeFragment>();
+        this.grenadeKeyPressed = false;
+        this.grenadeDropsThisLevel = 0;
         this.shipsDestroyedAtStart = this.shipsDestroyed;
         this.twinCanonSpawned = false;
         this.twinCanonItem = null;
@@ -213,7 +234,15 @@ public class GameScreen extends Screen {
                 }
 
                 this.hyperfireKeyPressed = hyperfireKeyDown;
+                // Cluster Grenade launch with the G key.
+                boolean grenadeKeyDown = inputManager.isKeyDown(KeyEvent.VK_G);
 
+                if (grenadeKeyDown && !this.grenadeKeyPressed) {
+                    this.ship.launchGrenade(this.grenades,
+                            GRENADE_DETONATION_Y);
+                }
+
+                this.grenadeKeyPressed = grenadeKeyDown;
                 // Orbital Annihilator charging mechanic.
                 if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
                     if (!this.annihilator.isReady()) {
@@ -279,6 +308,7 @@ public class GameScreen extends Screen {
         this.itemManager.update(this.ship);
         this.itemManager.checkCollisions(this.ship);
         manageCollisions();
+        manageGrenades();
         if (this.annihilator.isFiring())
             manageAnnihilatorBeam();
         cleanBullets();
@@ -328,6 +358,10 @@ public class GameScreen extends Screen {
         for (Bullet bullet : this.bullets)
             drawManager.drawEntity(bullet, bullet.getPositionX(),
                     bullet.getPositionY());
+        for (Grenade grenade : this.grenades)
+            drawManager.drawGrenade(grenade);
+        for (GrenadeFragment fragment : this.fragments)
+            drawManager.drawGrenadeFragment(fragment);
         this.itemManager.draw(this.drawManager);
 
         if (this.twinCanonItem != null)
@@ -338,6 +372,7 @@ public class GameScreen extends Screen {
         // Interface.
         drawManager.drawScore(this, this.score);
         drawManager.drawLives(this, this.lives);
+        drawManager.drawGrenadeCount(this, this.ship.getGrenadeCount());
         if (this.annihilator.isReady())
             drawManager.drawAnnihilatorReady(this);
         drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
@@ -424,6 +459,7 @@ public class GameScreen extends Screen {
                                 this.logger.info("Shield item dropped from enemy ship.");
                             }
                         }
+                        tryDropGrenade(enemyShip);
                     }
                 if (this.enemyShipSpecial != null
                         && !this.enemyShipSpecial.isDestroyed()
@@ -457,7 +493,95 @@ public class GameScreen extends Screen {
         this.bullets.removeAll(recyclable);
         BulletPool.recycle(recyclable);
     }
+    /**
+     * Each destroyed enemy ship has a 15% chance to drop a Cluster Grenade
+     * item, which falls from the position of the ship.
+     *
+     * @param enemyShip
+     *            Enemy ship that was just destroyed.
+     */
+    private void tryDropGrenade(final EnemyShip enemyShip) {
+        if (this.grenadeDropsThisLevel < MAX_GRENADE_DROPS_PER_LEVEL
+                && Math.random() < GRENADE_DROP_CHANCE) {
+            this.grenadeDropsThisLevel++;
+            this.itemManager.spawnItem(new ClusterGrenadeItem(
+                    enemyShip.getPositionX(), enemyShip.getPositionY()));
+            this.logger.info("Grenade item dropped from enemy ship at ("
+                    + enemyShip.getPositionX() + ", "
+                    + enemyShip.getPositionY() + ").");
+        }
+    }
 
+    /**
+     * Moves the grenades and their fragments. A grenade explodes when it hits
+     * an enemy or reaches its detonation altitude, and splits into 12
+     * fragments. Each fragment destroys the first enemy it touches, then
+     * disappears.
+     */
+    private void manageGrenades() {
+        Set<Grenade> exploded = new HashSet<Grenade>();
+        for (Grenade grenade : this.grenades) {
+            grenade.update();
+
+            boolean impact = false;
+            for (EnemyShip enemyShip : this.enemyShipFormation)
+                if (!enemyShip.isDestroyed()
+                        && checkCollision(grenade, enemyShip)) {
+                    impact = true;
+                    break;
+                }
+            if (!impact && this.enemyShipSpecial != null
+                    && !this.enemyShipSpecial.isDestroyed()
+                    && checkCollision(grenade, this.enemyShipSpecial))
+                impact = true;
+
+            if (impact || grenade.hasReachedAltitude()) {
+                exploded.add(grenade);
+                this.fragments.addAll(GrenadeFragment.explode(
+                        grenade.getCenterX(), grenade.getCenterY()));
+            }
+        }
+        this.grenades.removeAll(exploded);
+
+        Set<GrenadeFragment> expired = new HashSet<GrenadeFragment>();
+        for (GrenadeFragment fragment : this.fragments) {
+            fragment.update();
+
+            // A fragment is used up as soon as it destroys one enemy.
+            boolean used = false;
+            for (EnemyShip enemyShip : this.enemyShipFormation)
+                if (!enemyShip.isDestroyed()
+                        && checkCollision(fragment, enemyShip)) {
+                    this.score += enemyShip.getPointValue();
+                    this.shipsDestroyed++;
+                    this.enemyShipFormation.destroy(enemyShip);
+                    tryDropGrenade(enemyShip);
+                    used = true;
+                    break;
+                }
+
+            if (!used && this.enemyShipSpecial != null
+                    && !this.enemyShipSpecial.isDestroyed()
+                    && checkCollision(fragment, this.enemyShipSpecial)) {
+                this.score += this.enemyShipSpecial.getPointValue();
+                this.shipsDestroyed++;
+                if (!this.hyperfireDroppedThisLevel) {
+                    this.itemManager.spawnItem(new Hyperfire(
+                            this.enemyShipSpecial.getPositionX(),
+                            this.enemyShipSpecial.getPositionY()));
+                    this.hyperfireDroppedThisLevel = true;
+                    this.logger.info("Hyperfire dropped from red UFO.");
+                }
+                this.enemyShipSpecial.destroy();
+                this.enemyShipSpecialExplosionCooldown.reset();
+                used = true;
+            }
+
+            if (used || fragment.isExpired())
+                expired.add(fragment);
+        }
+        this.fragments.removeAll(expired);
+    }
     /**
      * Applies the Orbital Annihilator beam.
      */

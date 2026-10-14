@@ -16,9 +16,11 @@ import java.util.logging.Logger;
 
 import screen.Screen;
 import entity.Entity;
+import entity.Grenade;
+import entity.GrenadeFragment;
 import entity.Ship;
 import entity.item.AnnihilatorItem;
-
+import entity.item.ClusterGrenadeItem;
 /**
  * Manages screen drawing.
  *
@@ -1222,7 +1224,96 @@ public final class DrawManager {
         backBufferGraphics.setColor(java.awt.Color.CYAN);
         backBufferGraphics.drawOval(x, y, width, height);
     }
+    /**
+     * Draws a pixel-art sprite (2x2 pixels per cell) in the current color,
+     * the same way as the other entities of the game.
+     */
+    private void drawSprite(final boolean[][] image, final int x,
+                            final int y) {
+        for (int i = 0; i < image.length; i++)
+            for (int j = 0; j < image[i].length; j++)
+                if (image[i][j])
+                    backBufferGraphics.drawRect(x + i * 2, y + j * 2, 1, 1);
+    }
 
+    /**
+     * Draws the Cluster Grenade item with its pixel-art sprite, so that
+     * players recognize it when it falls.
+     *
+     * @param x
+     *            Coordinate for the left side of the item.
+     * @param y
+     *            Coordinate for the upper side of the item.
+     */
+    public void drawGrenadeItem(final int x, final int y) {
+        backBufferGraphics.setColor(Color.WHITE);
+        drawSprite(ClusterGrenadeItem.getSprite(), x, y);
+    }
+
+    /**
+     * Draws a grenade launched by the player ship: a pixel-art grenade
+     * with a halo.
+     *
+     * @param grenade
+     *            Grenade to draw.
+     */
+    public void drawGrenade(final Grenade grenade) {
+        Graphics g = backBufferGraphics;
+        int x = grenade.getPositionX();
+        int y = grenade.getPositionY();
+        int w = grenade.getWidth();
+        int h = grenade.getHeight();
+        // Halo around the grenade.
+        g.setColor(new Color(255, 140, 0, 50));
+        g.fillOval(x - 10, y - 10, w + 20, h + 20);
+        g.setColor(new Color(255, 170, 0, 100));
+        g.fillOval(x - 5, y - 5, w + 10, h + 10);
+        // Grenade.
+        g.setColor(grenade.getColor());
+        drawSprite(Grenade.getSprite(), x, y);
+    }
+
+    /**
+     * Draws a fragment of an exploded grenade: a pixel-art spark with a halo
+     * that fades out.
+     *
+     * @param fragment
+     *            Fragment to draw.
+     */
+    public void drawGrenadeFragment(final GrenadeFragment fragment) {
+        Graphics g = backBufferGraphics;
+        int x = fragment.getPositionX();
+        int y = fragment.getPositionY();
+        int cx = x + fragment.getWidth() / 2;
+        int cy = y + fragment.getHeight() / 2;
+        // The halo fades out while the fragment flies away.
+        double fade = 1.0 - 0.6 * fragment.getProgress();
+        g.setColor(new Color(255, 140, 0, (int) (60 * fade)));
+        g.fillOval(cx - 11, cy - 11, 22, 22);
+        g.setColor(new Color(255, 190, 0, (int) (110 * fade)));
+        g.fillOval(cx - 7, cy - 7, 14, 14);
+        // Spark with a bright center.
+        g.setColor(fragment.getColor());
+        drawSprite(GrenadeFragment.getSprite(), x, y);
+        g.setColor(Color.WHITE);
+        g.fillRect(cx - 1, cy - 1, 2, 2);
+    }
+
+    /**
+     * Draws the number of grenades left, when the ship has some.
+     *
+     * @param screen
+     *            Screen to draw on.
+     * @param grenades
+     *            Number of grenades left.
+     */
+    public void drawGrenadeCount(final Screen screen, final int grenades) {
+        if (grenades <= 0)
+            return;
+        backBufferGraphics.setFont(fontRegular);
+        backBufferGraphics.setColor(Color.ORANGE);
+        backBufferGraphics.drawString("GRENADE [G] x" + grenades, 10, 55);
+    }
     private String getKeyDisplayText(final int keyCode) {
         switch (keyCode) {
             case java.awt.event.KeyEvent.VK_LEFT:
