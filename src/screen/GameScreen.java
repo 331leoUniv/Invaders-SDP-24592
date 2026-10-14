@@ -117,7 +117,15 @@ public class GameScreen extends Screen {
 
     /** Orbital Annihilator (Doomsday Laser), only available on level 7. */
     private OrbitalAnnihilator annihilator;
+
+    /** Big enemy that drops the Orbital Annihilator, only on its level. */
     private OrbitalGuardian guardian;
+
+    /** Time the star must stay on the guardian to give it one hit. */
+    private static final int GUARDIAN_CONTACT_INTERVAL = 750;
+
+    /** Moment the star started (or last gave) a contact hit, 0 if no contact. */
+    private long guardianContactSince;
 
     /** Moment the space key started being held, 0 if not held. */
     private long spaceHeldSince;
@@ -263,7 +271,8 @@ public class GameScreen extends Screen {
 
 
                 // Orbital Annihilator charging mechanic.
-                if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
+                if (inputManager.isKeyDown(
+                        ControlsConfig.getKey(ControlsConfig.FIRE))) {
                     if (!this.annihilator.isReady()) {
                         this.spaceHeldSince = 0;
 
@@ -316,6 +325,7 @@ public class GameScreen extends Screen {
                 this.enemyShipFormation.update();
                 this.enemyShipFormation.shoot(this.bullets);
             }
+
             if (this.guardian != null && !this.guardian.isDestroyed()) {
                 this.guardian.update(this.width);
                 this.guardian.shoot(this.bullets);
@@ -335,6 +345,7 @@ public class GameScreen extends Screen {
 
         manageCollisions();
         manageBallContact();
+        manageGuardianContact();
 
         if (this.annihilator.isFiring())
             manageAnnihilatorBeam();
@@ -358,9 +369,9 @@ public class GameScreen extends Screen {
                 this.logger.info("Stage " + this.level + " cleared.");
             }
         }
-            if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
-                this.isRunning = false;
 
+        if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
+            this.isRunning = false;
     }
 
     /**
@@ -396,7 +407,8 @@ public class GameScreen extends Screen {
             );
 
         enemyShipFormation.draw();
-        if (this.guardian != null && !this.guardian.isDestroyed())
+
+        if (this.guardian != null && this.guardian.isVisible())
             drawManager.drawGuardian(this.guardian);
 
         for (Bullet bullet : this.bullets)
@@ -506,21 +518,9 @@ public class GameScreen extends Screen {
                 if (this.guardian != null && !this.guardian.isDestroyed()
                         && checkCollision(bullet, this.guardian)) {
                     recyclable.add(bullet);
-
-                    if (this.guardian.hit()) {
-                        this.score += this.guardian.getPointValue();
-                        this.shipsDestroyed++;
-
-                        this.itemManager.spawnItem(new AnnihilatorItem(
-                                this.guardian.getPositionX()
-                                        + this.guardian.getWidth() / 2 - 13,
-                                this.guardian.getPositionY()
-                                        + this.guardian.getHeight(),
-                                this.annihilator));
-
-                        this.logger.info("Orbital Guardian destroyed.");
-                    }
+                    damageGuardian();
                 }
+
                 for (EnemyShip enemyShip : this.enemyShipFormation)
                     if (!enemyShip.isDestroyed()
                             && checkCollision(bullet, enemyShip)) {
@@ -621,6 +621,58 @@ public class GameScreen extends Screen {
 
         this.bullets.removeAll(neutralized);
         BulletPool.recycle(neutralized);
+    }
+
+    /**
+     * The star hurts the guardian when it stays on it: one hit each time the
+     * contact lasts GUARDIAN_CONTACT_INTERVAL. If the star moves away, the
+     * counter restarts, but the life already lost stays lost.
+     */
+    private void manageGuardianContact() {
+        if (this.guardian == null || this.guardian.isDestroyed())
+            return;
+
+        boolean touching = this.inputDelay.checkFinished()
+                && !this.levelFinished
+                && !this.ship.isDestroyed()
+                && this.ship.isChameleonHullActive()
+                && checkCollision(this.ship, this.guardian);
+
+        this.guardian.setContact(touching);
+
+        if (!touching) {
+            this.guardianContactSince = 0;
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (this.guardianContactSince == 0)
+            this.guardianContactSince = now;
+
+        if (now - this.guardianContactSince >= GUARDIAN_CONTACT_INTERVAL) {
+            this.guardianContactSince = now;
+            damageGuardian();
+        }
+    }
+
+    /**
+     * Gives one hit to the guardian. When it is destroyed, the score is
+     * awarded and the Orbital Annihilator item drops from it.
+     */
+    private void damageGuardian() {
+        if (this.guardian.hit()) {
+            this.score += this.guardian.getPointValue();
+            this.shipsDestroyed++;
+
+            this.itemManager.spawnItem(new AnnihilatorItem(
+                    this.guardian.getPositionX()
+                            + this.guardian.getWidth() / 2 - 13,
+                    this.guardian.getPositionY()
+                            + this.guardian.getHeight(),
+                    this.annihilator));
+
+            this.logger.info("Orbital Guardian destroyed.");
+        }
     }
 
     /**
