@@ -313,6 +313,28 @@ public final class DrawManager {
         for (int i = 0; i < lives; i++)
             drawEntity(dummyShip, 20 + 35 * i, 10);
     }
+    /**
+     * Draws current level progress on screen.
+     *
+     * @param screen
+     *            Screen to draw on.
+     * @param level
+     *            Current level.
+     * @param totalLevels
+     *            Total number of levels.
+     */
+    public void drawLevel(final Screen screen, final int level,
+                          final int totalLevels) {
+        backBufferGraphics.setFont(fontRegular);
+        backBufferGraphics.setColor(Color.WHITE);
+
+        String levelString = "LEVEL " + level + "/" + totalLevels;
+        int textWidth =
+                backBufferGraphics.getFontMetrics().stringWidth(levelString);
+        int levelX = (screen.getWidth() - textWidth) / 2;
+
+        backBufferGraphics.drawString(levelString, levelX, 25);
+    }
 
     /**
      * Draws a thick line from side to side of the screen.
