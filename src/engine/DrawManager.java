@@ -1,5 +1,7 @@
 package engine;
 
+import entity.item.ChameleonHull;
+
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontFormatException;
@@ -18,9 +20,9 @@ import entity.Ship;
 
 /**
  * Manages screen drawing.
- * 
+ *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
 public final class DrawManager {
 
@@ -188,6 +190,15 @@ public final class DrawManager {
 			final int positionY) {
 		boolean[][] image = spriteMap.get(entity.getSpriteType());
 
+		if (entity instanceof ChameleonHull) {
+			image = ChameleonHull.getStarSprite();
+		}
+
+		if (entity instanceof Ship
+				&& ((Ship) entity).isChameleonHullActive()) {
+			image = ChameleonHull.getBallSprite();
+		}
+
 		backBufferGraphics.setColor(entity.getColor());
 		for (int i = 0; i < image.length; i++)
 			for (int j = 0; j < image[i].length; j++)
@@ -276,6 +287,57 @@ public final class DrawManager {
 		backBufferGraphics.drawLine(0, positionY, screen.getWidth(), positionY);
 		backBufferGraphics.drawLine(0, positionY + 1, screen.getWidth(),
 				positionY + 1);
+	}
+
+	/**
+	 * Draws the Orbital Annihilator: a growing energy charge on the ship's
+	 * nose while charging, then a full vertical beam going up from the ship.
+	 */
+	public void drawOrbitalAnnihilator(final Ship ship, final int beamWidth,
+			final int topY, final boolean firing, final float chargeProgress) {
+		int centerX = ship.getPositionX() + ship.getWidth() / 2;
+		int startY = ship.getPositionY();
+		int beamX = centerX - beamWidth / 2;
+
+		if (firing) {
+			backBufferGraphics.setColor(new Color(255, 0, 0, 120));
+			backBufferGraphics.fillRect(beamX - 4, topY, beamWidth + 8, startY - topY);
+
+			backBufferGraphics.setColor(Color.RED);
+			backBufferGraphics.fillRect(beamX, topY, beamWidth, startY - topY);
+
+			backBufferGraphics.setColor(Color.WHITE);
+			backBufferGraphics.fillRect(centerX - beamWidth / 4, topY, beamWidth / 2, startY - topY);
+		} else {
+			backBufferGraphics.setColor(new Color(255, 0, 0, 90));
+			backBufferGraphics.fillRect(centerX - 1, topY, 2, startY - topY);
+
+			int radius = 2 + (int) (chargeProgress * beamWidth / 2);
+			boolean flicker = ((int) (chargeProgress * 20)) % 2 == 0;
+
+			backBufferGraphics.setColor(flicker ? Color.WHITE : Color.RED);
+			backBufferGraphics.fillOval(centerX - radius, startY - radius, radius * 2, radius * 2);
+		}
+	}
+
+	/**
+	 * Draws the Orbital Annihilator recharge gauge under the score.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param progress
+	 *            Recharge progress between 0 and 1.
+	 */
+	public void drawAnnihilatorGauge(final Screen screen, final float progress) {
+		int barWidth = 80;
+		int barX = screen.getWidth() - barWidth - 20;
+		int barY = 29;
+
+		backBufferGraphics.setColor(Color.DARK_GRAY);
+		backBufferGraphics.fillRect(barX, barY, barWidth, 6);
+
+		backBufferGraphics.setColor(progress >= 1f ? Color.GREEN : Color.RED);
+		backBufferGraphics.fillRect(barX, barY, (int) (barWidth * progress), 6);
 	}
 
 	/**
@@ -435,10 +497,12 @@ public final class DrawManager {
 	 *            If the screen accepts input.
 	 * @param isNewRecord
 	 *            If the score is a new high score.
+	 * @param gameCleared
+	 *            If the game was cleared successfully.
 	 */
-    public void drawGameOver(final Screen screen, final boolean acceptsInput,
-                             final boolean isNewRecord, final boolean gameCleared) {
-        String gameOverString = gameCleared ? "Game Clear" : "Game Over";
+	public void drawGameOver(final Screen screen, final boolean acceptsInput,
+			final boolean isNewRecord, final boolean gameCleared) {
+		String gameOverString = gameCleared ? "Game Clear" : "Game Over";
 		String continueOrExitString =
 				"Press Space to play again, Escape to exit";
 
@@ -799,6 +863,29 @@ public final class DrawManager {
 		backBufferGraphics.setColor(color);
 		backBufferGraphics.fillRect(positionX, positionY,
 				width * volume / 100, height);
+	}
+
+	/**
+	 * Dessine un bouclier protecteur autour du vaisseau.
+	 *
+	 * @param screen Écran de jeu cible.
+	 * @param ship Vaisseau à entourer.
+	 */
+	public void drawShield(final Screen screen, final Entity ship) {
+		backBufferGraphics.setColor(new Color(0, 200, 255, 120)); // Cyan semi-transparent
+
+		int padding = 4;
+		int x = ship.getPositionX() - padding;
+		int y = ship.getPositionY() - padding;
+		int width = ship.getWidth() + (padding * 2);
+		int height = ship.getHeight() + (padding * 2);
+
+		// Dessine l'intérieur lumineux du bouclier
+		backBufferGraphics.fillOval(x, y, width, height);
+
+		// Dessine le contour plus net du bouclier
+		backBufferGraphics.setColor(Color.CYAN);
+		backBufferGraphics.drawOval(x, y, width, height);
 	}
 
 	private String getKeyDisplayText(final int keyCode) {
