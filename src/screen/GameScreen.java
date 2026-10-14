@@ -18,7 +18,6 @@ import entity.Entity;
 import entity.Ship;
 import audio.AudioManager;
 import entity.item.Hyperfire;
-
 import entity.item.OrbitalAnnihilator;
 import entity.item.TwinCanon;
 
@@ -26,7 +25,6 @@ import entity.item.TwinCanon;
  * Implements the game screen, where the action happens.
  *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- *
  */
 public class GameScreen extends Screen {
 
@@ -35,8 +33,7 @@ public class GameScreen extends Screen {
     /** Bonus score for each life remaining at the end of the level. */
     private static final int LIFE_SCORE = 100;
     /** Minimum time between bonus ship's appearances. */
-    private static final int BONUS_SHIP_INTERVAL = 20000;
-    private static final int BONUS_SHIP_INTERVAL = 15000; //modifier le temps au lieu de 20000 I
+    private static final int BONUS_SHIP_INTERVAL = 15000;
 
     /** Maximum variance in the time between bonus ship's appearances. */
     private static final int BONUS_SHIP_VARIANCE = 10000;
@@ -48,16 +45,15 @@ public class GameScreen extends Screen {
     private static final int SEPARATION_LINE_HEIGHT = 40;
     /** Time the space key must be held to trigger the Annihilator. */
     private static final int ANNIHILATOR_HOLD_TIME = 1000;
+
     private ItemManager itemManager;
     private boolean shieldDroppedThisLevel = false;
-    /** Ships destroyed when the level started (Twin Cannon spawn). */
-    private int shipsDestroyedAtStart;
-    /** True once the Twin Cannon item has appeared in this level. */
-    private boolean twinCanonSpawned;
-    /** Falling Twin Cannon item, null when not on screen. Shoot it to collect it. */
-    private TwinCanon twinCanonItem;
-    /** Prevents Hyperfire from dropping more than once per level. */
+    private boolean chameleonDroppedThisLevel = false;
     private boolean hyperfireDroppedThisLevel = false;
+    private boolean hyperfireKeyPressed = false;
+    private int shipsDestroyedAtStart;
+    private boolean twinCanonSpawned;
+    private TwinCanon twinCanonItem;
 
     /** Current game difficulty settings. */
     private GameSettings gameSettings;
@@ -100,23 +96,8 @@ public class GameScreen extends Screen {
     /** Last countdown number that played a sound. */
     private int lastCountdown = -1;
 
-
-
     /**
      * Constructor, establishes the properties of the screen.
-     *
-     * @param gameState
-     *            Current game state.
-     * @param gameSettings
-     *            Current game settings.
-     * @param bonusLife
-     *            Checks if a bonus life is awarded this level.
-     * @param width
-     *            Screen width.
-     * @param height
-     *            Screen height.
-     * @param fps
-     *            Frames per second, frame rate at which the game is run.
      */
     public GameScreen(final GameState gameState,
                       final GameSettings gameSettings, final boolean bonusLife,
@@ -170,8 +151,6 @@ public class GameScreen extends Screen {
 
     /**
      * Starts the action.
-     *
-     * @return Next screen code.
      */
     public final int run() {
         super.run();
@@ -189,8 +168,6 @@ public class GameScreen extends Screen {
      */
     protected final void update() {
         super.update();
-
-
 
         if (this.inputDelay.checkFinished() && !this.levelFinished) {
 
@@ -222,6 +199,8 @@ public class GameScreen extends Screen {
                     }
                 }
 
+                boolean hyperfireKeyDown = inputManager.isKeyDown(
+                        ControlsConfig.getKey(ControlsConfig.BUFF));
 
                 if (hyperfireKeyDown && !this.hyperfireKeyPressed) {
                     this.itemManager.getBuffManager().addBuff(
@@ -253,13 +232,11 @@ public class GameScreen extends Screen {
                 this.spaceHeldSince = 0;
             }
 
-
             if (this.enemyShipSpecial != null) {
                 if (!this.enemyShipSpecial.isDestroyed())
                     this.enemyShipSpecial.move(2, 0);
                 else if (this.enemyShipSpecialExplosionCooldown.checkFinished())
                     this.enemyShipSpecial = null;
-
             }
             if (this.enemyShipSpecial == null
                     && this.enemyShipSpecialCooldown.checkFinished()) {
@@ -278,6 +255,7 @@ public class GameScreen extends Screen {
             this.enemyShipFormation.update();
             this.enemyShipFormation.shoot(this.bullets);
         }
+
         // Twin Cannon item: appears once in its level, after some kills.
         if (!this.twinCanonSpawned && TwinCanon.isUnlocked(this.level)
                 && this.shipsDestroyed - this.shipsDestroyedAtStart >= TwinCanon.SPAWN_KILLS) {
@@ -285,12 +263,14 @@ public class GameScreen extends Screen {
             this.twinCanonItem = new TwinCanon(
                     30 + (int) (Math.random() * (this.width - 60)), 0);
         }
+
         // The Twin Cannon item falls, and is lost if it leaves the screen.
         if (this.twinCanonItem != null) {
             this.twinCanonItem.update();
             if (this.twinCanonItem.getPositionY() > this.height)
                 this.twinCanonItem = null;
         }
+
         this.itemManager.update(this.ship);
         this.itemManager.checkCollisions(this.ship);
         manageCollisions();
@@ -315,7 +295,6 @@ public class GameScreen extends Screen {
 
         if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
             this.isRunning = false;
-
     }
 
     /**
@@ -345,10 +324,12 @@ public class GameScreen extends Screen {
             drawManager.drawEntity(bullet, bullet.getPositionX(),
                     bullet.getPositionY());
         this.itemManager.draw(this.drawManager);
+
         if (this.twinCanonItem != null)
             drawManager.drawEntity(this.twinCanonItem,
                     this.twinCanonItem.getPositionX(),
                     this.twinCanonItem.getPositionY());
+
         // Interface.
         drawManager.drawScore(this, this.score);
         drawManager.drawLives(this, this.lives);
@@ -360,8 +341,7 @@ public class GameScreen extends Screen {
         // Countdown to game start.
         if (!this.inputDelay.checkFinished()) {
             int countdown = (int) ((INPUT_DELAY
-                    - (System.currentTimeMillis()
-                    - this.gameStartTime)) / 1000);
+                    - (System.currentTimeMillis() - this.gameStartTime)) / 1000);
             playCountdownSound(countdown);
             drawManager.drawCountDown(this, this.level, countdown,
                     this.bonusLife);
@@ -400,10 +380,8 @@ public class GameScreen extends Screen {
                     recyclable.add(bullet);
                     if (!this.ship.isDestroyed()) {
                         if (this.ship.isShieldActive()) {
-                            // Le bouclier absorbe l'impact : le tir est détruit mais le joueur survit
                             this.logger.info("Enemy shot absorbed by Energy Shield.");
                         } else {
-                            // Comportement standard : perte d'une vie et annulation des buffs actifs
                             this.ship.destroy();
                             this.lives--;
                             this.itemManager.getBuffManager().resetAllBuffs(this.ship);
@@ -420,17 +398,16 @@ public class GameScreen extends Screen {
                         this.shipsDestroyed++;
                         this.enemyShipFormation.destroy(enemyShip);
                         recyclable.add(bullet);
-                        // --- DROP DU BOUCLIER ---
+
                         if (!this.shieldDroppedThisLevel) {
                             boolean shouldDrop = (Math.random() < 0.15) || (this.enemyShipFormation.isEmpty());
                             if (shouldDrop) {
-                                this.itemManager.spawnItem(new entity.item.ShieldItem(
+                                this.itemManager.spawnItem(new ShieldItem(
                                         enemyShip.getPositionX(),
                                         enemyShip.getPositionY()
                                 ));
                                 this.shieldDroppedThisLevel = true;
-                                this.logger.info("Shield item dropped from enemy ship at ("
-                                        + enemyShip.getPositionX() + ", " + enemyShip.getPositionY() + ").");
+                                this.logger.info("Shield item dropped from enemy ship.");
                             }
                         }
                     }
@@ -440,13 +417,11 @@ public class GameScreen extends Screen {
                     this.score += this.enemyShipSpecial.getPointValue();
                     this.shipsDestroyed++;
 
-// Drop Hyperfire from the red UFO, once per level.
                     if (!this.hyperfireDroppedThisLevel) {
                         this.itemManager.spawnItem(new Hyperfire(
                                 this.enemyShipSpecial.getPositionX(),
                                 this.enemyShipSpecial.getPositionY()
                         ));
-
                         this.hyperfireDroppedThisLevel = true;
                         this.logger.info("Hyperfire dropped from red UFO.");
                     }
@@ -455,6 +430,7 @@ public class GameScreen extends Screen {
                     this.enemyShipSpecialExplosionCooldown.reset();
                     recyclable.add(bullet);
                 }
+
                 // Shooting the Twin Cannon item collects it.
                 if (this.twinCanonItem != null
                         && checkCollision(bullet, this.twinCanonItem)) {
@@ -467,9 +443,9 @@ public class GameScreen extends Screen {
         this.bullets.removeAll(recyclable);
         BulletPool.recycle(recyclable);
     }
+
     /**
-     * Applies the Orbital Annihilator beam: destroys every enemy in the
-     * corridor and neutralizes enemy projectiles inside it.
+     * Applies the Orbital Annihilator beam.
      */
     private void manageAnnihilatorBeam() {
         for (EnemyShip enemyShip : this.enemyShipFormation)
@@ -497,25 +473,19 @@ public class GameScreen extends Screen {
         this.bullets.removeAll(neutralized);
         BulletPool.recycle(neutralized);
     }
+
     /**
      * Checks if two entities are colliding.
-     *
-     * @param a
-     *            First entity, the bullet.
-     * @param b
-     *            Second entity, the ship.
-     * @return Result of the collision test.
      */
     private boolean checkCollision(final Entity a, final Entity b) {
-        // Calculate center point of the entities in both axis.
         int centerAX = a.getPositionX() + a.getWidth() / 2;
         int centerAY = a.getPositionY() + a.getHeight() / 2;
         int centerBX = b.getPositionX() + b.getWidth() / 2;
         int centerBY = b.getPositionY() + b.getHeight() / 2;
-        // Calculate maximum distance without collision.
+
         int maxDistanceX = a.getWidth() / 2 + b.getWidth() / 2;
         int maxDistanceY = a.getHeight() / 2 + b.getHeight() / 2;
-        // Calculates distance.
+
         int distanceX = Math.abs(centerAX - centerBX);
         int distanceY = Math.abs(centerAY - centerBY);
 
@@ -524,8 +494,6 @@ public class GameScreen extends Screen {
 
     /**
      * Checks if the stage was cleared.
-     *
-     * @return True if all enemies were defeated with the ship alive.
      */
     public final boolean isStageCleared() {
         return this.stageCleared;
@@ -533,8 +501,6 @@ public class GameScreen extends Screen {
 
     /**
      * Returns a GameState object representing the status of the game.
-     *
-     * @return Current game state.
      */
     public final GameState getGameState() {
         return new GameState(this.level, this.score, this.lives,
@@ -543,9 +509,6 @@ public class GameScreen extends Screen {
 
     /**
      * Plays the countdown sound once each time the countdown number changes.
-     *
-     * @param countdown
-     *            Number currently shown in the countdown.
      */
     private void playCountdownSound(final int countdown) {
         if (countdown == this.lastCountdown)
