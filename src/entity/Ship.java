@@ -24,8 +24,14 @@ public class Ship extends Entity {
     /** Movement of the ship for each unit of time. */
     private static final int SPEED = 2;
 
+    /** Distance from the ship center to each barrel of the Twin Cannon. */
+    private static final int TWIN_CANNON_OFFSET = 8;
+
     /** Whether the Hyperfire buff is currently enabled. */
     private boolean hyperfireEnabled = false;
+
+    /** Whether the Twin Cannon buff (double barrel) is currently active. */
+    private boolean twinCannonActive = false;
 
     /** Time of the last shot. */
     private long lastShotTime = 0;
@@ -86,7 +92,7 @@ public class Ship extends Entity {
     }
 
     /**
-     * Shoots a bullet upwards.
+     * Shoots a bullet upwards (two parallel bullets if Twin Cannon is active).
      *
      * @param bullets
      *            List of bullets on screen, to add the new bullet.
@@ -110,11 +116,25 @@ public class Ship extends Entity {
 
             lastShotTime = currentTime;
 
-            bullets.add(BulletPool.getBullet(
-                    positionX + this.width / 2,
-                    positionY,
-                    BULLET_SPEED
-            ));
+            if (this.twinCannonActive) {
+                // Twin Cannon: two parallel bullets.
+                bullets.add(BulletPool.getBullet(
+                        positionX + this.width / 2 - TWIN_CANNON_OFFSET,
+                        positionY,
+                        BULLET_SPEED
+                ));
+                bullets.add(BulletPool.getBullet(
+                        positionX + this.width / 2 + TWIN_CANNON_OFFSET,
+                        positionY,
+                        BULLET_SPEED
+                ));
+            } else {
+                bullets.add(BulletPool.getBullet(
+                        positionX + this.width / 2,
+                        positionY,
+                        BULLET_SPEED
+                ));
+            }
 
             return true;
         }
@@ -136,6 +156,24 @@ public class Ship extends Entity {
      */
     public final boolean isHyperfireEnabled() {
         return this.hyperfireEnabled;
+    }
+
+    /**
+     * Enables or disables the Twin Cannon buff (double barrel).
+     *
+     * @param active True to shoot two parallel bullets.
+     */
+    public final void setTwinCannonActive(final boolean active) {
+        this.twinCannonActive = active;
+    }
+
+    /**
+     * Checks whether the Twin Cannon buff is currently active.
+     *
+     * @return True if the ship shoots two parallel bullets.
+     */
+    public final boolean isTwinCannonActive() {
+        return this.twinCannonActive;
     }
 
     /**
@@ -167,6 +205,8 @@ public class Ship extends Entity {
             return;
         }
 
+        // The Twin Cannon buff expires when a life is lost.
+        this.twinCannonActive = false;
         deactivateChameleonHull();
         this.destructionCooldown.reset();
     }
