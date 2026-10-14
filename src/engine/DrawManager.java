@@ -76,6 +76,8 @@ public final class DrawManager {
         EnemyShipC2,
         /** Bonus ship. */
         EnemyShipSpecial,
+        /** Hyperfire falling power-up. */
+        Hyperfire,
         /** Destroyed enemy ship. */
         Explosion
     };
@@ -106,6 +108,32 @@ public final class DrawManager {
 
             fileManager.loadSprite(spriteMap);
             logger.info("Finished loading the sprites.");
+            // Hyperfire lightning bolt sprite (8 x 12 pixels).
+            boolean[][] hyperfireSprite = new boolean[8][12];
+
+            String[] lightning = {
+                    "....##..",
+                    "...###..",
+                    "...##...",
+                    "..###...",
+                    "..##....",
+                    ".######.",
+                    "...##...",
+                    "...##...",
+                    "..##....",
+                    "..##....",
+                    ".##.....",
+                    ".#......"
+            };
+
+            for (int y = 0; y < lightning.length; y++) {
+                for (int x = 0; x < lightning[y].length(); x++) {
+                    hyperfireSprite[x][y] =
+                            lightning[y].charAt(x) == '#';
+                }
+            }
+
+            spriteMap.put(SpriteType.Hyperfire, hyperfireSprite);
 
             // Font loading.
             fontRegular = fileManager.loadFont(14f);

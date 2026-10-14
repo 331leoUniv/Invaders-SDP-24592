@@ -36,6 +36,8 @@ public class GameScreen extends Screen {
     private static final int LIFE_SCORE = 100;
     /** Minimum time between bonus ship's appearances. */
     private static final int BONUS_SHIP_INTERVAL = 20000;
+    private static final int BONUS_SHIP_INTERVAL = 15000; //modifier le temps au lieu de 20000 I
+
     /** Maximum variance in the time between bonus ship's appearances. */
     private static final int BONUS_SHIP_VARIANCE = 10000;
     /** Time until bonus ship explosion disappears. */
@@ -54,6 +56,9 @@ public class GameScreen extends Screen {
     private boolean twinCanonSpawned;
     /** Falling Twin Cannon item, null when not on screen. Shoot it to collect it. */
     private TwinCanon twinCanonItem;
+    /** Prevents Hyperfire from dropping more than once per level. */
+    private boolean hyperfireDroppedThisLevel = false;
+
     /** Current game difficulty settings. */
     private GameSettings gameSettings;
     /** Current difficulty level number. */
@@ -95,8 +100,7 @@ public class GameScreen extends Screen {
     /** Last countdown number that played a sound. */
     private int lastCountdown = -1;
 
-    /** Prevents repeated activation while holding H. */
-    private boolean hyperfireKeyPressed = false;
+
 
     /**
      * Constructor, establishes the properties of the screen.
@@ -141,6 +145,9 @@ public class GameScreen extends Screen {
         this.ship = new Ship(this.width / 2, this.height - 30);
         this.itemManager = new ItemManager(this.height);
         this.shieldDroppedThisLevel = false;
+        this.chameleonDroppedThisLevel = false;
+        this.hyperfireDroppedThisLevel = false;
+
         this.hyperfireKeyPressed = false;
         this.shipsDestroyedAtStart = this.shipsDestroyed;
         this.twinCanonSpawned = false;
@@ -215,9 +222,6 @@ public class GameScreen extends Screen {
                     }
                 }
 
-                // Hyperfire test activation with the H key.
-                boolean hyperfireKeyDown =
-                        inputManager.isKeyDown(KeyEvent.VK_H);
 
                 if (hyperfireKeyDown && !this.hyperfireKeyPressed) {
                     this.itemManager.getBuffManager().addBuff(
@@ -435,6 +439,18 @@ public class GameScreen extends Screen {
                         && checkCollision(bullet, this.enemyShipSpecial)) {
                     this.score += this.enemyShipSpecial.getPointValue();
                     this.shipsDestroyed++;
+
+// Drop Hyperfire from the red UFO, once per level.
+                    if (!this.hyperfireDroppedThisLevel) {
+                        this.itemManager.spawnItem(new Hyperfire(
+                                this.enemyShipSpecial.getPositionX(),
+                                this.enemyShipSpecial.getPositionY()
+                        ));
+
+                        this.hyperfireDroppedThisLevel = true;
+                        this.logger.info("Hyperfire dropped from red UFO.");
+                    }
+
                     this.enemyShipSpecial.destroy();
                     this.enemyShipSpecialExplosionCooldown.reset();
                     recyclable.add(bullet);
