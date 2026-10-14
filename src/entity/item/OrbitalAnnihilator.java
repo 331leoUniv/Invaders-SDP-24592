@@ -4,7 +4,7 @@ import entity.Entity;
 import entity.Ship;
 
 /**
- * Orbital Annihilator (Doomsday Laser). Dropped by the Orbital Guardian. Once
+ * Orbital Annihilator (Doomsday Laser). Once
  * caught (arm()), it can be triggered one time: 1.5 s of charge, then a 2 s
  * vertical piercing beam going up from the ship.
  */
@@ -13,8 +13,8 @@ public class OrbitalAnnihilator {
     public static final int CHARGE_DURATION = 1500;
     public static final int BEAM_DURATION = 2000;
     public static final int BEAM_WIDTH = 24;
-    /** Level of the Guardian. TEST : 1 pour tester, remettre 7 ensuite. */
-    public static final int REQUIRED_LEVEL = 1;
+    /** Level in which the item can drop. */
+    public static final int REQUIRED_LEVEL = 7;
 
     private enum State { LOCKED, IDLE, CHARGING, FIRING }
 

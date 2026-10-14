@@ -4,13 +4,13 @@ import engine.DrawManager.SpriteType;
 import entity.Ship;
 
 /**
- * Item dropped by the Orbital Guardian. When the ship catches it, the Orbital
+ * Item dropped by a destroyed enemy. When the ship catches it, the Orbital
  * Annihilator becomes available for one use.
  */
 public class AnnihilatorItem extends Item {
 
-    private static final int ITEM_WIDTH = 26;
-    private static final int ITEM_HEIGHT = 14;
+    private static final int ITEM_WIDTH = 14;
+    private static final int ITEM_HEIGHT = 28;
 
     private final OrbitalAnnihilator annihilator;
 

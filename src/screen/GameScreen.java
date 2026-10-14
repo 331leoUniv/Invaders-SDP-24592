@@ -19,6 +19,7 @@ import entity.Ship;
 import audio.AudioManager;
 import entity.item.Hyperfire;
 import entity.item.OrbitalAnnihilator;
+import entity.item.AnnihilatorItem;
 import entity.item.TwinCanon;
 
 /**
@@ -50,6 +51,9 @@ public class GameScreen extends Screen {
     private boolean shieldDroppedThisLevel = false;
     private boolean chameleonDroppedThisLevel = false;
     private boolean hyperfireDroppedThisLevel = false;
+    /** Chance that a destroyed enemy drops the Orbital Annihilator. */
+    private static final double ANNIHILATOR_DROP_CHANCE = 0.05;
+    private boolean annihilatorDroppedThisLevel = false;
     private boolean hyperfireKeyPressed = false;
     private int shipsDestroyedAtStart;
     private boolean twinCanonSpawned;
@@ -128,6 +132,7 @@ public class GameScreen extends Screen {
         this.shieldDroppedThisLevel = false;
         this.chameleonDroppedThisLevel = false;
         this.hyperfireDroppedThisLevel = false;
+        this.annihilatorDroppedThisLevel = false;
 
         this.hyperfireKeyPressed = false;
         this.shipsDestroyedAtStart = this.shipsDestroyed;
@@ -333,9 +338,8 @@ public class GameScreen extends Screen {
         // Interface.
         drawManager.drawScore(this, this.score);
         drawManager.drawLives(this, this.lives);
-        if (this.level == OrbitalAnnihilator.REQUIRED_LEVEL)
-            drawManager.drawAnnihilatorGauge(this,
-                    this.annihilator.getRechargeProgress());
+        if (this.annihilator.isReady())
+            drawManager.drawAnnihilatorReady(this);
         drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
 
         // Countdown to game start.
@@ -398,7 +402,17 @@ public class GameScreen extends Screen {
                         this.shipsDestroyed++;
                         this.enemyShipFormation.destroy(enemyShip);
                         recyclable.add(bullet);
-
+                        // Orbital Annihilator: small chance, level 7, once.
+                        if (!this.annihilatorDroppedThisLevel
+                                && this.level == OrbitalAnnihilator.REQUIRED_LEVEL
+                                && Math.random() < ANNIHILATOR_DROP_CHANCE) {
+                            this.itemManager.spawnItem(new AnnihilatorItem(
+                                    enemyShip.getPositionX(),
+                                    enemyShip.getPositionY(),
+                                    this.annihilator));
+                            this.annihilatorDroppedThisLevel = true;
+                            this.logger.info("Orbital Annihilator dropped from enemy ship.");
+                        }
                         if (!this.shieldDroppedThisLevel) {
                             boolean shouldDrop = (Math.random() < 0.15) || (this.enemyShipFormation.isEmpty());
                             if (shouldDrop) {

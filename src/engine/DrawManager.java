@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 import screen.Screen;
 import entity.Entity;
 import entity.Ship;
-import entity.OrbitalGuardian;
+import entity.item.AnnihilatorItem;
 
 /**
  * Manages screen drawing.
@@ -226,6 +226,11 @@ public final class DrawManager {
      */
     public void drawEntity(final Entity entity, final int positionX,
                            final int positionY) {
+        // The Orbital Annihilator item is drawn as a falling laser beam.
+        if (entity instanceof AnnihilatorItem) {
+            drawFallingLaser(entity, positionX, positionY);
+            return;
+        }
         boolean[][] image = spriteMap.get(entity.getSpriteType());
 
         if (entity instanceof ChameleonHull) {
@@ -347,7 +352,47 @@ public final class DrawManager {
                 0, positionY + 1, screen.getWidth(), positionY + 1
         );
     }
+    /**
+     * Draws the Orbital Annihilator item as a short laser bolt that falls:
+     * the tail fades out at the top, and a bright pointed head blinks at the
+     * front (bottom).
+     *
+     * @param entity
+     *            Item to be drawn.
+     * @param positionX
+     *            Coordinates for the left side of the item.
+     * @param positionY
+     *            Coordinates for the upper side of the item.
+     */
+    private void drawFallingLaser(final Entity entity, final int positionX,
+                                  final int positionY) {
+        int w = entity.getWidth();
+        int h = entity.getHeight();
+        boolean blink = (System.currentTimeMillis() / 150) % 2 == 0;
 
+        // Body: red beam with a white core, more opaque towards the head.
+        int slices = h / 2;
+        for (int i = 0; i < slices; i++) {
+            int y = positionY + i * 2;
+            int alpha = 60 + (int) (195.0 * i / slices);
+
+            backBufferGraphics.setColor(new Color(255, 0, 0, alpha / 3));
+            backBufferGraphics.fillRect(positionX, y, w, 2);
+
+            backBufferGraphics.setColor(new Color(255, 0, 0, alpha));
+            backBufferGraphics.fillRect(positionX + 3, y, w - 6, 2);
+
+            backBufferGraphics.setColor(new Color(255, 255, 255, alpha));
+            backBufferGraphics.fillRect(positionX + w / 2 - 1, y, 2, 2);
+        }
+
+        // Head: bright triangle pointing down, blinking.
+        int headTop = positionY + h - 8;
+        int[] xs = { positionX + 1, positionX + w - 1, positionX + w / 2 };
+        int[] ys = { headTop, headTop, positionY + h };
+        backBufferGraphics.setColor(blink ? Color.WHITE : Color.YELLOW);
+        backBufferGraphics.fillPolygon(xs, ys, 3);
+    }
     /**
      * Draws the Orbital Annihilator: a growing energy charge on the ship's
      * nose while charging, then a full vertical beam going up from the ship.
@@ -397,63 +442,6 @@ public final class DrawManager {
                     radius * 2
             );
         }
-    }
-
-    /**
-     * Draws the Orbital Guardian (big enemy) with its health bar. The body
-     * and the bar blink while the guardian is losing life.
-     *
-     * @param guardian
-     *            Guardian to draw.
-     */
-    public void drawGuardian(final OrbitalGuardian guardian) {
-        SpriteType sprite = (System.currentTimeMillis() / 500) % 2 == 0
-                ? SpriteType.EnemyShipC1 : SpriteType.EnemyShipC2;
-        boolean[][] image = spriteMap.get(sprite);
-        int size = OrbitalGuardian.PIXEL_SIZE;
-
-        boolean blink = (System.currentTimeMillis() / 100) % 2 == 0;
-        boolean losingLife = guardian.isContact() || guardian.isHealthDraining();
-
-        Color bodyColor = guardian.getColor();
-        if (guardian.isFlashing()
-                || ((guardian.isContact() || guardian.isDestroyed()) && blink))
-            bodyColor = Color.WHITE;
-        backBufferGraphics.setColor(bodyColor);
-        for (int i = 0; i < image.length; i++)
-            for (int j = 0; j < image[i].length; j++)
-                if (image[i][j])
-                    backBufferGraphics.fillRect(guardian.getPositionX()
-                                    + i * size, guardian.getPositionY() + j * size,
-                            size, size);
-
-        // Health bar below the guardian: dark background, a blinking chunk
-        // that slides down (life just lost) and the real health in red.
-        int barWidth = 48;
-        int barHeight = 6;
-        int barX = guardian.getPositionX() + guardian.getWidth() / 2
-                - barWidth / 2;
-        int barY = guardian.getPositionY() + guardian.getHeight() + 4;
-        int max = OrbitalGuardian.MAX_HEALTH;
-
-        backBufferGraphics.setColor(Color.DARK_GRAY);
-        backBufferGraphics.fillRect(barX, barY, barWidth, barHeight);
-
-        int shownWidth = (int) (barWidth * guardian.getDisplayedHealth() / max);
-        backBufferGraphics.setColor(blink ? Color.WHITE : Color.YELLOW);
-        backBufferGraphics.fillRect(barX, barY, shownWidth, barHeight);
-
-        int realWidth = barWidth * guardian.getHealth() / max;
-        backBufferGraphics.setColor(losingLife && blink ? Color.ORANGE
-                : Color.RED);
-        backBufferGraphics.fillRect(barX, barY, realWidth, barHeight);
-
-        // Border and one mark per hit.
-        backBufferGraphics.setColor(Color.WHITE);
-        backBufferGraphics.drawRect(barX, barY, barWidth, barHeight);
-        for (int i = 1; i < max; i++)
-            backBufferGraphics.drawLine(barX + barWidth * i / max, barY,
-                    barX + barWidth * i / max, barY + barHeight);
     }
 
     /**
