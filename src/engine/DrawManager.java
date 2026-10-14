@@ -17,6 +17,7 @@ import java.util.logging.Logger;
 import screen.Screen;
 import entity.Entity;
 import entity.Ship;
+import entity.OrbitalGuardian;
 
 /**
  * Manages screen drawing.
@@ -347,10 +348,31 @@ public final class DrawManager {
         );
     }
 
-    /**
-     * Draws the Orbital Annihilator: a growing energy charge on the ship's
-     * nose while charging, then a full vertical beam going up from the ship.
-     */
+    public void drawGuardian(final OrbitalGuardian guardian) {
+        SpriteType sprite = (System.currentTimeMillis() / 500) % 2 == 0
+                ? SpriteType.EnemyShipC1 : SpriteType.EnemyShipC2;
+        boolean[][] image = spriteMap.get(sprite);
+        int size = OrbitalGuardian.PIXEL_SIZE;
+
+        backBufferGraphics.setColor(guardian.isFlashing() ? Color.WHITE
+                : guardian.getColor());
+        for (int i = 0; i < image.length; i++)
+            for (int j = 0; j < image[i].length; j++)
+                if (image[i][j])
+                    backBufferGraphics.fillRect(guardian.getPositionX()
+                                    + i * size, guardian.getPositionY() + j * size,
+                            size, size);
+
+        int barY = guardian.getPositionY() - 6;
+        backBufferGraphics.setColor(Color.DARK_GRAY);
+        backBufferGraphics.fillRect(guardian.getPositionX(), barY,
+                guardian.getWidth(), 4);
+        backBufferGraphics.setColor(Color.RED);
+        backBufferGraphics.fillRect(guardian.getPositionX(), barY,
+                guardian.getWidth() * guardian.getHealth()
+                        / OrbitalGuardian.MAX_HEALTH, 4);
+    }
+
     public void drawOrbitalAnnihilator(final Ship ship, final int beamWidth,
                                        final int topY, final boolean firing, final float chargeProgress) {
         int centerX = ship.getPositionX() + ship.getWidth() / 2;
@@ -359,69 +381,28 @@ public final class DrawManager {
 
         if (firing) {
             backBufferGraphics.setColor(new Color(255, 0, 0, 120));
-            backBufferGraphics.fillRect(
-                    beamX - 4, topY, beamWidth + 8, startY - topY
-            );
-
+            backBufferGraphics.fillRect(beamX - 4, topY, beamWidth + 8,
+                    startY - topY);
             backBufferGraphics.setColor(Color.RED);
-            backBufferGraphics.fillRect(
-                    beamX, topY, beamWidth, startY - topY
-            );
-
+            backBufferGraphics.fillRect(beamX, topY, beamWidth, startY - topY);
             backBufferGraphics.setColor(Color.WHITE);
-            backBufferGraphics.fillRect(
-                    centerX - beamWidth / 4,
-                    topY,
-                    beamWidth / 2,
-                    startY - topY
-            );
-
+            backBufferGraphics.fillRect(centerX - beamWidth / 4, topY,
+                    beamWidth / 2, startY - topY);
         } else {
             backBufferGraphics.setColor(new Color(255, 0, 0, 90));
-            backBufferGraphics.fillRect(
-                    centerX - 1, topY, 2, startY - topY
-            );
-
+            backBufferGraphics.fillRect(centerX - 1, topY, 2, startY - topY);
             int radius = 2 + (int) (chargeProgress * beamWidth / 2);
             boolean flicker = ((int) (chargeProgress * 20)) % 2 == 0;
-
-            backBufferGraphics.setColor(
-                    flicker ? Color.WHITE : Color.RED
-            );
-
-            backBufferGraphics.fillOval(
-                    centerX - radius,
-                    startY - radius,
-                    radius * 2,
-                    radius * 2
-            );
+            backBufferGraphics.setColor(flicker ? Color.WHITE : Color.RED);
+            backBufferGraphics.fillOval(centerX - radius, startY - radius,
+                    radius * 2, radius * 2);
         }
     }
 
-    /**
-     * Draws the Orbital Annihilator recharge gauge under the score.
-     *
-     * @param screen
-     *            Screen to draw on.
-     * @param progress
-     *            Recharge progress between 0 and 1.
-     */
-    public void drawAnnihilatorGauge(final Screen screen,
-                                     final float progress) {
-        int barWidth = 80;
-        int barX = screen.getWidth() - barWidth - 20;
-        int barY = 29;
-
-        backBufferGraphics.setColor(Color.DARK_GRAY);
-        backBufferGraphics.fillRect(barX, barY, barWidth, 6);
-
-        backBufferGraphics.setColor(
-                progress >= 1f ? Color.GREEN : Color.RED
-        );
-
-        backBufferGraphics.fillRect(
-                barX, barY, (int) (barWidth * progress), 6
-        );
+    public void drawAnnihilatorReady(final Screen screen) {
+        boolean blink = (System.currentTimeMillis() / 300) % 2 == 0;
+        backBufferGraphics.setColor(blink ? Color.RED : Color.WHITE);
+        drawCenteredRegularString(screen, "HOLD SPACE = LASER", 25);
     }
 
     /**

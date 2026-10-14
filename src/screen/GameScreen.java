@@ -22,6 +22,8 @@ import entity.Ship;
 import audio.AudioManager;
 import entity.item.Hyperfire;
 import entity.item.OrbitalAnnihilator;
+import entity.OrbitalGuardian;
+import entity.item.AnnihilatorItem;
 
 /**
  * Implements the game screen, where the action happens.
@@ -115,6 +117,7 @@ public class GameScreen extends Screen {
 
     /** Orbital Annihilator (Doomsday Laser), only available on level 7. */
     private OrbitalAnnihilator annihilator;
+    private OrbitalGuardian guardian;
 
     /** Moment the space key started being held, 0 if not held. */
     private long spaceHeldSince;
@@ -187,6 +190,10 @@ public class GameScreen extends Screen {
 
         this.bullets = new HashSet<Bullet>();
         this.annihilator = new OrbitalAnnihilator();
+        this.guardian = null;
+        if (this.level == OrbitalAnnihilator.REQUIRED_LEVEL)
+            this.guardian = new OrbitalGuardian(this.width / 2 - 18,
+                    SEPARATION_LINE_HEIGHT + 6);
 
         // Special input delay / countdown.
         this.gameStartTime = System.currentTimeMillis();
@@ -305,8 +312,14 @@ public class GameScreen extends Screen {
 
             this.ship.update();
             this.annihilator.update();
-            this.enemyShipFormation.update();
-            this.enemyShipFormation.shoot(this.bullets);
+            if (!this.enemyShipFormation.isEmpty()) {
+                this.enemyShipFormation.update();
+                this.enemyShipFormation.shoot(this.bullets);
+            }
+            if (this.guardian != null && !this.guardian.isDestroyed()) {
+                this.guardian.update(this.width);
+                this.guardian.shoot(this.bullets);
+            }
         }
 
         if (this.inputDelay.checkFinished() && !this.levelFinished) {
@@ -336,16 +349,18 @@ public class GameScreen extends Screen {
                 this.screenFinishedCooldown.reset();
                 this.logger.info("Stage " + this.level + " failed.");
 
-            } else if (this.enemyShipFormation.isEmpty()) {
+            } else if (this.enemyShipFormation.isEmpty()
+                    && (this.guardian == null
+                    || this.guardian.isDestroyed())) {
                 this.levelFinished = true;
                 this.stageCleared = true;
                 this.screenFinishedCooldown.reset();
                 this.logger.info("Stage " + this.level + " cleared.");
             }
         }
+            if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
+                this.isRunning = false;
 
-        if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
-            this.isRunning = false;
     }
 
     /**
@@ -381,6 +396,8 @@ public class GameScreen extends Screen {
             );
 
         enemyShipFormation.draw();
+        if (this.guardian != null && !this.guardian.isDestroyed())
+            drawManager.drawGuardian(this.guardian);
 
         for (Bullet bullet : this.bullets)
             drawManager.drawEntity(
@@ -395,11 +412,8 @@ public class GameScreen extends Screen {
         drawManager.drawScore(this, this.score);
         drawManager.drawLives(this, this.lives);
 
-        if (this.level == OrbitalAnnihilator.REQUIRED_LEVEL)
-            drawManager.drawAnnihilatorGauge(
-                    this,
-                    this.annihilator.getRechargeProgress()
-            );
+        if (this.annihilator.isReady())
+            drawManager.drawAnnihilatorReady(this);
 
         drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
 
@@ -488,6 +502,25 @@ public class GameScreen extends Screen {
                 }
 
             } else {
+                // Player bullet against the Orbital Guardian.
+                if (this.guardian != null && !this.guardian.isDestroyed()
+                        && checkCollision(bullet, this.guardian)) {
+                    recyclable.add(bullet);
+
+                    if (this.guardian.hit()) {
+                        this.score += this.guardian.getPointValue();
+                        this.shipsDestroyed++;
+
+                        this.itemManager.spawnItem(new AnnihilatorItem(
+                                this.guardian.getPositionX()
+                                        + this.guardian.getWidth() / 2 - 13,
+                                this.guardian.getPositionY()
+                                        + this.guardian.getHeight(),
+                                this.annihilator));
+
+                        this.logger.info("Orbital Guardian destroyed.");
+                    }
+                }
                 for (EnemyShip enemyShip : this.enemyShipFormation)
                     if (!enemyShip.isDestroyed()
                             && checkCollision(bullet, enemyShip)) {
