@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Random;
 
+import campaign.CampaignStageData;
 import entity.item.ChameleonHull;
 import entity.item.ItemManager;
 import entity.item.ShieldItem;
@@ -404,6 +405,7 @@ public class GameScreen extends Screen {
         // Interface.
         drawManager.drawScore(this, this.score);
         drawManager.drawLives(this, this.lives);
+        drawManager.drawLevel(this, this.level, CampaignStageData.getTotalStages());
 
         if (this.level == OrbitalAnnihilator.REQUIRED_LEVEL)
             drawManager.drawAnnihilatorGauge(
