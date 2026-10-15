@@ -126,3 +126,11 @@ Third-party sound effects used in this project and their licenses.
 - Source: Generated with a Python (NumPy) script, made with AI assistance
 - License: No third-party license; original work for this project
 - Changes: None (16-bit / 44.1kHz mono WAV)
+
+
+## item_shield_block.wav
+
+- Original: Created for this project (synthesized short metallic deflect sound, no third-party source)
+- Source: Generated with a Python (NumPy) script, made with AI assistance
+- License: No third-party license; original work for this project
+- Changes: None (16-bit / 44.1kHz mono WAV)
