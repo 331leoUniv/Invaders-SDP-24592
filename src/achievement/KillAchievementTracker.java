@@ -82,10 +82,14 @@ public final class KillAchievementTracker
         runKills++;
         totalKills++;
 
-        if (runKills % 10 == 0) {
+        // Unlock an achievement at 10, 30, or 50 kills in a single run.
+        // These thresholds can be changed as needed.
+        if (runKills == 10 || runKills == 30 || runKills == 50) {
             unlock("INFINITE_RUN_KILLS_" + runKills);
         }
-        if (totalKills % 10 == 0) {
+        // Unlock an achievement at 100, 500, or 1,000 kills across all runs.
+        // These thresholds can be changed as needed.
+        if (totalKills == 100 || totalKills == 500 || totalKills == 1000) {
             unlock("INFINITE_TOTAL_KILLS_" + totalKills);
         }
 
