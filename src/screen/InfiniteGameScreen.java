@@ -18,6 +18,9 @@ import entity.Entity;
 import entity.Ship;
 import entity.ZigzagEnemyShip;
 
+import event.GameplayEventPublisher;
+import event.InfiniteEnemyDefeatedEvent;
+
 /**
  * Implements the infinite mode game screen: zigzagging enemies keep spawning
  * from the top of the screen until the player runs out of lives or quits.
@@ -46,6 +49,7 @@ public class InfiniteGameScreen extends Screen {
 	private static final double ENEMY_FIRE_CHANCE = 0.003;
 	/** Downwards speed of the enemy bullets, in pixels per frame. */
 	private static final int ENEMY_BULLET_SPEED = 4;
+	private final GameplayEventPublisher gameplayEvents;
 
 	/** Player's ship. */
 	private Ship ship;
@@ -83,9 +87,10 @@ public class InfiniteGameScreen extends Screen {
 	 *            Frames per second, frame rate at which the game is run.
 	 */
 	public InfiniteGameScreen(final GameState gameState, final int width,
-			final int height, final int fps) {
+			final int height, final int fps, final GameplayEventPublisher gameplayEvents) {
 		super(width, height, fps);
 
+		this.gameplayEvents = gameplayEvents;
 		this.score = gameState.getScore();
 		this.lives = gameState.getLivesRemaining();
 		this.bulletsShot = gameState.getBulletsShot();
@@ -300,6 +305,7 @@ public class InfiniteGameScreen extends Screen {
 					this.score += enemy.getPointValue();
 					this.shipsDestroyed++;
 					iterator.remove();
+					this.gameplayEvents.publish(new InfiniteEnemyDefeatedEvent());
 					recyclable.add(bullet);
 					break;
 				}

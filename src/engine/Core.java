@@ -1,4 +1,8 @@
 package engine;
+import achievement.KillAchievementTracker;
+import event.GameplayEventPublisher;
+import event.InfiniteEnemyDefeatedEvent;
+import java.nio.file.Paths;
 
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
@@ -54,6 +58,8 @@ public final class Core {
 	private static Handler fileHandler;
 	/** Logger handler for printing to console. */
 	private static ConsoleHandler consoleHandler;
+	private static GameplayEventPublisher gameplayEvents;
+	private static KillAchievementTracker killAchievements;
 
 
 	/**
@@ -88,6 +94,11 @@ public final class Core {
 		int height = frame.getHeight();
 
 		playerAssets = new PlayerAssets();
+		gameplayEvents = new GameplayEventPublisher();
+		killAchievements = new KillAchievementTracker(
+        		Paths.get("achievements.properties"));
+		gameplayEvents.subscribe(
+        		InfiniteEnemyDefeatedEvent.class, killAchievements);
 		GameState gameState;
 
 		int returnCode = 1;
@@ -180,8 +191,9 @@ public final class Core {
 				break;
 			case 8:
 				// Infinite mode & score.
+				killAchievements.startRun();
 				currentScreen = new InfiniteGameScreen(gameState, width, height,
-						FPS);
+						FPS, gameplayEvents);
 				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
 						+ " infinite game screen at " + FPS + " fps.");
 				frame.setScreen(currentScreen);
