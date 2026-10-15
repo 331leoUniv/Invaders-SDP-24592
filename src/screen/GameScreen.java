@@ -98,7 +98,7 @@ public class GameScreen extends Screen {
 
 	/**
 	 * Constructor, establishes the properties of the screen.
-	 * 
+	 *
 	 * @param gameState
 	 *            Current game state.
 	 * @param gameSettings
@@ -122,7 +122,7 @@ public class GameScreen extends Screen {
 	/**
 	 * Constructor, establishes the properties of the screen using a selected
 	 * player ship type.
-	 * 
+	 *
 	 * @param gameState
 	 *            Current game state.
 	 * @param gameSettings
@@ -152,7 +152,7 @@ public class GameScreen extends Screen {
 		this.shipType = shipType;
 		this.level = gameState.getLevel();
 		this.score = gameState.getScore();
-		
+
 		int initialLives = gameState.getLivesRemaining()
 				+ (this.bonusLife ? 1 : 0);
 
@@ -228,20 +228,17 @@ public class GameScreen extends Screen {
 				boolean moveLeft = inputManager.isKeyDown(KeyEvent.VK_LEFT)
 						|| inputManager.isKeyDown(KeyEvent.VK_A);
 
-				boolean isRightBorder = this.ship.getPositionX()
-						+ this.ship.getWidth() + this.ship.getSpeed() > this.width - 1;
-				boolean isLeftBorder = this.ship.getPositionX()
-						- this.ship.getSpeed() < 1;
-
-				if (moveRight && !isRightBorder) {
+				if (moveRight) {
 					this.ship.moveRight();
 				}
-				if (moveLeft && !isLeftBorder) {
+				if (moveLeft) {
 					this.ship.moveLeft();
 				}
-				if (inputManager.isKeyDown(KeyEvent.VK_SPACE)){
-					    this.bulletsShot += this.ship.shoot(this.bullets);
-				}
+				this.ship.setPositionX(clampShipPositionX(
+						this.ship.getPositionX(), this.ship.getWidth(),
+						this.width));
+				if (inputManager.isKeyDown(KeyEvent.VK_SPACE))
+					this.bulletsShot += this.ship.shoot(this.bullets);
 			}
 
 			if (this.enemyShipSpecial != null) {
@@ -273,7 +270,7 @@ public class GameScreen extends Screen {
 			this.ship.update();
 
 			if (!this.ship.isDestroyed()) {
-    			this.bulletsShot += this.ship.updateBurst(this.bullets);
+				this.bulletsShot += this.ship.updateBurst(this.bullets);
 			}
 
 			// Once every ship and explosion is gone, the formation stops
@@ -307,6 +304,25 @@ public class GameScreen extends Screen {
 		if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
 			this.isRunning = false;
 
+	}
+
+	/**
+	 * Clamps the player's ship to the visible horizontal screen area.
+	 *
+	 * @param positionX
+	 *            Proposed left coordinate of the ship.
+	 * @param shipWidth
+	 *            Width of the ship.
+	 * @param screenWidth
+	 *            Width of the screen.
+	 * @return A left coordinate within the screen boundaries.
+	 */
+	static int clampShipPositionX(final int positionX, final int shipWidth,
+			final int screenWidth) {
+		final int leftBoundary = 1;
+		final int rightBoundary = Math.max(leftBoundary,
+				screenWidth - shipWidth - 1);
+		return Math.max(leftBoundary, Math.min(positionX, rightBoundary));
 	}
 
 	/**
