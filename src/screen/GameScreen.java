@@ -1,5 +1,6 @@
 package screen;
 
+import java.awt.Color;
 import java.awt.event.KeyEvent;
 import java.util.HashSet;
 import java.util.Set;
@@ -405,6 +406,17 @@ public class GameScreen extends Screen {
         // Interface.
         drawManager.drawScore(this, this.score);
         drawManager.drawLives(this, this.lives);
+
+        float shieldRatio = this.itemManager.getBuffManager()
+                .getBuffRemainingRatio("Energy Shield");
+        float chameleonRatio = this.itemManager.getBuffManager()
+                .getBuffRemainingRatio("Chameleon Hull");
+
+        if (shieldRatio > 0)
+            drawManager.drawBuffGauge(20, shieldRatio, new Color(0, 200, 255));
+        if (chameleonRatio > 0)
+            drawManager.drawBuffGauge(72, chameleonRatio, this.ship.getColor());
+
         drawManager.drawLevel(this, this.level, CampaignStageData.getTotalStages());
 
         if (this.level == OrbitalAnnihilator.REQUIRED_LEVEL)
