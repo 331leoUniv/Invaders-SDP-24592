@@ -58,9 +58,10 @@ public final class Core {
 	private static Handler fileHandler;
 	/** Logger handler for printing to console. */
 	private static ConsoleHandler consoleHandler;
+	/** Delivers gameplay events to subscribed systems. */
 	private static GameplayEventPublisher gameplayEvents;
+	/** Tracks and saves infinite-mode kill achievements. */
 	private static KillAchievementTracker killAchievements;
-
 
 	/**
 	 * Test implementation.

@@ -85,6 +85,8 @@ public class InfiniteGameScreen extends Screen {
 	 *            Screen height.
 	 * @param fps
 	 *            Frames per second, frame rate at which the game is run.
+	 * @param gameplayEvents
+	 *            Publisher used to report enemies destroyed in infinite mode.
 	 */
 	public InfiniteGameScreen(final GameState gameState, final int width,
 			final int height, final int fps, final GameplayEventPublisher gameplayEvents) {

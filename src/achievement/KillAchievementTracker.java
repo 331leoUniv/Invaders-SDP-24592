@@ -18,6 +18,13 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Tracks kill achievements for infinite mode.
+ *
+ * Counts enemies destroyed in the current run and across all runs.
+ * Unlocks separate achievements at every 10 kills and saves cumulative
+ * progress and unlock times to a local file.
+ */
 public final class KillAchievementTracker
         implements GameplayEventListener<InfiniteEnemyDefeatedEvent> {
 
@@ -32,6 +39,14 @@ public final class KillAchievementTracker
     private long totalKills;
     private boolean savingEnabled = true;
 
+    /**
+     * Creates a tracker and restores previously saved progress.
+     *
+     * If the save file is invalid or cannot be read, the original file is
+     * preserved and saving is disabled for this application session.
+     *
+     * @param saveFile Path to the local achievement save file.
+     */
     public KillAchievementTracker(Path saveFile) {
         if (saveFile == null) {
             throw new IllegalArgumentException("saveFile must not be null");
@@ -49,10 +64,19 @@ public final class KillAchievementTracker
         }
     }
 
+    /** Resets the kill count for a new infinite-mode run. */
     public void startRun() {
         runKills = 0;
     }
 
+    /**
+     * Processes one enemy defeat in infinite mode.
+     *
+     * Increments both kill counters, unlocks any newly reached
+     * 10-kill milestones, and saves the updated cumulative progress.
+     *
+     * @param event Event emitted after an enemy is destroyed.
+     */
     @Override
     public void onEvent(InfiniteEnemyDefeatedEvent event) {
         runKills++;
