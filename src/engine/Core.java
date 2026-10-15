@@ -220,7 +220,7 @@ public final class Core {
 
 		return new GameSettings(stageSettings.getFormationWidth(),
 				stageSettings.getFormationHeight(), movementInterval,
-				shootingInterval);
+				shootingInterval, stageSettings.getInitialX(), stageSettings.getInitialY());
 	}
 
 	/**
