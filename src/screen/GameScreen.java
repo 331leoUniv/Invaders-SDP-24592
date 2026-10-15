@@ -490,7 +490,7 @@ public class GameScreen extends Screen {
                                 this.logger.info(
                                         "Enemy shot absorbed by Energy Shield."
                                 );
-
+                                AudioManager.playSFX("audio/sfx/item_shield_block.wav");
                             } else {
                                 // Comportement standard : perte d'une vie et annulation des buffs actifs
                                 this.ship.destroy();
