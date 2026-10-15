@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import audio.AudioManager;
 import engine.Cooldown;
 import engine.Core;
 import engine.DrawManager.SpriteType;
@@ -105,6 +106,8 @@ public class InfiniteGameScreen extends Screen {
 		this.spawnCooldown = Core.getCooldown(INITIAL_SPAWN_INTERVAL);
 		this.spawnCooldown.reset();
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
+
+		AudioManager.playBGM("audio/bgm/music_game.wav");
 	}
 
 	/**
