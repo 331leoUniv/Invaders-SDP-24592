@@ -973,7 +973,7 @@ public final class DrawManager {
 
     public void drawMenu(final Screen screen, final int option) {
         String[] labels={"Play","High scores","Records & Achievements","Settings","Exit"};
-        int[] codes={2,3,8,4,0};
+        int[] codes={2,3,9,4,0};
         int y=screen.getHeight()/3*2;
         for (int i=0;i<labels.length;i++) {
             backBufferGraphics.setColor(option==codes[i]?Color.GREEN:Color.WHITE);

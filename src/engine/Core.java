@@ -183,7 +183,7 @@ public final class Core {
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing high score screen.");
 				break;
-            case 8:
+            case 9:
                 currentScreen = new PlayerRecordsScreen(width,height,FPS,recordsService);
                 returnCode = frame.setScreen(currentScreen);
                 break;
