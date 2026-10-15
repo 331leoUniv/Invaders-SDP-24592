@@ -2,7 +2,7 @@ package entity.item;
 
 import entity.Entity;
 import entity.Ship;
-
+import audio.AudioManager;
 /**
  * Orbital Annihilator (Doomsday Laser).
  *
@@ -63,6 +63,7 @@ public class OrbitalAnnihilator {
             return false;
         this.state = State.CHARGING;
         this.phaseStart = System.currentTimeMillis();
+        AudioManager.playSFX("audio/sfx/item_laser_charge.wav");
         return true;
     }
 
@@ -79,6 +80,7 @@ public class OrbitalAnnihilator {
         if (this.state == State.CHARGING && elapsed >= CHARGE_DURATION) {
             this.state = State.FIRING;
             this.phaseStart = System.currentTimeMillis();
+            AudioManager.playSFX("audio/sfx/item_laser_beam.wav");
         } else if (this.state == State.FIRING && elapsed >= BEAM_DURATION) {
             this.state = State.RECHARGING;
             this.phaseStart = System.currentTimeMillis();
@@ -94,6 +96,7 @@ public class OrbitalAnnihilator {
      */
     public final void cancelCharge() {
         if (this.state == State.CHARGING) {
+            AudioManager.playSFX("audio/sfx/item_laser_cancel.wav");
             this.state = State.RECHARGING;
             this.phaseStart = System.currentTimeMillis();
         }
