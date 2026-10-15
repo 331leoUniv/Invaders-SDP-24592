@@ -31,12 +31,6 @@ public class InfiniteGameScreen extends Screen {
 	private static final int SIDE_MARGIN = 20;
 	/** Milliseconds before infinite mode starts. */
 	private static final int INPUT_DELAY = 6000;
-
-	/** Moment the starting countdown begins. */
-	private long gameStartTime;
-	/** Last countdown number that played a sound. */
-	private int lastCountdown = -1;
-	
 	/** Width of a regular enemy ship. */
 	private static final int ENEMY_WIDTH = 12 * 2;
 	/** Time between enemy spawns at the start, in milliseconds. */
@@ -78,6 +72,10 @@ public class InfiniteGameScreen extends Screen {
 	private int shipsDestroyed;
 	/** Checks if the game is over. */
 	private boolean gameOver;
+	/** Moment the starting countdown begins. */
+	private long gameStartTime;
+	/** Last countdown number that played a sound. */
+	private int lastCountdown = -1;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -275,7 +273,6 @@ public class InfiniteGameScreen extends Screen {
 		if (!this.inputDelay.checkFinished()) {
 			int countdown = (int) ((INPUT_DELAY
 					- (System.currentTimeMillis() - this.gameStartTime)) / 1000);
-
 			playCountdownSound(countdown);
 			drawManager.drawCountDown(this, "Infinite Mode", countdown);
 			drawManager.drawHorizontalLine(this,
@@ -286,6 +283,12 @@ public class InfiniteGameScreen extends Screen {
 		drawManager.completeDrawing(this);
 	}
 
+	/**
+	 * Plays the countdown sound once each time the countdown number changes.
+	 *
+	 * @param countdown
+	 *            Number currently shown in the countdown.
+	 */
 	private void playCountdownSound(final int countdown) {
 		if (countdown == this.lastCountdown)
 			return;
