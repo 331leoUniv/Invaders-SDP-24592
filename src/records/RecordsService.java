@@ -65,6 +65,13 @@ public final class RecordsService {
 
     }
 
+    public synchronized void abandonRun(final String runId) {
+        if (runId != null && runId.equals(this.activeRunId)) {
+            this.activeRunId = null;
+            this.seenDefeatEvents.clear();
+        }
+    }
+
     /** Accepts each source event once; safe for a future shared enemy event hook. */
     public synchronized boolean enemyDefeated(final String runId,
             final String eventId) {
