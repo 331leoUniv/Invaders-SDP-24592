@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 import engine.Cooldown;
+import engine.ControlsConfig;
 import engine.Core;
 import engine.DrawManager.SpriteType;
 import engine.GameState;
@@ -133,25 +134,7 @@ public class InfiniteGameScreen extends Screen {
 				return;
 			}
 
-			if (!this.ship.isDestroyed()) {
-				boolean moveRight = inputManager.isKeyDown(KeyEvent.VK_RIGHT)
-						|| inputManager.isKeyDown(KeyEvent.VK_D);
-				boolean moveLeft = inputManager.isKeyDown(KeyEvent.VK_LEFT)
-						|| inputManager.isKeyDown(KeyEvent.VK_A);
-
-				boolean isRightBorder = this.ship.getPositionX()
-						+ this.ship.getWidth() + this.ship.getSpeed() > this.width - 1;
-				boolean isLeftBorder = this.ship.getPositionX()
-						- this.ship.getSpeed() < 1;
-
-				if (moveRight && !isRightBorder)
-					this.ship.moveRight();
-				if (moveLeft && !isLeftBorder)
-					this.ship.moveLeft();
-				if (inputManager.isKeyDown(KeyEvent.VK_SPACE))
-					if (this.ship.shoot(this.bullets))
-						this.bulletsShot++;
-			}
+			updatePlayerControls();
 
 			this.ship.update();
 			spawnEnemy();
@@ -170,6 +153,29 @@ public class InfiniteGameScreen extends Screen {
 
 		if (this.gameOver && this.screenFinishedCooldown.checkFinished())
 			this.isRunning = false;
+	}
+
+	/** Handles configured gameplay actions independently of rendering. */
+	void updatePlayerControls() {
+		if (this.ship.isDestroyed())
+			return;
+
+		boolean moveRight = inputManager.isKeyDown(
+				ControlsConfig.getKey(ControlsConfig.RIGHT));
+		boolean moveLeft = inputManager.isKeyDown(
+				ControlsConfig.getKey(ControlsConfig.LEFT));
+		boolean isRightBorder = this.ship.getPositionX()
+				+ this.ship.getWidth() + this.ship.getSpeed() > this.width - 1;
+		boolean isLeftBorder = this.ship.getPositionX()
+				- this.ship.getSpeed() < 1;
+
+		if (moveRight && !isRightBorder)
+			this.ship.moveRight();
+		if (moveLeft && !isLeftBorder)
+			this.ship.moveLeft();
+		if (inputManager.isKeyDown(ControlsConfig.getKey(ControlsConfig.FIRE)))
+			if (this.ship.shoot(this.bullets))
+				this.bulletsShot++;
 	}
 
 	/**
