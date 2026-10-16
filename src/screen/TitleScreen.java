@@ -14,22 +14,25 @@ import engine.Core;
  */
 public class TitleScreen extends Screen {
 
+	// Variable to track which menu option is selected (0 = first choice)
+	private int selectedMenuOption = 0;
+
 	/** Milliseconds between changes in user selection. */
 	private static final int SELECTION_TIME = 200;
-	
+
 	/** Time between changes in user selection. */
 	private Cooldown selectionCooldown;
-
+	private boolean wasMousePressed = false;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
 	 * 
 	 * @param width
-	 *            Screen width.
+	 *               Screen width.
 	 * @param height
-	 *            Screen height.
+	 *               Screen height.
 	 * @param fps
-	 *            Frames per second, frame rate at which the game is run.
+	 *               Frames per second, frame rate at which the game is run.
 	 */
 	public TitleScreen(final int width, final int height, final int fps) {
 		super(width, height, fps);
@@ -58,6 +61,31 @@ public class TitleScreen extends Screen {
 	 */
 	protected final void update() {
 		super.update();
+		// Get mouse position relative to the game drawing area.
+		int mouseX = inputManager.getMouseX();
+		int mouseY = inputManager.getMouseY();
+
+		int hoveredOption = drawManager.getMenuOptionAt(this, mouseX, mouseY);
+
+		// Update selection when hovering over a different option.
+		if (hoveredOption != -1 && hoveredOption != this.returnCode) {
+			this.returnCode = hoveredOption;
+			AudioManager.playSFX("audio/sfx/menu_move.wav");
+		}
+
+		boolean mousePressed = inputManager.isMousePressed();
+		boolean newMouseClick = mousePressed && !wasMousePressed;
+
+		wasMousePressed = mousePressed;
+
+		if (newMouseClick
+				&& hoveredOption != -1
+				&& this.inputDelay.checkFinished()) {
+
+			this.returnCode = hoveredOption;
+			AudioManager.playSFX("audio/sfx/menu_select.wav");
+			this.isRunning = false;
+		}
 
 		draw();
 		if (this.selectionCooldown.checkFinished()
