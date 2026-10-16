@@ -280,7 +280,8 @@ public class GameScreen extends Screen {
 				this.enemyShipFormation.update();
 			// An empty formation has no shooters left, so it must not shoot.
 			if (!this.enemyShipFormation.isEmpty())
-				this.enemyShipFormation.shoot(this.bullets);
+				this.enemyShipFormation.shoot(this.bullets, this.ship);
+
 		}
 
 		manageCollisions();
