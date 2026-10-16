@@ -9,4 +9,27 @@ public final class RecordsService {
         this.records.put(record.getRunId(),record); return true;
     }
     public synchronized int getRecordCount() { return this.records.size(); }
+
+    public synchronized int getHighestScore() {
+        int result = 0;
+        if (!this.records.isEmpty())
+            result = Integer.MIN_VALUE;
+        for (RunRecord record : this.records.values())
+            result = Math.max(result, record.getScore());
+        return result;
+    }
+
+    public synchronized int getMostEnemiesDefeated() {
+        int result = 0;
+        for (RunRecord record : this.records.values())
+            result = Math.max(result, record.getEnemiesDefeated());
+        return result;
+    }
+
+    public synchronized long getLongestSurvivalMillis() {
+        long result = 0;
+        for (RunRecord record : this.records.values())
+            result = Math.max(result, record.getActiveDurationMillis());
+        return result;
+    }
 }
