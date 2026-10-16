@@ -21,7 +21,9 @@ public final class RecordsSmokeTest {
         testCorruptProfileRecovery();
         testProfilePersistence();
         testShutdownHookFlush();
-        testAchievementRules();
+        testAchievementsAndPersistence();
+        testWriteFailureAndLifecycle();
+        testCompletionThresholdBoundary();
         testLatestMainDefeatAdapter();
         System.out.println("RecordsSmokeTest passed: "+checks+" checks.");
     }
@@ -298,28 +300,144 @@ private static void runShutdownProbe(final Path profile) throws Exception {
 		System.exit(0);
 	}
 
-private static void testAchievementRules() throws Exception {
-    Path profile = testDirectory("achievement-rules").resolve("profile.properties");
-    RecordsService service = new RecordsService(profile);
-    service.startRun("first");
-    for (int i=0; i<19; i++) service.enemyDefeated("first", "enemy-"+i);
-    assertFalse(service.enemyDefeated("first", "enemy-0"), "duplicate event ignored");
-    assertTrue(service.getUnlockTime(Achievement.TWENTY_ENEMIES)==null, "nineteen is below threshold");
-    service.enemyDefeated("first", "enemy-19");
-    service.activeDuration("first", 59999);
-    assertTrue(service.getUnlockTime(Achievement.SIXTY_SECONDS)==null, "59999 is below threshold");
-    service.completeRun(new RunRecord("first", 500, 20, 60000, 1));
-    for (Achievement a : new Achievement[]{Achievement.FIRST_RUN,Achievement.FIRST_ENEMY,Achievement.TWENTY_ENEMIES,Achievement.SIXTY_SECONDS})
-        assertTrue(service.getUnlockTime(a)!=null, "achievement unlocked: "+a);
-    service.completeRun(new RunRecord("tie", 500, 0, 0, 2));
-    assertTrue(service.getUnlockTime(Achievement.BEAT_HIGH_SCORE)==null,"ties do not beat best");
-    service.completeRun(new RunRecord("higher",501,0,0,3));
-    assertTrue(service.getUnlockTime(Achievement.BEAT_HIGH_SCORE)!=null,"strict higher beats best");
-    service.close();
-    RecordsService restored = new RecordsService(profile);
-    assertTrue(restored.getUnlockTime(Achievement.BEAT_HIGH_SCORE)!=null,"unlocks restore");
-    restored.close();
-}
+private static void testAchievementsAndPersistence() {
+		try {
+			Path directory = testDirectory("invaders-profile-test");
+			Path profile = directory.resolve("profile.properties");
+			RecordsService service = new RecordsService(profile);
+			service.startRun("first");
+			assertTrue(service.enemyDefeated("first", "enemy-1"),
+					"first defeat is accepted");
+			assertFalse(service.enemyDefeated("first", "enemy-1"),
+					"duplicate defeat event is ignored");
+			for (int i = 2; i < 20; i++)
+				service.enemyDefeated("first", "enemy-" + i);
+			assertTrue(service.getUnlockTime(Achievement.TWENTY_ENEMIES) == null,
+					"nineteen defeats do not unlock the twenty-defeat achievement");
+			service.enemyDefeated("first", "enemy-20");
+			assertTrue(service.getUnlockTime(Achievement.FIRST_ENEMY) != null,
+					"first enemy achievement unlocks");
+			assertTrue(service.getUnlockTime(Achievement.TWENTY_ENEMIES) != null,
+					"twentieth enemy achievement unlocks");
+			service.activeDuration("first", 59999L);
+			assertTrue(service.getUnlockTime(Achievement.SIXTY_SECONDS) == null,
+					"duration achievement waits for the threshold");
+			service.activeDuration("first", 60000L);
+			assertTrue(service.getUnlockTime(Achievement.SIXTY_SECONDS) != null,
+					"duration achievement unlocks at the threshold");
+			assertTrue(service.completeRun(new RunRecord("first", 500, 20,
+					60000L, 1000L)), "completed run is recorded");
+			assertTrue(service.getUnlockTime(Achievement.FIRST_RUN) != null,
+					"first completed run unlocks first-run achievement");
+			assertEquals(4, service.getCurrentRunUnlocks().size(),
+					"new unlocks are kept for the run summary");
+			assertFalse(service.enemyDefeated("first", "late-defeat"),
+					"finished runs reject late defeat events");
+			assertFalse(service.completeRun(new RunRecord("first", 900, 30,
+					90000L, 2000L)), "duplicate completed run is ignored");
+			service.startRun("same-score");
+			assertTrue(service.pollNotification() != null,
+					"unshown notices remain queued when a new run starts");
+			service.completeRun(new RunRecord("same-score", 500, 0, 1000,
+					3000L));
+			assertTrue(service.getUnlockTime(Achievement.BEAT_HIGH_SCORE) == null,
+					"equal score does not beat the previous best");
+			service.startRun("new-best");
+			service.completeRun(new RunRecord("new-best", 501, 0, 1000,
+					4000L));
+			assertTrue(service.getUnlockTime(Achievement.BEAT_HIGH_SCORE) != null,
+					"strictly higher score unlocks the achievement");
+			service.close();
+			assertTrue(Files.exists(profile), "profile file was written: "
+					+ service.getSaveError());
+
+			RecordsService restored = new RecordsService(profile);
+			assertEquals(3, restored.getRecordCount(),
+					"records restore after restart: " + restored.getSaveError()
+					+ " profile=" + profile + " contents="
+					+ (Files.exists(profile) ? new String(Files.readAllBytes(profile),
+							StandardCharsets.UTF_8) : "<missing>"));
+			assertTrue(restored.getUnlockTime(Achievement.BEAT_HIGH_SCORE) != null,
+					"achievement unlock restores after restart");
+			assertEquals(501, restored.getHighestScore(),
+					"personal best restores from records");
+			restored.close();
+
+			RecordsService negative = new RecordsService(
+					testDirectory("invaders-negative-score").resolve("profile.properties"));
+			negative.completeRun(new RunRecord("negative", -50, 0, 0, 101));
+			assertEquals(-50, negative.getHighestScore(),
+					"personal best preserves a negative recorded score");
+			negative.close();
+		} catch (IOException exception) {
+			throw new AssertionError("profile persistence test failed", exception);
+		}
+	}
+
+private static void testWriteFailureAndLifecycle() {
+		try {
+			Path directory = testDirectory("invaders-write-failure");
+			Path profile = directory.resolve("profile.properties");
+			List<RunRecord> records = new ArrayList<RunRecord>();
+			records.add(new RunRecord("minimum", Integer.MIN_VALUE, 0, 0, 1));
+			new ProfileStore(profile).write(new ProfileSnapshot(records,
+					new LinkedHashMap<String, Long>()));
+			RecordsService service = new RecordsService(profile);
+			service.startRun("greater");
+			service.completeRun(new RunRecord("greater", Integer.MIN_VALUE + 1,
+					0, 0, 2));
+			assertTrue(service.getUnlockTime(Achievement.BEAT_HIGH_SCORE) != null,
+					"minimum integer score remains a valid previous best");
+			service.close();
+			service.close();
+			assertTrue(service.getSaveError() == null, "repeated close flushes safely");
+			assertFalse(service.completeRun(new RunRecord("after-close", 0, 0, 0, 3)),
+					"closed service rejects new completion events");
+			assertFalse(service.enemyDefeated("greater", "after-close"),
+					"closed service rejects defeat events");
+
+			Path protectedProfile = directory.resolve("protected.properties");
+			new ProfileStore(protectedProfile).write(new ProfileSnapshot(records,
+					new LinkedHashMap<String, Long>()));
+			byte[] original = Files.readAllBytes(protectedProfile);
+			Path blockedBackup = protectedProfile.resolveSibling("protected.properties.bak");
+			Files.createDirectory(blockedBackup);
+			Files.write(blockedBackup.resolve("keep.txt"), new byte[] { 42 });
+			RecordsService failing = new RecordsService(protectedProfile);
+			failing.completeRun(new RunRecord("cannot-save", 10, 0, 0, 4));
+			failing.close();
+			assertTrue(failing.getSaveError() != null,
+					"backup replacement failure is reported");
+			assertTrue(java.util.Arrays.equals(original, Files.readAllBytes(protectedProfile)),
+					"failed backup replacement leaves the valid primary untouched");
+			assertTrue(Files.exists(blockedBackup.resolve("keep.txt")),
+					"failed backup replacement preserves the existing backup path");
+			assertEquals(1, new ProfileStore(protectedProfile).load().getRecords().size(),
+					"a failed save leaves a readable previous profile");
+		} catch (IOException exception) {
+			throw new AssertionError("write failure and lifecycle test failed", exception);
+		}
+	}
+
+private static void testCompletionThresholdBoundary() {
+		try {
+			RecordsService service = new RecordsService(testDirectory("completion-boundary")
+					.resolve("profile.properties"));
+			service.startRun("last-frame");
+			service.activeDuration("last-frame", 59999);
+			service.completeRun(new RunRecord("last-frame", 50, 20, 60000, 1));
+			assertTrue(service.getUnlockTime(Achievement.SIXTY_SECONDS) != null,
+					"last-frame duration threshold is checked at completion");
+			assertTrue(service.getUnlockTime(Achievement.TWENTY_ENEMIES) != null,
+					"completed defeat total provides the final threshold check");
+			assertEquals(4, service.getCurrentRunUnlocks().size(),
+					"completion unlocks are included once in the summary");
+			service.close();
+		} catch (IOException exception) {
+			throw new AssertionError("completion boundary test failed", exception);
+		}
+	}
+
 private static void testLatestMainDefeatAdapter() throws Exception {
     RecordsService service = new RecordsService(testDirectory("event-adapter").resolve("profile.properties"));
     java.lang.reflect.Field global = engine.Core.class.getDeclaredField("recordsService");

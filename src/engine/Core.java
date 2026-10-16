@@ -168,7 +168,8 @@ public final class Core {
 						+ gameState.getLivesRemaining() + " lives remaining, "
 						+ gameState.getBulletsShot() + " bullets shot and "
 						+ gameState.getShipsDestroyed() + " ships destroyed.");
-				currentScreen = new ScoreScreen(width, height, FPS, gameState);
+				currentScreen = new ScoreScreen(width, height, FPS, gameState,
+                        recordsService.getCurrentRunUnlocks());
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing score screen.");
 				break;
@@ -221,7 +222,7 @@ public final class Core {
 						+ gameState.getShipsDestroyed() + " ships destroyed.");
 				// Infinite mode score screen, Space plays infinite mode again.
 				currentScreen = new ScoreScreen(width, height, FPS, gameState,
-						true);
+						true, recordsService.getCurrentRunUnlocks());
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing score screen.");
 				break;

@@ -10,6 +10,7 @@ import java.util.Set;
 
 import audio.AudioManager;
 import records.RunSession;
+import records.Achievement;
 import records.RecordsService;
 import event.EnemyDefeatedEvent;
 import event.GameplayEventListener;
@@ -85,6 +86,8 @@ public class InfiniteGameScreen extends Screen {
     private RunSession runSession;
     private boolean abandoned;
     private RecordsService recordsService;
+    private Achievement visibleAchievement;
+    private long achievementNoticeUntil;
     private final GameplayEventPublisher recordsEvents = new GameplayEventPublisher();
     private final Map<Entity,String> defeatIds = new IdentityHashMap<Entity,String>();
 	/** Moment the starting countdown begins. */
@@ -168,6 +171,13 @@ public class InfiniteGameScreen extends Screen {
 	 */
 	protected final void update() {
 		super.update();
+        if (this.recordsService != null) {
+            long now = System.currentTimeMillis();
+            if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
+                this.visibleAchievement = this.recordsService.pollNotification();
+                this.achievementNoticeUntil = this.visibleAchievement == null ? 0 : now + 3000;
+            }
+        }
 
 		if (this.inputDelay.checkFinished() && !this.gameOver) {
             if (runSession != null) runSession.startActiveSegment(System.nanoTime());
@@ -314,6 +324,8 @@ public class InfiniteGameScreen extends Screen {
 		drawManager.drawLives(this, this.lives);
 		drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
 
+        if (this.visibleAchievement != null)
+            drawManager.drawAchievementNotice(this, this.visibleAchievement);
 		if (!this.inputDelay.checkFinished()) {
 			int countdown = (int) ((INPUT_DELAY
 					- (System.currentTimeMillis() - this.gameStartTime)) / 1000);

@@ -23,8 +23,8 @@ public final class RecordsService {
     private final ExecutorService writer;
     private final Map<String, RunRecord> records = new LinkedHashMap<String, RunRecord>();
     private final Map<String, Long> unlockTimes = new LinkedHashMap<String, Long>();
-
-
+    private final Deque<Achievement> notifications = new ArrayDeque<Achievement>();
+    private final List<Achievement> currentRunUnlocks = new ArrayList<Achievement>();
     private final Set<String> seenDefeatEvents = new HashSet<String>();
     private String activeRunId;
     private int activeRunDefeats;
@@ -62,7 +62,7 @@ public final class RecordsService {
         this.activeRunId = runId;
         this.activeRunDefeats = 0;
         this.seenDefeatEvents.clear();
-
+        this.currentRunUnlocks.clear();
     }
 
     public synchronized void abandonRun(final String runId) {
@@ -119,8 +119,8 @@ public final class RecordsService {
         if (this.unlockTimes.containsKey(achievement.getId()))
             return;
         this.unlockTimes.put(achievement.getId(), Long.valueOf(timeMillis));
-
-
+        this.currentRunUnlocks.add(achievement);
+        this.notifications.addLast(achievement);
         enqueueSave();
     }
 
@@ -130,6 +130,14 @@ public final class RecordsService {
                 this.unlockTimes);
     }
 
+    public synchronized Achievement pollNotification() {
+        return this.notifications.pollFirst();
+    }
+
+    public synchronized List<Achievement> getCurrentRunUnlocks() {
+        return Collections.unmodifiableList(
+                new ArrayList<Achievement>(this.currentRunUnlocks));
+    }
 
     public synchronized List<RunRecord> getTopRuns() {
         List<RunRecord> result = new ArrayList<RunRecord>(this.records.values());
