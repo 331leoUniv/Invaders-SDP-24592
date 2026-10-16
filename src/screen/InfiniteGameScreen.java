@@ -19,6 +19,7 @@ import java.util.IdentityHashMap;
 import java.util.UUID;
 
 import engine.Cooldown;
+import engine.ControlsConfig;
 import engine.Core;
 import engine.DrawManager.SpriteType;
 import engine.GameState;
@@ -38,6 +39,8 @@ public class InfiniteGameScreen extends Screen {
 	private static final int SEPARATION_LINE_HEIGHT = 40;
 	/** Margin on the sides of the screen where enemies don't spawn. */
 	private static final int SIDE_MARGIN = 20;
+	/** Milliseconds before infinite mode starts. */
+	private static final int INPUT_DELAY = 6000;
 	/** Width of a regular enemy ship. */
 	private static final int ENEMY_WIDTH = 12 * 2;
 	/** Time between enemy spawns at the start, in milliseconds. */
@@ -84,6 +87,10 @@ public class InfiniteGameScreen extends Screen {
     private RecordsService recordsService;
     private final GameplayEventPublisher recordsEvents = new GameplayEventPublisher();
     private final Map<Entity,String> defeatIds = new IdentityHashMap<Entity,String>();
+	/** Moment the starting countdown begins. */
+	private long gameStartTime;
+	/** Last countdown number that played a sound. */
+	private int lastCountdown = -1;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -134,6 +141,10 @@ public class InfiniteGameScreen extends Screen {
 		this.spawnCooldown = Core.getCooldown(INITIAL_SPAWN_INTERVAL);
 		this.spawnCooldown.reset();
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
+		this.gameStartTime = System.currentTimeMillis();
+		this.lastCountdown = -1;
+		this.inputDelay = Core.getCooldown(INPUT_DELAY);
+		this.inputDelay.reset();
 
 		AudioManager.playBGM("audio/bgm/music_game.wav");
 	}
@@ -171,25 +182,7 @@ public class InfiniteGameScreen extends Screen {
 				return;
 			}
 
-			if (!this.ship.isDestroyed()) {
-				boolean moveRight = inputManager.isKeyDown(KeyEvent.VK_RIGHT)
-						|| inputManager.isKeyDown(KeyEvent.VK_D);
-				boolean moveLeft = inputManager.isKeyDown(KeyEvent.VK_LEFT)
-						|| inputManager.isKeyDown(KeyEvent.VK_A);
-
-				boolean isRightBorder = this.ship.getPositionX()
-						+ this.ship.getWidth() + this.ship.getSpeed() > this.width - 1;
-				boolean isLeftBorder = this.ship.getPositionX()
-						- this.ship.getSpeed() < 1;
-
-				if (moveRight && !isRightBorder)
-					this.ship.moveRight();
-				if (moveLeft && !isLeftBorder)
-					this.ship.moveLeft();
-				if (inputManager.isKeyDown(KeyEvent.VK_SPACE))
-					if (this.ship.shoot(this.bullets))
-						this.bulletsShot++;
-			}
+			updatePlayerControls();
 
 			this.ship.update();
 			spawnEnemy();
@@ -209,6 +202,29 @@ public class InfiniteGameScreen extends Screen {
 
 		if (this.gameOver && this.screenFinishedCooldown.checkFinished())
 			this.isRunning = false;
+	}
+
+	/** Handles configured gameplay actions independently of rendering. */
+	void updatePlayerControls() {
+		if (this.ship.isDestroyed())
+			return;
+
+		boolean moveRight = inputManager.isKeyDown(
+				ControlsConfig.getKey(ControlsConfig.RIGHT));
+		boolean moveLeft = inputManager.isKeyDown(
+				ControlsConfig.getKey(ControlsConfig.LEFT));
+		boolean isRightBorder = this.ship.getPositionX()
+				+ this.ship.getWidth() + this.ship.getSpeed() > this.width - 1;
+		boolean isLeftBorder = this.ship.getPositionX()
+				- this.ship.getSpeed() < 1;
+
+		if (moveRight && !isRightBorder)
+			this.ship.moveRight();
+		if (moveLeft && !isLeftBorder)
+			this.ship.moveLeft();
+		if (inputManager.isKeyDown(ControlsConfig.getKey(ControlsConfig.FIRE)))
+			if (this.ship.shoot(this.bullets))
+				this.bulletsShot++;
 	}
 
 	/**
@@ -298,7 +314,34 @@ public class InfiniteGameScreen extends Screen {
 		drawManager.drawLives(this, this.lives);
 		drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
 
+		if (!this.inputDelay.checkFinished()) {
+			int countdown = (int) ((INPUT_DELAY
+					- (System.currentTimeMillis() - this.gameStartTime)) / 1000);
+			playCountdownSound(countdown);
+			drawManager.drawCountDown(this, "Infinite Mode", countdown);
+			drawManager.drawHorizontalLine(this,
+					this.height / 2 - this.height / 12);
+			drawManager.drawHorizontalLine(this,
+					this.height / 2 + this.height / 12);
+		}
 		drawManager.completeDrawing(this);
+	}
+
+	/**
+	 * Plays the countdown sound once each time the countdown number changes.
+	 *
+	 * @param countdown
+	 *            Number currently shown in the countdown.
+	 */
+	private void playCountdownSound(final int countdown) {
+		if (countdown == this.lastCountdown)
+			return;
+
+		this.lastCountdown = countdown;
+		if (countdown == 0)
+			AudioManager.playSFX("audio/sfx/countdown_go.wav");
+		else if (countdown <= 3)
+			AudioManager.playSFX("audio/sfx/countdown_beep.wav");
 	}
 
 	/**
