@@ -105,6 +105,8 @@ public class GameScreen extends Screen {
 	private int lastCountdown = -1;
 	/** Prevents repeated activation while holding H. */
 	private boolean hyperfireKeyPressed = false;
+    /** Flag to track if the urgent low-health BGM is currently playing. */
+    private boolean isLowHealthBGM = false;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -193,7 +195,13 @@ public class GameScreen extends Screen {
 		this.inputDelay = Core.getCooldown(INPUT_DELAY);
 		this.inputDelay.reset();
 
-        AudioManager.playBGM("audio/bgm/music_game.wav");
+        if (this.lives == 1) {
+            AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+            this.isLowHealthBGM = true;
+        } else {
+            AudioManager.playBGM("audio/bgm/music_game.wav");
+            this.isLowHealthBGM = false;
+        }
 	}
 
 	/**
@@ -486,6 +494,10 @@ public class GameScreen extends Screen {
 										this.ship.getPositionY() + this.ship.getHeight() / 2);
 								this.lives = Math.max(0, this.lives - 1);
 								this.itemManager.getBuffManager().resetAllBuffs(this.ship);
+                                if (this.lives == 1 && !this.isLowHealthBGM) {
+                                    AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+                                    this.isLowHealthBGM = true;
+                                }
 								this.logger.info("Hit on player ship, " + this.lives + " lives remaining.");
 							}
 						}

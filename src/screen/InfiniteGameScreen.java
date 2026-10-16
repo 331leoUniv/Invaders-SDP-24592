@@ -379,6 +379,9 @@ public class InfiniteGameScreen extends Screen {
 						this.ship.getPositionX() + this.ship.getWidth() / 2,
 						this.ship.getPositionY() + this.ship.getHeight() / 2);
 				this.lives--;
+				if (this.lives == 1) {
+					AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+				}
 				this.logger.info("Hit by enemy bullet, " + this.lives
 						+ " lives remaining.");
 				return;
@@ -399,6 +402,9 @@ public class InfiniteGameScreen extends Screen {
 						this.ship.getPositionX() + this.ship.getWidth() / 2,
 						this.ship.getPositionY() + this.ship.getHeight() / 2);
 				this.lives--;
+				if (this.lives == 1) {
+					AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+				}
 				this.logger.info("Hit on player ship, " + this.lives
 						+ " lives remaining.");
 				break;
