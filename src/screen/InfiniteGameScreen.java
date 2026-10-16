@@ -337,6 +337,9 @@ public class InfiniteGameScreen extends Screen {
 				iterator.remove();
 				this.ship.destroy();
 				this.lives--;
+				if (this.lives == 1) {
+					AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+				}
 				this.logger.info("Hit on player ship, " + this.lives
 						+ " lives remaining.");
 				break;
