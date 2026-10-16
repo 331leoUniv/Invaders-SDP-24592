@@ -89,7 +89,6 @@ public final class Core {
 		}
 		AudioControls.applySettings();
 
-
 		frame = new Frame(WIDTH, HEIGHT);
 		DrawManager.getInstance().setFrame(frame);
 		int width = frame.getWidth();
@@ -245,7 +244,12 @@ public final class Core {
 
 	private static GameSettings applyDifficulty(
 			final GameSettings stageSettings) {
-		double multiplier = GameplayConfig.getMultiplier();
+		return applyDifficulty(stageSettings, GameplayConfig.getMultiplier());
+	}
+
+	// The calculation is accessible to tests in the engine package.
+	static GameSettings applyDifficulty(
+			final GameSettings stageSettings, final double multiplier) {
 		int movementInterval = Math.max(1,
 				(int) Math.round(stageSettings.getBaseSpeed() * multiplier));
 		int shootingInterval = Math.max(250,
@@ -254,7 +258,8 @@ public final class Core {
 
 		return new GameSettings(stageSettings.getFormationWidth(),
 				stageSettings.getFormationHeight(), movementInterval,
-				shootingInterval);
+				shootingInterval, stageSettings.getInitialX(),
+				stageSettings.getInitialY());
 	}
 
 	/**
