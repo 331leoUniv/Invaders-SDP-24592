@@ -322,6 +322,9 @@ public class InfiniteGameScreen extends Screen {
 				BulletPool.recycle(Collections.singleton(bullet));
 				this.ship.destroy();
 				this.lives--;
+				if (this.lives == 1) {
+					AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+				}
 				this.logger.info("Hit by enemy bullet, " + this.lives
 						+ " lives remaining.");
 				return;
