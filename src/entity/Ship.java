@@ -51,7 +51,6 @@ public class Ship extends Entity {
     private int heightBeforeChameleon;
     private int normalPositionY;
 
-    // PR : champs du feedback de dégâts
     /** Duration of the damage flashing feedback in milliseconds (0.5s). */
     private static final int DAMAGE_FEEDBACK_DURATION = 500;
     /** Rate in ms at which the ship color alternates during damage feedback. */
@@ -77,7 +76,7 @@ public class Ship extends Entity {
 
         this.spriteType = SpriteType.Ship;
         this.destructionCooldown = Core.getCooldown(1000);
-        this.damageFeedbackCooldown = Core.getCooldown(DAMAGE_FEEDBACK_DURATION); // PR
+        this.damageFeedbackCooldown = Core.getCooldown(DAMAGE_FEEDBACK_DURATION);
     }
 
     /**
@@ -164,7 +163,7 @@ public class Ship extends Entity {
             );
 
             setColor(CHAMELEON_COLORS[index]);
-        } else if (this.damageFeedbackCooldown != null // PR
+        } else if (this.damageFeedbackCooldown != null
                 && !this.damageFeedbackCooldown.checkFinished()) {
             // Alternate red and normal for 0.5s immediately after damage
             long elapsed = System.currentTimeMillis() - this.damageFeedbackStartTime;
@@ -295,7 +294,6 @@ public class Ship extends Entity {
         }
     }
 
-    // PR : déclenchement du feedback de dégâts
     /**
      * Triggers the 0.5-second red flashing damage feedback.
      */

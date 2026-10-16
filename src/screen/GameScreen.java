@@ -300,11 +300,12 @@ public class GameScreen extends Screen {
 
 			updateBallMovement();
 
-			this.ship.update();
 			this.annihilator.update();
 			this.enemyShipFormation.update();
 			this.enemyShipFormation.shoot(this.bullets);
 		}
+
+		this.ship.update();
 
 		if (this.inputDelay.checkFinished() && !this.levelFinished) {
 			this.itemManager.update(this.ship);
@@ -479,7 +480,7 @@ public class GameScreen extends Screen {
 								this.logger.info("Enemy shot absorbed by Energy Shield.");
 							} else {
 								this.ship.destroy();
-								this.ship.triggerDamageFeedback(); // PR
+								this.ship.triggerDamageFeedback();
 								this.particleSystem.spawnPlayerExplosion(
 										this.ship.getPositionX() + this.ship.getWidth() / 2,
 										this.ship.getPositionY() + this.ship.getHeight() / 2);
