@@ -18,6 +18,7 @@ import engine.GameState;
 import engine.ControlsConfig;
 import entity.Bullet;
 import entity.BulletPool;
+import vfx.ParticleSystem;
 import entity.EnemyShip;
 import entity.EnemyShipFormation;
 import entity.Entity;
@@ -87,6 +88,8 @@ public class GameScreen extends Screen {
 	private Cooldown screenFinishedCooldown;
 	/** Set of all bullets fired by on screen ships. */
 	private Set<Bullet> bullets;
+		/** Explosion particles. */
+	private ParticleSystem particleSystem = new ParticleSystem();
 	/** Current score. */
 	private int score;
 	/** Player lives left. */
@@ -345,11 +348,12 @@ public class GameScreen extends Screen {
 
 			updateBallMovement();
 
-			this.ship.update();
 			this.annihilator.update();
 			this.enemyShipFormation.update();
 			this.enemyShipFormation.shoot(this.bullets);
 		}
+
+		this.ship.update();
 
 		if (this.inputDelay.checkFinished() && !this.levelFinished) {
 			this.itemManager.update(this.ship);
@@ -369,6 +373,7 @@ public class GameScreen extends Screen {
 			manageAnnihilatorBeam();
 
 		cleanBullets();
+		this.particleSystem.update(); 
 		draw();
 
 		if (!this.levelFinished) {
@@ -491,6 +496,7 @@ public class GameScreen extends Screen {
 			drawManager.drawHorizontalLine(this, this.height / 2 + this.height
 					/ 12);
 		}
+		drawManager.drawParticles(this.particleSystem); 
 
         if (this.visibleAchievement != null)
             drawManager.drawAchievementNotice(this, this.visibleAchievement);
@@ -528,6 +534,10 @@ public class GameScreen extends Screen {
 								this.logger.info("Enemy shot absorbed by Energy Shield.");
 							} else {
 								this.ship.destroy();
+								this.ship.triggerDamageFeedback();
+								this.particleSystem.spawnPlayerExplosion(
+										this.ship.getPositionX() + this.ship.getWidth() / 2,
+										this.ship.getPositionY() + this.ship.getHeight() / 2);
 								this.lives = Math.max(0, this.lives - 1);
 								this.itemManager.getBuffManager().resetAllBuffs(this.ship);
 								this.logger.info("Hit on player ship, " + this.lives + " lives remaining.");
@@ -543,6 +553,9 @@ public class GameScreen extends Screen {
 						this.shipsDestroyed++;
 						recordEnemyDefeat(enemyShip);
 						this.enemyShipFormation.destroy(enemyShip);
+						this.particleSystem.spawnEnemyExplosion(
+								enemyShip.getPositionX() + enemyShip.getWidth() / 2,
+								enemyShip.getPositionY() + enemyShip.getHeight() / 2);
 						tryDropChameleonHull(enemyShip);
 						recyclable.add(bullet);
 
@@ -571,6 +584,9 @@ public class GameScreen extends Screen {
 					this.shipsDestroyed++;
 					recordEnemyDefeat(this.enemyShipSpecial);
 					this.enemyShipSpecial.destroy();
+					this.particleSystem.spawnEnemyExplosion(
+							this.enemyShipSpecial.getPositionX() + this.enemyShipSpecial.getWidth() / 2,
+							this.enemyShipSpecial.getPositionY() + this.enemyShipSpecial.getHeight() / 2);
 					tryDropChameleonHull(this.enemyShipSpecial);
 					this.enemyShipSpecialExplosionCooldown.reset();
 					recyclable.add(bullet);
