@@ -10,6 +10,14 @@ import java.util.Set;
 
 import audio.AudioManager;
 import records.RunSession;
+import records.RecordsService;
+import event.EnemyDefeatedEvent;
+import event.GameplayEventListener;
+import event.GameplayEventPublisher;
+import java.util.Map;
+import java.util.IdentityHashMap;
+import java.util.UUID;
+
 import engine.Cooldown;
 import engine.ControlsConfig;
 import engine.Core;
@@ -76,6 +84,9 @@ public class InfiniteGameScreen extends Screen {
 	private boolean gameOver;
     private RunSession runSession;
     private boolean abandoned;
+    private RecordsService recordsService;
+    private final GameplayEventPublisher recordsEvents = new GameplayEventPublisher();
+    private final Map<Entity,String> defeatIds = new IdentityHashMap<Entity,String>();
 	/** Moment the starting countdown begins. */
 	private long gameStartTime;
 	/** Last countdown number that played a sound. */
@@ -102,6 +113,14 @@ public class InfiniteGameScreen extends Screen {
             final int height, final int fps, final RunSession runSession) {
         super(width, height, fps);
         this.runSession = runSession;
+        this.recordsService = Core.getRecordsService();
+        this.recordsEvents.subscribe(EnemyDefeatedEvent.class,
+                new GameplayEventListener<EnemyDefeatedEvent>() {
+            public void onEvent(final EnemyDefeatedEvent event) {
+                if (recordsService != null)
+                    recordsService.enemyDefeated(event.getRunId(), event.getEventId());
+            }
+        });
 
 		this.score = gameState.getScore();
 		this.lives = gameState.getLivesRemaining();
@@ -152,9 +171,12 @@ public class InfiniteGameScreen extends Screen {
 
 		if (this.inputDelay.checkFinished() && !this.gameOver) {
             if (runSession != null) runSession.startActiveSegment(System.nanoTime());
+            if (runSession != null && recordsService != null)
+                recordsService.activeDuration(runSession.getRunId(), runSession.getActiveDurationMillis(System.nanoTime()));
 			if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
 				// Preserve the upstream result screen, but an abandoned run is not a completed record.
                 this.abandoned = true;
+                if (recordsService != null && runSession != null) recordsService.abandonRun(runSession.getRunId());
                 if (runSession != null) runSession.stopActiveSegment(System.nanoTime());
 				this.isRunning = false;
 				return;
@@ -360,6 +382,7 @@ public class InfiniteGameScreen extends Screen {
 				if (checkCollision(bullet, enemy)) {
 					this.score += enemy.getPointValue();
 					this.shipsDestroyed++;
+                    recordEnemyDefeat(enemy);
 					iterator.remove();
 					recyclable.add(bullet);
 					break;
@@ -435,4 +458,15 @@ public class InfiniteGameScreen extends Screen {
 		return new GameState(1, this.score, this.lives, this.bulletsShot,
 				this.shipsDestroyed);
 	}
+    private void recordEnemyDefeat(final Entity enemy) {
+        if (this.runSession == null) return;
+        String id = this.defeatIds.get(enemy);
+        if (id == null) { id=UUID.randomUUID().toString(); this.defeatIds.put(enemy,id); }
+        this.recordsEvents.publish(new EnemyDefeatedEvent(this.runSession.getRunId(),id));
+    }
+
+    public GameplayEventPublisher getGameplayEvents() { return this.recordsEvents; }
+
+    public String getActiveRunId() { return this.runSession == null ? null : this.runSession.getRunId(); }
+
 }

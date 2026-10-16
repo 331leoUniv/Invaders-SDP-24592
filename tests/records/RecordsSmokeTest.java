@@ -21,6 +21,8 @@ public final class RecordsSmokeTest {
         testCorruptProfileRecovery();
         testProfilePersistence();
         testShutdownHookFlush();
+        testAchievementRules();
+        testLatestMainDefeatAdapter();
         System.out.println("RecordsSmokeTest passed: "+checks+" checks.");
     }
 private static void testRunRecordValidation() {
@@ -296,6 +298,46 @@ private static void runShutdownProbe(final Path profile) throws Exception {
 		System.exit(0);
 	}
 
+private static void testAchievementRules() throws Exception {
+    Path profile = testDirectory("achievement-rules").resolve("profile.properties");
+    RecordsService service = new RecordsService(profile);
+    service.startRun("first");
+    for (int i=0; i<19; i++) service.enemyDefeated("first", "enemy-"+i);
+    assertFalse(service.enemyDefeated("first", "enemy-0"), "duplicate event ignored");
+    assertTrue(service.getUnlockTime(Achievement.TWENTY_ENEMIES)==null, "nineteen is below threshold");
+    service.enemyDefeated("first", "enemy-19");
+    service.activeDuration("first", 59999);
+    assertTrue(service.getUnlockTime(Achievement.SIXTY_SECONDS)==null, "59999 is below threshold");
+    service.completeRun(new RunRecord("first", 500, 20, 60000, 1));
+    for (Achievement a : new Achievement[]{Achievement.FIRST_RUN,Achievement.FIRST_ENEMY,Achievement.TWENTY_ENEMIES,Achievement.SIXTY_SECONDS})
+        assertTrue(service.getUnlockTime(a)!=null, "achievement unlocked: "+a);
+    service.completeRun(new RunRecord("tie", 500, 0, 0, 2));
+    assertTrue(service.getUnlockTime(Achievement.BEAT_HIGH_SCORE)==null,"ties do not beat best");
+    service.completeRun(new RunRecord("higher",501,0,0,3));
+    assertTrue(service.getUnlockTime(Achievement.BEAT_HIGH_SCORE)!=null,"strict higher beats best");
+    service.close();
+    RecordsService restored = new RecordsService(profile);
+    assertTrue(restored.getUnlockTime(Achievement.BEAT_HIGH_SCORE)!=null,"unlocks restore");
+    restored.close();
+}
+private static void testLatestMainDefeatAdapter() throws Exception {
+    RecordsService service = new RecordsService(testDirectory("event-adapter").resolve("profile.properties"));
+    java.lang.reflect.Field global = engine.Core.class.getDeclaredField("recordsService");
+    global.setAccessible(true); Object previous = global.get(null); global.set(null,service);
+    try {
+        service.startRun("adapter");
+        screen.GameScreen game = new screen.GameScreen(new engine.GameState(1,0,3,0,0),
+                new engine.GameSettings(2,2,40,1000),false,432,490,60,new RunSession("adapter"));
+        java.lang.reflect.Method defeated = screen.GameScreen.class.getDeclaredMethod("recordEnemyDefeat",entity.EnemyShip.class);
+        defeated.setAccessible(true);
+        entity.EnemyShip first = new entity.EnemyShip();
+        defeated.invoke(game,first); defeated.invoke(game,first);
+        for (int i=0;i<18;i++) defeated.invoke(game,new entity.EnemyShip());
+        assertTrue(service.getUnlockTime(Achievement.TWENTY_ENEMIES)==null,"duplicate source entity not double-counted");
+        defeated.invoke(game,new entity.EnemyShip());
+        assertTrue(service.getUnlockTime(Achievement.TWENTY_ENEMIES)!=null,"shared publisher forwards twentieth distinct defeat");
+    } finally { global.set(null,previous); service.close(); }
+}
 	private static void assertTrue(final boolean actual,
 			final String message) {
 		checks++;
