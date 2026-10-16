@@ -1,6 +1,5 @@
 package screen;
 
-import audio.AudioManager;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import audio.AudioManager;
 import engine.Cooldown;
 import engine.ControlsConfig;
 import engine.Core;
@@ -117,6 +117,8 @@ public class InfiniteGameScreen extends Screen {
 		this.lastCountdown = -1;
 		this.inputDelay = Core.getCooldown(INPUT_DELAY);
 		this.inputDelay.reset();
+
+		AudioManager.playBGM("audio/bgm/music_game.wav");
 	}
 
 	/**
