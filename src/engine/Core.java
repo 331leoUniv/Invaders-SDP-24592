@@ -10,10 +10,12 @@ import currency.PlayerAssets;
 import audio.AudioControls;
 import screen.AudioControlScreen;
 import screen.GameScreen;
+import screen.HangarScreen;
 import screen.HighScoreScreen;
 import screen.InfiniteGameScreen;
 import screen.ScoreScreen;
 import screen.Screen;
+import screen.ShopScreen;
 import screen.TitleScreen;
 import campaign.CampaignStageData;
 import campaign.CampaignManager;
@@ -23,9 +25,9 @@ import screen.GameplaySettingsScreen;
 
 /**
  * Implements core game logic.
- * 
+ *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
 public final class Core {
 
@@ -40,7 +42,7 @@ public final class Core {
 	private static final int MAX_LIVES = 3;
 	/** Levels between extra life. */
 	private static final int EXTRA_LIFE_FRECUENCY = 3;
-	
+
 	/** Frame to draw the screen on. */
 	private static Frame frame;
 	/** Screen currently shown. */
@@ -55,10 +57,9 @@ public final class Core {
 	/** Logger handler for printing to console. */
 	private static ConsoleHandler consoleHandler;
 
-
 	/**
 	 * Test implementation.
-	 * 
+	 *
 	 * @param args
 	 *            Program args, ignored.
 	 */
@@ -77,7 +78,6 @@ public final class Core {
 			LOGGER.setLevel(Level.ALL);
 
 		} catch (Exception e) {
-			// TODO handle exception
 			e.printStackTrace();
 		}
 		AudioControls.applySettings();
@@ -110,7 +110,7 @@ public final class Core {
 					boolean bonusLife = gameState.getLevel()
 							% EXTRA_LIFE_FRECUENCY == 0
 							&& gameState.getLivesRemaining() < MAX_LIVES;
-					
+
 					currentScreen = new GameScreen(gameState,
 							applyDifficulty(CampaignStageData
 									.getStageSettings(gameState.getLevel())),
@@ -120,7 +120,8 @@ public final class Core {
 					frame.setScreen(currentScreen);
 					LOGGER.info("Closing game screen.");
 
-					boolean stageCleared = ((GameScreen) currentScreen).isStageCleared();
+					boolean stageCleared =
+							((GameScreen) currentScreen).isStageCleared();
 					gameState = ((GameScreen) currentScreen).getGameState();
 
 					if (!stageCleared) {
@@ -129,20 +130,21 @@ public final class Core {
 						break;
 					}
 
-                    CampaignManager.updateMaxCampaignStage(
-                            Math.min(gameState.getLevel() + 1,
-                                    CampaignStageData.getTotalStages())
-                    );
-                    LOGGER.info("Highest Stage is: " + CampaignManager.getMaxCampaignStage());
+					CampaignManager.updateMaxCampaignStage(
+							Math.min(gameState.getLevel() + 1,
+									CampaignStageData.getTotalStages()));
+					LOGGER.info("Highest Stage is: "
+							+ CampaignManager.getMaxCampaignStage());
 
-                    gameState = new GameState(gameState.getLevel() + 1,
+					gameState = new GameState(gameState.getLevel() + 1,
 							gameState.getScore(),
 							gameState.getLivesRemaining(),
 							gameState.getBulletsShot(),
 							gameState.getShipsDestroyed());
 
 				} while (gameState.getLivesRemaining() > 0
-						&& gameState.getLevel() <= CampaignStageData.getTotalStages());
+						&& gameState.getLevel()
+								<= CampaignStageData.getTotalStages());
 
 				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
 						+ " score screen at " + FPS + " fps, with a score of "
@@ -200,6 +202,18 @@ public final class Core {
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing score screen.");
 				break;
+			case 9:
+				// Shop.
+				currentScreen = new ShopScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
+				break;
+			case 10:
+				// Hangar.
+				currentScreen = new HangarScreen(width, height, FPS);
+				returnCode = frame.setScreen(currentScreen);
+				break;
+			default:
+				break;
 			}
 
 		} while (returnCode != 0);
@@ -232,7 +246,7 @@ public final class Core {
 
 	/**
 	 * Controls access to the logger.
-	 * 
+	 *
 	 * @return Application logger.
 	 */
 	public static Logger getLogger() {
@@ -241,7 +255,7 @@ public final class Core {
 
 	/**
 	 * Controls access to the drawing manager.
-	 * 
+	 *
 	 * @return Application draw manager.
 	 */
 	public static DrawManager getDrawManager() {
@@ -250,7 +264,7 @@ public final class Core {
 
 	/**
 	 * Controls access to the input manager.
-	 * 
+	 *
 	 * @return Application input manager.
 	 */
 	public static InputManager getInputManager() {
@@ -259,7 +273,7 @@ public final class Core {
 
 	/**
 	 * Controls access to the file manager.
-	 * 
+	 *
 	 * @return Application file manager.
 	 */
 	public static FileManager getFileManager() {
@@ -268,7 +282,7 @@ public final class Core {
 
 	/**
 	 * Controls creation of new cooldowns.
-	 * 
+	 *
 	 * @param milliseconds
 	 *            Duration of the cooldown.
 	 * @return A new cooldown.
@@ -279,7 +293,7 @@ public final class Core {
 
 	/**
 	 * Controls creation of new cooldowns with variance.
-	 * 
+	 *
 	 * @param milliseconds
 	 *            Duration of the cooldown.
 	 * @param variance
