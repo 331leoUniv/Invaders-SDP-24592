@@ -82,7 +82,6 @@ public final class Core {
 		}
 		AudioControls.applySettings();
 
-
 		frame = new Frame(WIDTH, HEIGHT);
 		DrawManager.getInstance().setFrame(frame);
 		int width = frame.getWidth();
