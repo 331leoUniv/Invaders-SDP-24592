@@ -25,6 +25,8 @@ public final class RecordsSmokeTest {
         testWriteFailureAndLifecycle();
         testCompletionThresholdBoundary();
         testLatestMainDefeatAdapter();
+        testRecordsPageNavigationAndRender();
+        testLatestMainMenuOrder();
         System.out.println("RecordsSmokeTest passed: "+checks+" checks.");
     }
 private static void testRunRecordValidation() {
@@ -455,6 +457,68 @@ private static void testLatestMainDefeatAdapter() throws Exception {
         defeated.invoke(game,new entity.EnemyShip());
         assertTrue(service.getUnlockTime(Achievement.TWENTY_ENEMIES)!=null,"shared publisher forwards twentieth distinct defeat");
     } finally { global.set(null,previous); service.close(); }
+}
+private static void testRecordsPageNavigationAndRender() {
+		RecordsService service = null;
+		try {
+			Path directory = Paths.get("out", "records-tests", "render");
+			Files.createDirectories(directory);
+			service = new RecordsService(testDirectory("render-profile").resolve("profile.properties"));
+			service.startRun("render-0");
+			for (int i = 0; i < 20; i++)
+				service.enemyDefeated("render-0", "enemy-" + i);
+			service.activeDuration("render-0", 60000);
+			for (int i = 0; i < 10; i++)
+				service.completeRun(new RunRecord("render-" + i, 10000 + i * 100,
+						20 + i, 60000 + i * 1000, 1791850000000L + i));
+			engine.InputManager input = engine.Core.getInputManager();
+			java.awt.Canvas source = new java.awt.Canvas();
+			for (int key : new int[] { java.awt.event.KeyEvent.VK_ESCAPE,
+					java.awt.event.KeyEvent.VK_SPACE }) {
+				screen.PlayerRecordsScreen page = new screen.PlayerRecordsScreen(432, 490, 60, service);
+				input.keyPressed(new java.awt.event.KeyEvent(source,
+						java.awt.event.KeyEvent.KEY_PRESSED, 0, 0, key, '\u0000'));
+				try {
+					assertEquals(1, page.run(), "records page returns to menu for key " + key);
+				} finally {
+					input.keyReleased(new java.awt.event.KeyEvent(source,
+							java.awt.event.KeyEvent.KEY_RELEASED, 0, 0, key, '\u0000'));
+				}
+			}
+			engine.DrawManager draw = engine.Core.getDrawManager();
+			screen.Screen page = new screen.Screen(432, 490, 60);
+			java.lang.reflect.Field buffer = engine.DrawManager.class.getDeclaredField("backBuffer");
+			buffer.setAccessible(true);
+			for (int tab = 0; tab < 2; tab++) {
+				draw.initDrawing(page);
+				draw.drawRecordsPage(page, service, tab);
+				javax.imageio.ImageIO.write((java.awt.image.BufferedImage) buffer.get(null),
+						"png", directory.resolve(tab == 0 ? "records.png" : "achievements.png").toFile());
+				draw.completeDrawing(page);
+			}
+			draw.initDrawing(page);
+			draw.drawAchievementResults(page, 10000, 0, 20, 0.5f, true,
+					new char[] { 'A', 'A', 'A' }, 0,
+					java.util.Arrays.asList(Achievement.values()), true, 0);
+			javax.imageio.ImageIO.write((java.awt.image.BufferedImage) buffer.get(null),
+					"png", directory.resolve("results.png").toFile());
+			draw.completeDrawing(page);
+			System.out.println("UI review images: " + directory.toAbsolutePath());
+		} catch (Exception exception) {
+			throw new AssertionError("records page navigation/render test failed", exception);
+		} finally {
+			if (service != null)
+				service.close();
+		}
+	}
+
+private static void testLatestMainMenuOrder() throws Exception {
+    screen.TitleScreen menu = new screen.TitleScreen(432,490,60);
+    java.lang.reflect.Field code = screen.Screen.class.getDeclaredField("returnCode"); code.setAccessible(true);
+    java.lang.reflect.Method next = screen.TitleScreen.class.getDeclaredMethod("nextMenuItem"); next.setAccessible(true);
+    java.lang.reflect.Method previous = screen.TitleScreen.class.getDeclaredMethod("previousMenuItem"); previous.setAccessible(true);
+    for (int expected : new int[]{3,9,4,0,2}) { next.invoke(menu); assertEquals(expected,code.getInt(menu),"forward menu retains settings"); }
+    for (int expected : new int[]{0,4,9,3,2}) { previous.invoke(menu); assertEquals(expected,code.getInt(menu),"reverse menu retains settings"); }
 }
 	private static void assertTrue(final boolean actual,
 			final String message) {

@@ -17,6 +17,7 @@ import java.util.logging.Logger;
 import screen.Screen;
 import records.Achievement;
 import records.RecordsService;
+import records.RunRecord;
 import java.text.DateFormat;
 import java.util.Date;
 import entity.Entity;
@@ -352,37 +353,7 @@ public final class DrawManager {
 	 * @param option
 	 *            Option selected.
 	 */
-	public void drawMenu(final Screen screen, final int option) {
-		String playString = "Play";
-		String highScoresString = "High scores";
-		String settingsString = "Settings";
-		String exitString = "exit";
 
-		if (option == 2)
-			backBufferGraphics.setColor(Color.GREEN);
-		else
-			backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, playString,
-				screen.getHeight() / 3 * 2);
-		if (option == 3)
-			backBufferGraphics.setColor(Color.GREEN);
-		else
-			backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, highScoresString, screen.getHeight()
-				/ 3 * 2 + fontRegularMetrics.getHeight() * 2);
-		if (option == 4)
-			backBufferGraphics.setColor(Color.GREEN);
-		else
-			backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, settingsString, screen.getHeight()
-				/ 3 * 2 + fontRegularMetrics.getHeight() * 4);
-		if (option == 0)
-			backBufferGraphics.setColor(Color.GREEN);
-		else
-			backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, exitString, screen.getHeight() / 3
-				* 2 + fontRegularMetrics.getHeight() * 6);
-	}
 
 	/**
 	 * Draws game results.
@@ -1013,4 +984,68 @@ public final class DrawManager {
             y += fontRegularMetrics.getHeight()*3+4;
         }
     }
+
+    public void drawMenu(final Screen screen, final int option) {
+        String[] labels={"Play","High scores","Records & Achievements","Settings","Exit"};
+        int[] codes={2,3,9,4,0};
+        int y=screen.getHeight()/3*2;
+        for (int i=0;i<labels.length;i++) {
+            backBufferGraphics.setColor(option==codes[i]?Color.GREEN:Color.WHITE);
+            drawCenteredRegularString(screen,labels[i],y+i*fontRegularMetrics.getHeight()*3/2);
+        }
+    }
+
+    public void drawRecordsPage(final Screen screen,
+			final RecordsService service, final int tab) {
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen,
+				tab == 0 ? "Run Records" : "Achievements", screen.getHeight() / 9);
+		backBufferGraphics.setColor(Color.GRAY);
+		drawCenteredRegularString(screen,
+				"Left/Right: switch   Esc/Space: return", screen.getHeight() / 6);
+		int y = screen.getHeight() / 6 + fontRegularMetrics.getHeight() * 2;
+		if (tab == 0) {
+			backBufferGraphics.setColor(Color.WHITE);
+			drawCenteredRegularString(screen, "Personal bests", y);
+			if (service.getRecordCount() == 0) {
+				drawCenteredRegularString(screen, "No completed runs yet.",
+						y + fontRegularMetrics.getHeight());
+			} else {
+				drawCenteredRegularString(screen, "Highest score: "
+						+ service.getHighestScore(), y + fontRegularMetrics.getHeight());
+				drawCenteredRegularString(screen, "Most enemies: "
+						+ service.getMostEnemiesDefeated(),
+						y + fontRegularMetrics.getHeight() * 2);
+				drawCenteredRegularString(screen, "Longest survival: "
+						+ service.getLongestSurvivalMillis() / 1000.0 + "s",
+						y + fontRegularMetrics.getHeight() * 3);
+			}
+			y += fontRegularMetrics.getHeight() * 4;
+			drawCenteredRegularString(screen, "Top completed runs", y);
+			List<RunRecord> runs = service.getTopRuns();
+			if (runs.isEmpty()) {
+				drawCenteredRegularString(screen, "No completed runs yet.",
+						y + fontRegularMetrics.getHeight() * 2);
+			} else {
+				int index = 1;
+				for (RunRecord run : runs) {
+					y += fontRegularMetrics.getHeight();
+					drawCenteredRegularString(screen, String.format(
+							"%2d. %d pts  %d enemies  %.1fs", index++,
+							run.getScore(), run.getEnemiesDefeated(),
+							run.getActiveDurationMillis() / 1000.0), y);
+				}
+			}
+		} else {
+            drawAchievementList(screen,service,y);
+        }
+		backBufferGraphics.setColor(Color.GRAY);
+		String status = service.getSaveError();
+		String message = status == null
+				? (service.getLoadWarning() == null ? "Profile ready" : "Profile restored from backup")
+				: (status.startsWith("Saving") ? "Saving profile..."
+						: "Profile error - check game log");
+		drawCenteredRegularString(screen, message,
+				screen.getHeight() - fontRegularMetrics.getHeight());
+	}
 }
