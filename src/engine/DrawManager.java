@@ -620,7 +620,7 @@ public final class DrawManager {
 	 * @param screen
 	 *            Screen to draw on.
 	 * @param level
-	 *            Game difficulty level.
+	 *            Level number.
 	 * @param number
 	 *            Countdown number.
 	 * @param bonusLife
@@ -628,29 +628,43 @@ public final class DrawManager {
 	 */
 	public void drawCountDown(final Screen screen, final int level,
 			final int number, final boolean bonusLife) {
+		String title = "Level " + level;
+		if (bonusLife)
+			title += " - Bonus life!";
+
+		drawCountDown(screen, title, number);
+	}
+
+	/**
+	 * Draws the countdown with the given title.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param title
+	 *            Title shown before the countdown numbers.
+	 * @param number
+	 *            Countdown number.
+	 */
+	public void drawCountDown(final Screen screen, final String title,
+			final int number) {
 		int rectWidth = screen.getWidth();
 		int rectHeight = screen.getHeight() / 6;
+
 		backBufferGraphics.setColor(Color.BLACK);
-		backBufferGraphics.fillRect(0, screen.getHeight() / 2 - rectHeight / 2,
+		backBufferGraphics.fillRect(0,
+				screen.getHeight() / 2 - rectHeight / 2,
 				rectWidth, rectHeight);
 		backBufferGraphics.setColor(Color.GREEN);
+
 		if (number >= 4)
-			if (!bonusLife) {
-				drawCenteredBigString(screen, "Level " + level,
-						screen.getHeight() / 2
-						+ fontBigMetrics.getHeight() / 3);
-			} else {
-				drawCenteredBigString(screen, "Level " + level
-						+ " - Bonus life!",
-						screen.getHeight() / 2
-						+ fontBigMetrics.getHeight() / 3);
-			}
+			drawCenteredBigString(screen, title,
+					screen.getHeight() / 2 + fontBigMetrics.getHeight() / 3);
 		else if (number != 0)
 			drawCenteredBigString(screen, Integer.toString(number),
 					screen.getHeight() / 2 + fontBigMetrics.getHeight() / 3);
 		else
-			drawCenteredBigString(screen, "GO!", screen.getHeight() / 2
-					+ fontBigMetrics.getHeight() / 3);
+			drawCenteredBigString(screen, "GO!",
+					screen.getHeight() / 2 + fontBigMetrics.getHeight() / 3);
 	}
 
 	public void drawSettingsMenu(final Screen screen, final int selectedOption) {
