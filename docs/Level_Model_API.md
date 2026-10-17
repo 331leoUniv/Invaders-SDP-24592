@@ -14,9 +14,10 @@ The `level` package contains immutable design models and IO interfaces:
 - `LevelReader` / `LevelWriter`: file-based reader/writer interfaces.
 - `LevelFormatException`: invalid file error, extending `IOException`.
 
-`JsonLevelWriter` now implements UTF-8 JSON export; see `Level_JSON_Export.md`
-for overwrite/error behavior and checks. JSON import, enemy spawning, difficulty
-conversion, progression integration, and menu wiring remain follow-up work.
+`JsonLevelWriter` implements UTF-8 JSON export; see `Level_JSON_Export.md` for
+replacement/error behavior and checks. Custom gameplay handoff uses these models
+through `GameScreen.forCustomLevel` and `Core.playCustomLevel`; see
+`Custom_Level_Gameplay.md`. JSON import and menu wiring remain follow-up work.
 
 Input arrays/lists are copied; grid getters return copies and wave lists are
 unmodifiable. Null cells, empty rows/columns, wave order, and coordinates remain
@@ -75,14 +76,14 @@ an excuse to apply unvalidated imported files.
 
 ```java
 List<WaveDefinition> waves = loadedLevel.getWaves();
-// Proposed GameScreen input: List<WaveDefinition> instead of one GameSettings.
-// The constructor signature is to be reviewed; it is not changed in this PR.
+// The custom-level factory validates the entire definition, preserving these grids.
+// GameScreen.forCustomLevel(state, loadedLevel, multiplier, width, height, fps);
 ```
 
 The getter supplies the ordered list requested in issue #16. Each wave contains
 its grid and coordinates, which a temporary `List<GameSettings>` cannot fully
-represent. Coordinate data in the model does not itself fix the existing
-`Core.applyDifficulty()` reconstruction; that remains an integration change.
+represent. The custom adapter carries both runtime settings and original wave grids.
+The existing coordinate reconstruction bug was separately fixed in #24.
 
 Track official/custom provenance through the trusted loading path, separately
 from `LevelDefinition`. Only official campaign clears should update the unlock
