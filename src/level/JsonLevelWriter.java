@@ -64,15 +64,15 @@ public final class JsonLevelWriter implements LevelWriter {
         StringBuilder json = new StringBuilder();
         json.append("{\n  \"schemaVersion\": ").append(level.getSchemaVersion());
         json.append(",\n  \"id\": ");
-        string(json, level.getId());
+        string(json, level.getId(), "id");
         json.append(",\n  \"name\": ");
-        string(json, level.getName());
+        string(json, level.getName(), "name");
         json.append(",\n  \"waves\": [\n");
         List<WaveDefinition> waves = level.getWaves();
         for (int index = 0; index < waves.size(); index++) {
             WaveDefinition wave = waves.get(index);
             json.append("    {\n      \"id\": ");
-            string(json, wave.getId());
+            string(json, wave.getId(), "waves[" + index + "].id");
             json.append(",\n      \"formation\": {\n        \"initialX\": ")
                     .append(wave.getInitialX());
             json.append(",\n        \"initialY\": ").append(wave.getInitialY());
@@ -86,7 +86,8 @@ public final class JsonLevelWriter implements LevelWriter {
                         json.append("null");
                     } else {
                         json.append("{\n              \"enemyType\": ");
-                        string(json, cell.getEnemyType());
+                        string(json, cell.getEnemyType(), "waves[" + index
+                                + "].formation.grid[" + row + "][" + column + "].enemyType");
                         json.append(",\n              \"health\": ")
                                 .append(cell.getHealth()).append("\n            }");
                     }
@@ -105,7 +106,8 @@ public final class JsonLevelWriter implements LevelWriter {
     }
 
     /** Escape JSON syntax, controls, and UTF-16 surrogates without data loss. */
-    private static void string(final StringBuilder json, final String value)
+    private static void string(final StringBuilder json, final String value,
+            final String field)
             throws LevelFormatException {
         final char[] hex = "0123456789abcdef".toCharArray();
         json.append('"');
@@ -115,7 +117,8 @@ public final class JsonLevelWriter implements LevelWriter {
                     || !Character.isLowSurrogate(value.charAt(index + 1))))
                     || (Character.isLowSurrogate(c) && (index == 0
                     || !Character.isHighSurrogate(value.charAt(index - 1))))) {
-                throw new LevelFormatException("Cannot export an unpaired UTF-16 surrogate");
+                throw new LevelFormatException(field
+                        + ": unpaired UTF-16 surrogate at character index " + index);
             }
             switch (c) {
             case '"': json.append("\\\""); break;

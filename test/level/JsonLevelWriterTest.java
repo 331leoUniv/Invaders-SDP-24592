@@ -1,10 +1,12 @@
 package level;
 
 import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.stream.Stream;
@@ -24,8 +26,16 @@ class JsonLevelWriterTest {
     void preservesEveryFieldAndGridGapUsingUtf8Json() throws IOException {
         Path output = directory.resolve("stage.json");
         LevelDefinition level = definition("한글 \"stage\"\\\n\b\f\r\t\u0000\u001f\ud83d\ude80");
-        byte[] expected = Files.readAllBytes(
-                Paths.get("test/level/fixtures/export-expected.json"));
+        byte[] expected;
+        try (InputStream resource = JsonLevelWriterTest.class.getResourceAsStream(
+                "/level/fixtures/export-expected.json")) {
+            assertNotNull(resource, "Include test/ as a test resource root on the classpath");
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(resource, StandardCharsets.UTF_8))) {
+                String text = reader.lines().collect(java.util.stream.Collectors.joining("\n"));
+                expected = (text + "\n").getBytes(StandardCharsets.UTF_8);
+            }
+        }
 
         writer.write(output, level);
 
@@ -62,9 +72,29 @@ class JsonLevelWriterTest {
         byte[] previous = "keep me".getBytes(StandardCharsets.UTF_8);
         Files.write(output, previous);
         for (String name : new String[] { "Bad\ud800", "Bad\udc00", "Bad\ud800X" }) {
-            assertThrows(LevelFormatException.class, () -> writer.write(output, definition(name)));
+            LevelFormatException error = assertThrows(LevelFormatException.class,
+                    () -> writer.write(output, definition(name)));
+            assertTrue(error.getMessage().startsWith("name:"));
+            assertTrue(error.getMessage().contains("character index 3"));
             assertArrayEquals(previous, Files.readAllBytes(output));
             assertOnly(output);
+        }
+    }
+
+    @Test
+    void invalidEnemyIdentifierReportsItsGridLocation() throws IOException {
+        Path output = directory.resolve("stage.json");
+        WaveDefinition wave = new WaveDefinition("wave-01",
+                new EnemyCell[][] { { null, new EnemyCell("Bad\ud800", 1) } },
+                20, 100, 60, 2000);
+        LevelDefinition level = new LevelDefinition(1, "stage", "Stage",
+                Collections.singletonList(wave));
+        LevelFormatException error = assertThrows(LevelFormatException.class,
+                () -> writer.write(output, level));
+        assertTrue(error.getMessage().startsWith("waves[0].formation.grid[0][1].enemyType:"));
+        assertFalse(Files.exists(output));
+        try (Stream<Path> entries = Files.list(directory)) {
+            assertEquals(0, entries.count());
         }
     }
 

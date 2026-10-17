@@ -26,6 +26,7 @@ is created automatically.
 - Quotes, backslashes, and control characters are escaped. Non-ASCII text is
   retained; supplementary characters are written as paired Unicode escapes.
   Unpaired UTF-16 surrogates fail with `LevelFormatException` before file access.
+  The error identifies the field (including wave/grid indexes) and character index.
 
 The writer uses the merged model's structural rules. It does not introduce
 unagreed gameplay limits or claim that every exportable formation is playable.
@@ -54,18 +55,30 @@ Concurrent filesystem changes and overwrite coordination belong to the caller.
 
 ## Verification
 
-Run `level.JsonLevelWriterTest` with JUnit Jupiter 5, from the repository root.
-The reference JSON is `test/level/fixtures/export-expected.json`.
+Run `level.JsonLevelWriterTest` with JUnit Jupiter 5. Include `test/` as a test
+resource root on the runtime classpath, or copy its non-Java resources into the
+test output directory. The reference JSON is loaded as a classpath resource,
+so the working directory does not matter. Reference-file line endings are
+normalized to LF for comparison, including on Windows.
 
-Seven tests cover exact UTF-8 output, sparse grids and wave order, immutable input
+Eight tests cover exact UTF-8 output, sparse grids and wave order, immutable input
 values, deterministic overwrites, malformed-string failures, null arguments,
 missing parents, directory/symlink rejection, and temporary-file cleanup after an
-injected atomic-move failure. The symlink check is skipped if symlinks are not
+injected atomic-move failure, and field-specific Unicode errors. The symlink check is skipped if symlinks are not
 available. The failure injection tests cleanup without relying on OS permissions.
 
-Verification during development also reconstructed the repository sample and
-the escaping fixture as Java models, exported them, and parsed the actual output
-with Python's independent JSON parser. Both matched every original field.
+For an independent JSON-parser check, run:
+
+```sh
+python3 test/level/verify_json_export.py
+```
+
+The script requires Python 3 and a JDK supporting `--release 8`, without external
+packages. It resolves inputs relative to its own location and uses a temporary
+build directory. An absolute script path also works from another directory.
+It reconstructs the repository sample and escaping fixture as Java models,
+exports them, and parses the actual output with Python's JSON parser. Both must
+match every original field. This check is also useful for machines without JUnit.
 Production sources and the new tests compile with Java 8 compatibility, and
 the existing standalone model checks pass. Some existing currency tests use
 Java 9 collection factories and cannot be compiled with `--release 8`.
