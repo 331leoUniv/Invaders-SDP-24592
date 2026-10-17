@@ -21,13 +21,13 @@ public class AudioManager {
     /** Shared mixer that combines BGM and SFX into a single audio output line. */
     private static AudioMixer audioMixer;
 
-    /** Looping playback group for background music. */
+    /** Looping audio bus for background music. */
     private static final AudioBus bgmBug = new AudioBus(true);
 
-    /** Non-looping playback group for independently controlled sound effects. */
+    /** Non-looping audio bus for independently controlled sound effects. */
     private static final AudioBus sfxBus = new AudioBus();;
 
-    /** Whether the mixer, playback groups, and cache were successfully initialized. */
+    /** Whether the mixer, audio buses, and cache were successfully initialized. */
     private static boolean initialized = false;
 
     /** Global mute state, visible across audio control threads. */
@@ -114,7 +114,7 @@ public class AudioManager {
      * Plays the specified sound effect once.
      * Multiple sound effects can play simultaneously.
      * Each playback receives a separate ID.
-     * Finished playbacks are automatically removed from the group by the mixer.
+     * Finished playbacks are automatically removed by the bus during sample collection.
      * Playback failures are logged.
      * Resources must be 44.1 kHz, 16-bit signed PCM, stereo, little-endian WAV.
      *
@@ -133,7 +133,7 @@ public class AudioManager {
     }
 
     /**
-     * Stops the specified sound effect by removing its playback from the group.
+     * Stops the specified sound effect by removing its playback from the bus.
      * Cached audio sample data remains available for subsequent playback.
      * If the ID is unknown or already completed, logs a warning
      * and returns without stopping any other sound effect.

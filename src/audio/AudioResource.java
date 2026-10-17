@@ -3,7 +3,7 @@ package audio;
 import javax.sound.sampled.AudioFormat;
 
 /**
- * Holds the audio format and sample data used to open a playback clip.
+ * Holds the audio format and PCM sample bytes used for mixer playback.
  * The sample array is shared with the cache and must not be modified.
  */
 public class AudioResource {
@@ -35,10 +35,22 @@ public class AudioResource {
         return format;
     }
 
+    /**
+     * Returns the number of sample bytes, not the number of audio frames.
+     *
+     * @return the audio data length in bytes
+     */
     public int size() {
         return data.length;
     }
 
+    /**
+     * Returns a single sample byte without exposing the backing array.
+     *
+     * @param index the zero-based byte index, not a sample or frame index
+     * @return the byte at the specified index
+     * @throws IndexOutOfBoundsException if the index is negative or at least {@link #size()}
+     */
     public byte getData(int index) {
         return data[index];
     }
