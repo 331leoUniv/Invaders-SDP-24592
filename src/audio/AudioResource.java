@@ -35,12 +35,11 @@ public class AudioResource {
         return format;
     }
 
-    /**
-     * Returns the audio sample bytes, excluding container headers.
-     *
-     * @return the shared audio sample array
-     */
-    public byte[] getData() {
-        return data;
+    public int size() {
+        return data.length;
+    }
+
+    public byte getData(int index) {
+        return data[index];
     }
 }

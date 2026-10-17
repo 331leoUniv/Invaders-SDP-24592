@@ -19,7 +19,11 @@ public class AudioMixer implements Runnable {
 
     public final Logger logger;
 
-    private final Map<String, AudioPlaybackGroup> playbackGroups = new HashMap<>();
+    private final Map<String, AudioBus> audioBuses = new HashMap<>();
+
+    private final Queue<Double> leftBuffer = new ArrayDeque<>();
+
+    private final Queue<Double> rightBuffer = new ArrayDeque<>();
 
     private boolean alive = false;
 
@@ -64,30 +68,22 @@ public class AudioMixer implements Runnable {
     }
 
     private synchronized void mix(byte[] buffer) {
-        Queue<Integer> finishedPlaybackIds = new LinkedList<>();
         for (int offset = 0; offset < buffer.length; offset += FORMAT.getFrameSize()) {
             double left = 0.0;
             double right = 0.0;
-            for (AudioPlaybackGroup group : playbackGroups.values()) {
-                synchronized (group) {
-                    for (AudioPlayback playback : group.getAllPlaybacks()) {
-                        if (!group.isMuted() && !group.isPaused()) {
-                            left += playback.getLeftSample() * (group.getVolume() / 50.0);
-                            right += playback.getRightSample() * (group.getVolume() / 50.0);
-                        }
-                        if (!group.isPaused()) {
-                            playback.advance();
-                            if (playback.isFinished()) finishedPlaybackIds.add(playback.getId());
-                        }
-                    }
-
-                    while(!finishedPlaybackIds.isEmpty()) {
-                        group.removePlayback(finishedPlaybackIds.poll());
-                    }
+            for (AudioBus bus : audioBuses.values()) {
+                double tLeft = 0.0;
+                double tRight = 0.0;
+                bus.collectSamples(leftBuffer, rightBuffer);
+                while (!leftBuffer.isEmpty() && !rightBuffer.isEmpty()) {
+                    tLeft += leftBuffer.poll();
+                    tRight += rightBuffer.poll();
                 }
+                left += tLeft * (bus.getVolume() / 50.0);
+                right += tRight * (bus.getVolume() / 50.0);
             }
             writeSample(buffer, offset, left);
-            writeSample(buffer, offset+2, right);
+            writeSample(buffer, offset + 2, right);
         }
     }
 
@@ -97,18 +93,18 @@ public class AudioMixer implements Runnable {
         output[offset + 1] = (byte) (sample >> 8);
     }
 
-    public synchronized void registerPlaybackGroup(String key, AudioPlaybackGroup group) {
-        if (group == null) throw new IllegalArgumentException("Group cannot be null");
-        playbackGroups.put(key, group);
+    public synchronized void registerPlaybackGroup(String key, AudioBus bus) {
+        if (bus == null) throw new IllegalArgumentException("Group cannot be null");
+        audioBuses.put(key, bus);
     }
 
     public synchronized void unregisterPlaybackGroup(String key) {
-        AudioPlaybackGroup group = playbackGroups.remove(key);
+        AudioBus group = audioBuses.remove(key);
         if (group == null) throw new IllegalArgumentException("No playback group found for key : " + key);
     }
 
-    public synchronized AudioPlaybackGroup getPlaybackGroup(String key) {
-        AudioPlaybackGroup group = playbackGroups.get(key);
+    public synchronized AudioBus getPlaybackGroup(String key) {
+        AudioBus group = audioBuses.get(key);
         if (group == null) throw new IllegalArgumentException("No playback group found for key : " + key);
 
         return group;
@@ -120,135 +116,5 @@ public class AudioMixer implements Runnable {
 
     public synchronized void shutdown() {
         alive = false;
-    }
-}
-
-class AudioPlaybackGroup {
-
-    private Map<Integer, AudioPlayback> playbacks = new HashMap<>();
-
-    private int volume = 50;
-
-    private boolean paused = false;
-
-    private boolean muted = false;
-
-    private boolean looping;
-
-    private int nextId = 0;
-
-    public AudioPlaybackGroup(boolean looping) {
-        this.looping = looping;
-    }
-
-    public AudioPlaybackGroup() {
-        this(false);
-    }
-
-    public synchronized int createPlayback(AudioResource resource) {
-        int id = nextId++;
-        playbacks.put(id, new AudioPlayback(id, this, resource));
-
-        return id;
-    }
-
-    public synchronized void removePlayback(int id) {
-        AudioPlayback playback = playbacks.remove(id);
-        if (playback == null)
-            throw new IllegalArgumentException("No active playback found for ID: " + id);
-    }
-
-    public synchronized void removeAllPlaybacks() {
-        playbacks.clear();
-    }
-
-    public synchronized Iterable<AudioPlayback> getAllPlaybacks() {
-        return playbacks.values();
-    }
-
-    public synchronized void setVolume(int volume) {
-        if (volume < 0 || volume > 100) {
-            throw new IllegalArgumentException("Volume must be between 0 and 100: " + volume);
-        }
-        this.volume = volume;
-    }
-
-    public synchronized int getVolume() {
-        return volume;
-    }
-
-    public synchronized void setPaused(boolean paused) {
-        this.paused = paused;
-    }
-
-    public synchronized boolean isPaused() {
-        return paused;
-    }
-
-    public synchronized void setMuted(boolean muted) {
-        this.muted = muted;
-    }
-
-    public synchronized boolean isMuted() {
-        return muted;
-    }
-
-    public synchronized void setLooping(boolean looping) {
-        this.looping = looping;
-    }
-
-    public synchronized boolean isLooping() {
-        return looping;
-    }
-
-}
-
-class AudioPlayback {
-    private int id;
-    private AudioPlaybackGroup group;
-    private final byte[] data;
-    private int position = 0;
-    private boolean finished = false;
-
-    public AudioPlayback(int id, AudioPlaybackGroup group, AudioResource resource) {
-        if (!AudioMixer.FORMAT.matches(resource.getFormat()))
-            throw new IllegalArgumentException("Unexpected audio format: " + resource.getFormat());
-
-        this.id = id;
-        this.group = group;
-        data = resource.getData();
-        if (data.length == 0 || data.length % AudioMixer.FORMAT.getFrameSize() != 0)
-            throw new IllegalArgumentException("Audio must contain complete stereo PCM frames");
-    }
-
-    public double getLeftSample() {
-        if (position >= data.length)
-            return 0.0;
-
-        return (short) ((data[position] & 0xff) | (data[position + 1] << 8));
-    }
-
-    public double getRightSample() {
-        if (position >= data.length)
-            return 0.0;
-
-        return (short) ((data[position + 2] & 0xff) | (data[position + 3] << 8));
-    }
-
-    public void advance() {
-        if (position < data.length)
-            position += AudioMixer.FORMAT.getFrameSize();
-        if (position == data.length) {
-            if (group.isLooping()) position = 0;
-            else finished = true;
-        }
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public boolean isFinished() {
-        return finished;
     }
 }

@@ -22,10 +22,10 @@ public class AudioManager {
     private static AudioMixer audioMixer;
 
     /** Looping playback group for background music. */
-    private static final AudioPlaybackGroup bgmGroup = new AudioPlaybackGroup(true);
+    private static final AudioBus bgmBug = new AudioBus(true);
 
     /** Non-looping playback group for independently controlled sound effects. */
-    private static final AudioPlaybackGroup sfxGroup = new AudioPlaybackGroup();;
+    private static final AudioBus sfxBus = new AudioBus();;
 
     /** Whether the mixer, playback groups, and cache were successfully initialized. */
     private static boolean initialized = false;
@@ -44,8 +44,8 @@ public class AudioManager {
         if (initialized) return;
         try {
             audioMixer = new AudioMixer();
-            audioMixer.registerPlaybackGroup("bgm", bgmGroup);
-            audioMixer.registerPlaybackGroup("sfx", sfxGroup);
+            audioMixer.registerPlaybackGroup("bgm", bgmBug);
+            audioMixer.registerPlaybackGroup("sfx", sfxBus);
             audioCache = new AudioCache();
             logger.info("Audio system initialized.");
             initialized = true;
@@ -66,10 +66,10 @@ public class AudioManager {
         if (!initialized) initialize();
         try {
             AudioResource resource = audioCache.getAudioData(path);
-            AudioPlaybackGroup group = bgmGroup;
+            AudioBus group = bgmBug;
             synchronized (group) {
-                group.removeAllPlaybacks();
-                group.createPlayback(resource);
+                group.stopAll();
+                group.play(resource);
                 group.setPaused(false);
             }
         } catch (Exception e) {
@@ -82,7 +82,7 @@ public class AudioManager {
      */
     public static void stopBGM() {
         try {
-            bgmGroup.removeAllPlaybacks();
+            bgmBug.stopAll();
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to stop BGM: " + e, e);
         }
@@ -93,7 +93,7 @@ public class AudioManager {
      */
     public static void pauseBGM() {
         try {
-            bgmGroup.setPaused(true);
+            bgmBug.setPaused(true);
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to pause BGM: " + e, e);
         }
@@ -104,7 +104,7 @@ public class AudioManager {
      */
     public static void resumeBGM() {
         try {
-            bgmGroup.setPaused(false);
+            bgmBug.setPaused(false);
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to resume BGM: " + e, e);
         }
@@ -125,7 +125,7 @@ public class AudioManager {
     public static int playSFX(String path) {
         if (!initialized) initialize();
         try {
-            return sfxGroup.createPlayback(audioCache.getAudioData(path));
+            return sfxBus.play(audioCache.getAudioData(path));
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to play SFX [path=" + path + "]: " + e, e);
         }
@@ -142,7 +142,7 @@ public class AudioManager {
      */
     public static void stopSFX(int id) {
         try {
-            sfxGroup.removePlayback(id);
+            sfxBus.stop(id);
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to stop SFX [id=" + id + "]: " + e, e);
         }
@@ -156,7 +156,7 @@ public class AudioManager {
      */
     public static void setBGMVolume(int vol) {
         try {
-            bgmGroup.setVolume(vol);
+            bgmBug.setVolume(vol);
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to set BGM volume [volume=" + vol + "]: " + e, e);
         }
@@ -170,7 +170,7 @@ public class AudioManager {
      */
     public static void setSFXVolume(int vol) {
         try {
-            sfxGroup.setVolume(vol);
+            sfxBus.setVolume(vol);
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to set SFX volume [volume=" + vol + "]: " + e, e);
         }
@@ -183,7 +183,7 @@ public class AudioManager {
      */
     public static int getBGMVolume() {
         try {
-            return bgmGroup.getVolume();
+            return bgmBug.getVolume();
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to get BGM volume; returning default 50: " + e, e);
         }
@@ -197,7 +197,7 @@ public class AudioManager {
      */
     public static int getSFXVolume() {
         try {
-            return sfxGroup.getVolume();
+            return sfxBus.getVolume();
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to get SFX volume; returning default 50: " + e, e);
         }
@@ -211,8 +211,8 @@ public class AudioManager {
      */
     public static synchronized void setMuted(boolean value) {
         try {
-            bgmGroup.setMuted(value);
-            sfxGroup.setMuted(value);
+            bgmBug.setMuted(value);
+            sfxBus.setMuted(value);
             muted = value;
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to set global mute [muted=" + value + "]: " + e, e);
