@@ -170,6 +170,7 @@ public final class DrawManager {
         backBufferGraphics.setColor(Color.BLACK);
 		backBufferGraphics
 				.fillRect(0, 0, screen.getWidth(), screen.getHeight());
+		screen.drawBackground(backBufferGraphics);
 
         fontRegularMetrics = backBufferGraphics.getFontMetrics(fontRegular);
         fontBigMetrics = backBufferGraphics.getFontMetrics(fontBig);
@@ -683,44 +684,58 @@ public final class DrawManager {
 				- fontBigMetrics.stringWidth(string) / 2, height);
     }
 
-    /**
-     * Countdown to game start.
-     *
-     * @param screen
-     *            Screen to draw on.
-     * @param level
-     *            Game difficulty level.
-     * @param number
-     *            Countdown number.
-     * @param bonusLife
-     *            Checks if a bonus life is received.
-     */
-    public void drawCountDown(final Screen screen, final int level,
-                              final int number, final boolean bonusLife) {
-        int rectWidth = screen.getWidth();
-        int rectHeight = screen.getHeight() / 6;
-        backBufferGraphics.setColor(Color.BLACK);
-		backBufferGraphics.fillRect(0, screen.getHeight() / 2 - rectHeight / 2,
+	/**
+	 * Countdown to game start.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param level
+	 *            Level number.
+	 * @param number
+	 *            Countdown number.
+	 * @param bonusLife
+	 *            Checks if a bonus life is received.
+	 */
+	public void drawCountDown(final Screen screen, final int level,
+			final int number, final boolean bonusLife) {
+		String title = "Level " + level;
+		if (bonusLife)
+			title += " - Bonus life!";
+
+		drawCountDown(screen, title, number);
+	}
+
+	/**
+	 * Draws the countdown with the given title.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param title
+	 *            Title shown before the countdown numbers.
+	 * @param number
+	 *            Countdown number.
+	 */
+	public void drawCountDown(final Screen screen, final String title,
+			final int number) {
+		int rectWidth = screen.getWidth();
+		int rectHeight = screen.getHeight() / 6;
+
+		backBufferGraphics.setColor(Color.BLACK);
+		backBufferGraphics.fillRect(0,
+				screen.getHeight() / 2 - rectHeight / 2,
 				rectWidth, rectHeight);
-        backBufferGraphics.setColor(Color.GREEN);
-        if (number >= 4)
-            if (!bonusLife) {
-				drawCenteredBigString(screen, "Level " + level,
-                        screen.getHeight() / 2
-						+ fontBigMetrics.getHeight() / 3);
-            } else {
-				drawCenteredBigString(screen, "Level " + level
-						+ " - Bonus life!",
-                        screen.getHeight() / 2
-						+ fontBigMetrics.getHeight() / 3);
-            }
-        else if (number != 0)
+		backBufferGraphics.setColor(Color.GREEN);
+
+		if (number >= 4)
+			drawCenteredBigString(screen, title,
+					screen.getHeight() / 2 + fontBigMetrics.getHeight() / 3);
+		else if (number != 0)
 			drawCenteredBigString(screen, Integer.toString(number),
 					screen.getHeight() / 2 + fontBigMetrics.getHeight() / 3);
-        else
-			drawCenteredBigString(screen, "GO!", screen.getHeight() / 2
-					+ fontBigMetrics.getHeight() / 3);
-    }
+		else
+			drawCenteredBigString(screen, "GO!",
+					screen.getHeight() / 2 + fontBigMetrics.getHeight() / 3);
+	}
 
 	public void drawSettingsMenu(final Screen screen, final int selectedOption) {
 		String[] options = { "Audio", "Controls", "Gameplay", "Back" };
@@ -977,4 +992,15 @@ public final class DrawManager {
                 return java.awt.event.KeyEvent.getKeyText(keyCode);
         }
     }
+
+	/**
+	 * Draws every live explosion particle.
+	 */
+	public void drawParticles(final vfx.ParticleSystem particleSystem) {
+		for (vfx.Particle p : particleSystem.getParticles()) {
+			backBufferGraphics.setColor(p.getColor());
+			backBufferGraphics.fillRect(p.getX(), p.getY(), p.getSize(),
+					p.getSize());
+		}
+	}
 }
