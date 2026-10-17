@@ -18,12 +18,16 @@ public class AudioManager {
     /** Shared audio resource cache for background music and sound effects. */
     private static AudioCache audioCache;
 
+    /** Shared mixer that combines BGM and SFX into a single audio output line. */
     private static AudioMixer audioMixer;
 
+    /** Looping playback group for background music. */
     private static final AudioPlaybackGroup bgmGroup = new AudioPlaybackGroup(true);
 
+    /** Non-looping playback group for independently controlled sound effects. */
     private static final AudioPlaybackGroup sfxGroup = new AudioPlaybackGroup();;
 
+    /** Whether the mixer, playback groups, and cache were successfully initialized. */
     private static boolean initialized = false;
 
     /** Global mute state, visible across audio control threads. */
@@ -53,7 +57,7 @@ public class AudioManager {
     /**
      * Plays the specified background music in a continuous loop.
      * Playback failures are logged.
-     * Use 16-bit PCM WAV resources for compatibility.
+     * Resources must be 44.1 kHz, 16-bit signed PCM, stereo, little-endian WAV.
      *
      * @param path the resource path relative to the classpath root,
      *             without a leading slash or the res directory prefix
@@ -110,9 +114,9 @@ public class AudioManager {
      * Plays the specified sound effect once.
      * Multiple sound effects can play simultaneously.
      * Each playback receives a separate ID.
-     * Finished clips are automatically removed and closed.
+     * Finished playbacks are automatically removed from the group by the mixer.
      * Playback failures are logged.
-     * Use 16-bit PCM WAV resources for compatibility.
+     * Resources must be 44.1 kHz, 16-bit signed PCM, stereo, little-endian WAV.
      *
      * @param path the resource path relative to the classpath root,
      *             without a leading slash or the res directory prefix
@@ -129,7 +133,8 @@ public class AudioManager {
     }
 
     /**
-     * Stops the specified sound effect and releases its audio resources.
+     * Stops the specified sound effect by removing its playback from the group.
+     * Cached audio sample data remains available for subsequent playback.
      * If the ID is unknown or already completed, logs a warning
      * and returns without stopping any other sound effect.
      *
