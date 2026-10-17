@@ -1,7 +1,8 @@
 # Level JSON Format — Draft v1
 
 Status: draft contract. A shared model/interface prototype is available in
-`src/level/`; concrete JSON IO and gameplay integration are not implemented.
+`src/level/`; JSON export is implemented by `JsonLevelWriter`. JSON import and
+gameplay integration remain pending. See `Level_JSON_Export.md` for export behavior.
 See `Level_Model_API.md` for the prototype API and remaining decisions.
 
 ## Review questions
@@ -170,7 +171,7 @@ implemented. The sample's provisional values are not that registry.
 
 A reviewable prototype now implements these models and interfaces in `level`.
 See `Level_Model_API.md` for proposed signatures and validation boundaries.
-Concrete reader/writer implementations and interaction with
+The concrete writer is `JsonLevelWriter`; the reader and interaction with
 `campaign.CampaignStageData` are still pending. Confirm the contract through
 issue #16 and PR review before implementing the two sides independently.
 
@@ -268,6 +269,6 @@ After resolving the review questions above:
 - After gameplay integration, verify that wave one does not clear the stage,
   that wave two can complete it, and that zero lives prevents progression.
 
-The prototype implements only shared data models and IO interfaces. It does
-not implement JSON reading/writing or change gameplay. The model checks are
-documented separately; the JSON/gameplay acceptance checks above remain pending.
+The implementation includes shared data models, IO interfaces, and JSON export.
+It does not implement JSON reading or change gameplay. Model and export checks
+are documented separately; import round trips and gameplay checks remain pending.

@@ -14,8 +14,9 @@ The `level` package contains immutable design models and IO interfaces:
 - `LevelReader` / `LevelWriter`: file-based reader/writer interfaces.
 - `LevelFormatException`: invalid file error, extending `IOException`.
 
-No JSON parser/writer implementation, enemy spawning, difficulty conversion,
-progression, or menu wiring is introduced. Existing gameplay is unchanged.
+`JsonLevelWriter` now implements UTF-8 JSON export; see `Level_JSON_Export.md`
+for overwrite/error behavior and checks. JSON import, enemy spawning, difficulty
+conversion, progression integration, and menu wiring remain follow-up work.
 
 Input arrays/lists are copied; grid getters return copies and wave lists are
 unmodifiable. Null cells, empty rows/columns, wave order, and coordinates remain
@@ -108,7 +109,8 @@ EnemyCell[][] grid = {
 WaveDefinition wave = new WaveDefinition("wave-01", grid, 20, 100, 60, 2000);
 LevelDefinition level = new LevelDefinition(1, "stage-01", "Example",
         java.util.Collections.singletonList(wave));
-// writer.write(path, level); // Requires a concrete writer implementation.
+LevelWriter writer = new JsonLevelWriter();
+// writer.write(path, level); // Caller selects path and confirms overwrite.
 ```
 
 ## Reproducible model checks
@@ -131,4 +133,5 @@ The sample was also checked by constructing models from its field values
 (20 enemies in wave 1 and 8 in wave 2). This does not exercise a Java JSON reader.
 
 These are model contract checks, not JSON IO round trips or a running-game test.
-Import/export round trips and gameplay application will be verified in later PRs.
+Export checks are documented in `Level_JSON_Export.md`. Import/export round trips
+and gameplay application will be verified in later PRs.
