@@ -1,45 +1,45 @@
-# Records & Achievements 开发与验证
+# Records & Achievements: Development and Verification
 
-本地实现覆盖团队 3.1–3.7，已同步课程主线 `f476f5b`（2026-10-15），兼容团队主线 `2d5ce71` 的 Campaign、多波次、道具、无限模式、Settings，以及最新 BGM 和音频缓存。正式验收条件仍以 [`teams/Chinese_can_fly.md`](../teams/Chinese_can_fly.md) 为准。
+The local implementation covers team requirements 3.1–3.7. Its initial integration baseline combined course main `f476f5b` (2026-10-15) with team main `2d5ce71`, preserving Campaign mode, multiple waves, items, Infinite Mode, Settings, BGM, and audio caching. The formal acceptance criteria remain defined in [`teams/Chinese_can_fly.md`](../teams/Chinese_can_fly.md).
 
-## 使用方式
+## Usage
 
-- 标题页用上下方向键选择 **Records & Achievements**，空格打开；Records 使用编号 9，保留无限模式的 I 快捷键和编号 8。
-- 页面用左右方向键切换 **Run Records** 和 **Achievements**；Esc 或空格返回。
-- 游戏中解锁成就时，HUD 顶部会显示约三秒的提示；结算页会列出本局解锁的全部成就。
-- 档案保存在用户目录 `.space-invaders/records-achievements.properties`。记录和成就解锁时间共同保存，个人最佳由完整记录重新计算。
+- On the title screen, use Up/Down to select **Records & Achievements**, then press Space to open it. Records uses screen code 9, preserving the Infinite Mode shortcut I and screen code 8.
+- Use Left/Right to switch between **Run Records** and **Achievements**. Press Escape or Space to return to the menu.
+- When an achievement unlocks during gameplay, a notification appears at the top of the HUD for approximately three seconds. The results screen lists all achievements unlocked during that run.
+- The profile is stored at `.space-invaders/records-achievements.properties` under the user's home directory. Run records and achievement unlock times are saved together; personal bests are recalculated from the complete record history.
 
-## 本地数据保护
+## Local Data Protection
 
-档案使用带版本号的 UTF-8 Properties 文件。写入在单独线程执行：先写临时文件并重新读取校验，再保留上一个有效备份并替换主档案。读取损坏档案时会保留损坏副本并尝试恢复备份；主档案和备份都不可读时，程序报告问题并禁止自动写入，避免把原文件覆盖为空档案。
+The profile uses a versioned UTF-8 Properties file. Writes run on a separate thread: the system writes a temporary file, reads it back for validation, preserves the previous valid backup, and replaces the primary profile. When loading a corrupt profile, it preserves a copy of the corrupt data and attempts to restore a backup. If neither the primary profile nor its backup can be read successfully, the program reports the problem and disables automatic writes so the original data is not overwritten with an empty profile.
 
-玩家在中途退出时不产生 completed-run 记录；已经解锁的成就会立即排队保存。完成一局后异步保存，不阻塞结算页；菜单退出、窗口关闭和 Alt+F4 都会等待后台保存队列，最多十秒，超时或失败会报告错误。强制终止进程或断电无法保证尚未写入的进度。
+Abandoning a run does not create a completed-run record; achievements already unlocked are queued for saving immediately. Completed runs are saved asynchronously without blocking the results screen. Exiting through the menu, closing the window, or pressing Alt+F4 waits up to ten seconds for the background save queue. Timeouts or failures are reported. Forced process termination or power loss can still lose progress that has not yet been written.
 
-从备份恢复时，页面和日志会提示恢复结果及新进度可能丢失。备份更新也通过临时文件校验后替换；备份无法更新时停止本次写入并保留原来的有效主档案。
+After backup recovery, the page and log report the recovery and warn that recent progress may have been lost. Backup updates also use a validated temporary file before replacement. If the backup cannot be updated, the current write is aborted and the existing valid primary profile is preserved.
 
-## 当前游戏接线与协作接口
+## Gameplay Integration and Shared Interfaces
 
-Campaign 的普通/特殊敌人已覆盖子弹、Orbital Annihilator 激光和 Chameleon Hull 接触三种击败路径；Infinite Mode 的 Zigzag 敌人已覆盖子弹击败。所有路径通过 `EnemyDefeatedEvent` 与公共 `GameplayEventPublisher` 接入 3.5；同一敌人的事件 ID 保持稳定，服务忽略重复事件。护盾吸收、敌人逃离、无限模式玩家受撞不算击败。当前主线没有 Boss；未来新增有效击败路径仍需调用该接口。
+Campaign mode covers normal and special enemies defeated by bullets, Orbital Annihilator beams, or Chameleon Hull contact. Infinite Mode covers Zigzag enemies defeated by bullets. All of these paths connect to requirement 3.5 through `EnemyDefeatedEvent` and the shared `GameplayEventPublisher`. Each enemy retains a stable event ID, and the service ignores duplicate events. Shield absorption, escaped enemies, and player collisions in Infinite Mode do not count as enemy defeats. The current main branch has no Boss implementation; future valid defeat paths must also use this interface.
 
-Records 页面可从标题菜单打开并返回，菜单保持 Settings 和 Infinite Mode 快捷键。两个模式都显示 HUD 解锁提示和本局成就结算；Campaign 通关标题、无限模式重玩路径、现有道具绘制和 BGM 切换均保留。Octopus 提出的“首次通过 Campaign stage”成就不属于我们登记的五个成就，暂不改变本项目成就集合。
+The Records page can be opened from the title menu and returns to it, preserving Settings navigation and the Infinite Mode shortcut. Both modes display HUD unlock notifications and a summary of achievements unlocked during the run. Campaign victory titles, Infinite Mode replay navigation, existing item rendering, and BGM transitions are preserved. The achievement proposed by Octopus for completing a Campaign stage for the first time is outside the five achievements registered for this project, so it is not added to the current achievement set.
 
-## 验证
+## Verification
 
-在游戏仓库根目录运行：
+Run the following commands from the game repository root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\build.ps1
 powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\test-records.ps1
 ```
 
-记录测试覆盖字段验证、计时与结束去重、五项成就边界、排行榜排序与十条限制、重启恢复、备份恢复提示、无法恢复时保留原始文件、备份写入失败时保护有效主档案，以及关闭后的事件边界。
+The records tests cover field validation, active-time accounting, duplicate completion handling, boundary conditions for all five achievements, ranking order and the ten-entry limit, recovery after restart, backup-recovery warnings, preservation of original files when recovery is unavailable, protection of the valid primary profile when backup writes fail, and event handling after a run has closed.
 
-2026-10-15 验证：构建成功（60 个 Java 源文件）；104 项 records 检查、35 项当前玩法兼容检查，以及课程原有 wave list 检查通过。新增检查实际调用当前碰撞处理方法，覆盖三类武器的普通/特殊敌人、重复调用、护盾吸收、无限模式击败/逃离/碰撞、倒计时与结束动画排除、中途退出、60 秒触发、自然死亡记录、I 快捷键和两种模式的重玩。
+Verification on 2026-10-15: the build succeeded with 60 Java source files; 104 records checks, 35 gameplay integration checks, and the existing course wave-list checks passed. The added checks call the actual collision handlers and cover normal and special enemies across the three defeat paths, repeated calls, shield absorption, Infinite Mode defeats/escapes/collisions, exclusion of countdowns and ending animations, abandonment, the 60-second achievement trigger, natural-death records, the I shortcut, and replay in both modes.
 
-测试继续覆盖独立进程退出后恢复 80 条排队记录、最后一帧成就阈值补查和档案保护。使用实际绘图代码生成的排行榜、成就页、失败结算、无限模式结算、Campaign 通关五成就结算已离屏检查，输出均在忽略目录 `out/`。这些检查不代表完成了全关卡人工实机游玩，也未完成 20 次击败/60 秒阈值的游戏难度评估。
+The tests also cover recovery of 80 queued records after a separate process exits, achievement-threshold rechecks on the final frame, and profile protection. Offscreen renders produced by the actual drawing code were inspected for rankings, achievements, failure results, Infinite Mode results, and a Campaign victory summary with all five achievements. Outputs are stored in the ignored `out/` directory. These checks do not establish that every stage has been manually played through, and the gameplay difficulty of the 20-defeat and 60-second thresholds has not been evaluated.
 
-## 团队主线兼容边界
+## Compatibility Boundaries and Team Workflow
 
-保留 Campaign 过关/失败判定、多波次构造器、难度设置、自定义按键、音频缓存、BGM、道具、资产模块和 Settings。Campaign 全程与自然死亡的 Infinite run 共用记录/排行榜；无限模式 Esc 中途退出保留上游结算界面和已解锁成就，不创建 completed-run 记录。两个模式均排除输入等待和结束动画；当前课程主线没有 gameplay pause，未来加入时须调用 `RunSession.stopActiveSegment`/`startActiveSegment`。
+The implementation preserves Campaign victory/failure detection, the multi-wave constructor, difficulty settings, configured controls, audio caching, BGM, items, player assets, and Settings. A complete Campaign run and an Infinite Mode run ending in natural death share the same record history and rankings. Pressing Escape to abandon Infinite Mode preserves the upstream results screen and already unlocked achievements, but does not create a completed-run record. Both modes exclude startup waiting and ending animations from active play duration. The current course main branch has no gameplay pause; future pause support must call `RunSession.stopActiveSegment` and `RunSession.startActiveSegment`.
 
-主线同步使用单独的团队内部 PR；七个需求 PR 仍按 3.1–3.7 顺序依赖，后续 PR 在前置合并前包含依赖提交。所有 PR 的目标均为 `clover0409/Invaders-SDP-24592:main`，课程主仓库仅用于读取和同步。
+Main-branch synchronization was handled in a separate internal team PR. The seven requirement PRs were developed as a dependency chain from 3.1 through 3.7; later PRs included prerequisite commits until the earlier PRs were merged. All internal PRs targeted `clover0409/Invaders-SDP-24592:main`, using the course repository as a read-only upstream source for synchronization.
