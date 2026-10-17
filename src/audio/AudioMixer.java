@@ -127,7 +127,7 @@ class AudioPlaybackGroup {
 
     private Map<Integer, AudioPlayback> playbacks = new HashMap<>();
 
-    private int volume;
+    private int volume = 50;
 
     private boolean paused = false;
 
@@ -137,17 +137,12 @@ class AudioPlaybackGroup {
 
     private int nextId = 0;
 
-    public AudioPlaybackGroup(int volume, boolean looping) {
-        this.volume = volume;
+    public AudioPlaybackGroup(boolean looping) {
         this.looping = looping;
     }
 
-    public AudioPlaybackGroup(int volume) {
-        this(volume, false);
-    }
-
     public AudioPlaybackGroup() {
-        this(50, false);
+        this(false);
     }
 
     public synchronized int createPlayback(AudioResource resource) {
@@ -172,6 +167,9 @@ class AudioPlaybackGroup {
     }
 
     public synchronized void setVolume(int volume) {
+        if (volume < 0 || volume > 100) {
+            throw new IllegalArgumentException("Volume must be between 0 and 100: " + volume);
+        }
         this.volume = volume;
     }
 
