@@ -26,10 +26,20 @@ public class AudioResource {
         this.data = data;
     }
 
+    /**
+     * Returns the format describing the audio samples.
+     *
+     * @return the audio sample format
+     */
     public AudioFormat getFormat() {
         return format;
     }
 
+    /**
+     * Returns the audio sample bytes, excluding container headers.
+     *
+     * @return the shared audio sample array
+     */
     public byte[] getData() {
         return data;
     }
