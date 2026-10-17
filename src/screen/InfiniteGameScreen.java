@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import vfx.ParticleSystem;
 
 import audio.AudioManager;
 import engine.Cooldown;
@@ -73,6 +74,8 @@ public class InfiniteGameScreen extends Screen {
 	private int shipsDestroyed;
 	/** Checks if the game is over. */
 	private boolean gameOver;
+	/** Explosion particles. */
+	private ParticleSystem particleSystem;
 	/** Moment the starting countdown begins. */
 	private long gameStartTime;
 	/** Last countdown number that played a sound. */
@@ -113,6 +116,7 @@ public class InfiniteGameScreen extends Screen {
 		this.spawnCooldown = Core.getCooldown(INITIAL_SPAWN_INTERVAL);
 		this.spawnCooldown.reset();
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
+		this.particleSystem = new ParticleSystem();
 		this.gameStartTime = System.currentTimeMillis();
 		this.lastCountdown = -1;
 		this.inputDelay = Core.getCooldown(INPUT_DELAY);
@@ -149,14 +153,15 @@ public class InfiniteGameScreen extends Screen {
 
 			updatePlayerControls();
 
-			this.ship.update();
 			spawnEnemy();
 			moveEnemies();
 			shootEnemies();
 		}
 
+		this.ship.update();
 		manageCollisions();
 		cleanBullets();
+		this.particleSystem.update();
 		draw();
 
 		if (this.lives == 0 && !this.gameOver) {
@@ -278,6 +283,8 @@ public class InfiniteGameScreen extends Screen {
 		drawManager.drawLives(this, this.lives);
 		drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
 
+		drawManager.drawParticles(this.particleSystem);
+
 		if (!this.inputDelay.checkFinished()) {
 			int countdown = (int) ((INPUT_DELAY
 					- (System.currentTimeMillis() - this.gameStartTime)) / 1000);
@@ -345,6 +352,9 @@ public class InfiniteGameScreen extends Screen {
 				if (checkCollision(bullet, enemy)) {
 					this.score += enemy.getPointValue();
 					this.shipsDestroyed++;
+					this.particleSystem.spawnEnemyExplosion(
+							enemy.getPositionX() + enemy.getWidth() / 2,
+							enemy.getPositionY() + enemy.getHeight() / 2);
 					iterator.remove();
 					recyclable.add(bullet);
 					break;
@@ -364,7 +374,14 @@ public class InfiniteGameScreen extends Screen {
 				bulletIterator.remove();
 				BulletPool.recycle(Collections.singleton(bullet));
 				this.ship.destroy();
+				this.ship.triggerDamageFeedback();
+				this.particleSystem.spawnPlayerExplosion(
+						this.ship.getPositionX() + this.ship.getWidth() / 2,
+						this.ship.getPositionY() + this.ship.getHeight() / 2);
 				this.lives--;
+				if (this.lives == 1) {
+					AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+				}
 				this.logger.info("Hit by enemy bullet, " + this.lives
 						+ " lives remaining.");
 				return;
@@ -373,10 +390,21 @@ public class InfiniteGameScreen extends Screen {
 
 		Iterator<ZigzagEnemyShip> iterator = this.enemies.iterator();
 		while (iterator.hasNext()) {
-			if (checkCollision(iterator.next(), this.ship)) {
+			ZigzagEnemyShip rammed = iterator.next();
+			if (checkCollision(rammed, this.ship)) {
 				iterator.remove();
+				this.particleSystem.spawnEnemyExplosion(
+						rammed.getPositionX() + rammed.getWidth() / 2,
+						rammed.getPositionY() + rammed.getHeight() / 2);
 				this.ship.destroy();
+				this.ship.triggerDamageFeedback();
+				this.particleSystem.spawnPlayerExplosion(
+						this.ship.getPositionX() + this.ship.getWidth() / 2,
+						this.ship.getPositionY() + this.ship.getHeight() / 2);
 				this.lives--;
+				if (this.lives == 1) {
+					AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+				}
 				this.logger.info("Hit on player ship, " + this.lives
 						+ " lives remaining.");
 				break;
