@@ -101,7 +101,7 @@ public class AudioControlScreen extends Screen {
 			}
 			if (inputManager.isKeyDown(KeyEvent.VK_SPACE)
         	&& this.selectedOption == MUTE_OPTION) {
-    		toggleMute();
+				AudioControls.toggleMute();
     		this.selectionCooldown.reset();
 			}
 			// Left and right change the volume of the selected option only.
