@@ -77,11 +77,11 @@ public class AudioManager {
                 return;
             }
 
-            AudioCache.AudioResource resource = audioCache.getAudioData(path);
+            AudioResource resource = audioCache.getAudioData(path);
             if (resource == null) return;
 
             newClip = AudioSystem.getClip();
-            newClip.open(resource.format, resource.data, 0, resource.data.length);
+            newClip.open(resource.getFormat(), resource.getData(), 0, resource.getData().length);
 
             synchronized (BGM_MUTEX) {
                 stopBGM();
@@ -185,11 +185,11 @@ public class AudioManager {
                 return -1;
             }
 
-            AudioCache.AudioResource resource = audioCache.getAudioData(path);
+            AudioResource resource = audioCache.getAudioData(path);
             if (resource == null) return -1;
 
             newClip = AudioSystem.getClip();
-            newClip.open(resource.format, resource.data, 0, resource.data.length);
+            newClip.open(resource.getFormat(), resource.getData(), 0, resource.getData().length);
 
             /* for thread-safe */
             synchronized (SFX_MUTEX) {
