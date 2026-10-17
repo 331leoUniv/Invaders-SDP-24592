@@ -83,6 +83,9 @@ class CustomLevelGameScreenTest {
             assertEquals(2 - hit, enemy.getHealth());
             assertEquals(hit == 2 ? 20 : 0, screen.getGameState().getScore());
             assertEquals(hit == 2 ? 1 : 0, screen.getGameState().getShipsDestroyed());
+            vfx.ParticleSystem particles = (vfx.ParticleSystem) get(screen, "particleSystem");
+            assertEquals(hit != 2, particles.isEmpty(),
+                    "Explosion particles must appear only on the fatal hit");
         }
         assertTrue(enemy.isDestroyed());
     }
