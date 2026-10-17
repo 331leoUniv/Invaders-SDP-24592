@@ -11,6 +11,9 @@ import engine.Core;
 import engine.DrawManager;
 import engine.InputManager;
 
+import java.awt.Graphics;
+import engine.Starfield;
+
 /**
  * Implements a generic screen.
  * 
@@ -33,6 +36,9 @@ public class Screen {
 	protected int width;
 	/** Screen height. */
 	protected int height;
+
+	private final Starfield starfield;
+
 	/** Frames per second shown on the screen. */
 	protected int fps;
 	/** Screen insets. */
@@ -61,6 +67,7 @@ public class Screen {
 	public Screen(final int width, final int height, final int fps) {
 		this.width = width;
 		this.height = height;
+		this.starfield = new Starfield(width, height);
 		this.fps = fps;
 
 		this.drawManager = Core.getDrawManager();
@@ -85,10 +92,17 @@ public class Screen {
 	 */
 	public int run() {
 		this.isRunning = true;
+		long previousTime = System.nanoTime();
 
 		while (this.isRunning) {
 			long time = System.currentTimeMillis();
 
+			long currentTime = System.nanoTime();
+			double deltaSeconds =
+					(currentTime - previousTime) / 1_000_000_000.0;
+			previousTime = currentTime;
+
+			this.starfield.update(deltaSeconds);
 			update();
 
 			time = (1000 / this.fps) - (System.currentTimeMillis() - time);
@@ -152,5 +166,9 @@ public class Screen {
 	 */
 	public final int getHeight() {
 		return this.height;
+	}
+
+	public final void drawBackground(final Graphics graphics) {
+		this.starfield.draw(graphics);
 	}
 }

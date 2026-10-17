@@ -1,5 +1,7 @@
 package engine;
 
+import entity.item.ChameleonHull;
+
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontFormatException;
@@ -18,9 +20,9 @@ import entity.Ship;
 
 /**
  * Manages screen drawing.
- * 
+ *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
 public final class DrawManager {
 
@@ -155,6 +157,7 @@ public final class DrawManager {
 		backBufferGraphics.setColor(Color.BLACK);
 		backBufferGraphics
 				.fillRect(0, 0, screen.getWidth(), screen.getHeight());
+		screen.drawBackground(backBufferGraphics);
 
 		fontRegularMetrics = backBufferGraphics.getFontMetrics(fontRegular);
 		fontBigMetrics = backBufferGraphics.getFontMetrics(fontBig);
@@ -187,6 +190,15 @@ public final class DrawManager {
 	public void drawEntity(final Entity entity, final int positionX,
 			final int positionY) {
 		boolean[][] image = spriteMap.get(entity.getSpriteType());
+
+		if (entity instanceof ChameleonHull) {
+			image = ChameleonHull.getStarSprite();
+		}
+
+		if (entity instanceof Ship
+				&& ((Ship) entity).isChameleonHullActive()) {
+			image = ChameleonHull.getBallSprite();
+		}
 
 		backBufferGraphics.setColor(entity.getColor());
 		for (int i = 0; i < image.length; i++)
@@ -240,7 +252,13 @@ public final class DrawManager {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
 		String scoreString = String.format("%04d", score);
-		backBufferGraphics.drawString(scoreString, screen.getWidth() - 60, 25);
+		String scoreLabel = "SCORE ";
+
+		int scoreX = screen.getWidth() - 60;
+		int labelWidth = backBufferGraphics.getFontMetrics().stringWidth(scoreLabel);
+
+		backBufferGraphics.drawString(scoreLabel, scoreX - labelWidth, 25);
+		backBufferGraphics.drawString(scoreString, scoreX, 25);
 	}
 
 	/**
@@ -273,6 +291,57 @@ public final class DrawManager {
 	}
 
 	/**
+	 * Draws the Orbital Annihilator: a growing energy charge on the ship's
+	 * nose while charging, then a full vertical beam going up from the ship.
+	 */
+	public void drawOrbitalAnnihilator(final Ship ship, final int beamWidth,
+			final int topY, final boolean firing, final float chargeProgress) {
+		int centerX = ship.getPositionX() + ship.getWidth() / 2;
+		int startY = ship.getPositionY();
+		int beamX = centerX - beamWidth / 2;
+
+		if (firing) {
+			backBufferGraphics.setColor(new Color(255, 0, 0, 120));
+			backBufferGraphics.fillRect(beamX - 4, topY, beamWidth + 8, startY - topY);
+
+			backBufferGraphics.setColor(Color.RED);
+			backBufferGraphics.fillRect(beamX, topY, beamWidth, startY - topY);
+
+			backBufferGraphics.setColor(Color.WHITE);
+			backBufferGraphics.fillRect(centerX - beamWidth / 4, topY, beamWidth / 2, startY - topY);
+		} else {
+			backBufferGraphics.setColor(new Color(255, 0, 0, 90));
+			backBufferGraphics.fillRect(centerX - 1, topY, 2, startY - topY);
+
+			int radius = 2 + (int) (chargeProgress * beamWidth / 2);
+			boolean flicker = ((int) (chargeProgress * 20)) % 2 == 0;
+
+			backBufferGraphics.setColor(flicker ? Color.WHITE : Color.RED);
+			backBufferGraphics.fillOval(centerX - radius, startY - radius, radius * 2, radius * 2);
+		}
+	}
+
+	/**
+	 * Draws the Orbital Annihilator recharge gauge under the score.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param progress
+	 *            Recharge progress between 0 and 1.
+	 */
+	public void drawAnnihilatorGauge(final Screen screen, final float progress) {
+		int barWidth = 80;
+		int barX = screen.getWidth() - barWidth - 20;
+		int barY = 29;
+
+		backBufferGraphics.setColor(Color.DARK_GRAY);
+		backBufferGraphics.fillRect(barX, barY, barWidth, 6);
+
+		backBufferGraphics.setColor(progress >= 1f ? Color.GREEN : Color.RED);
+		backBufferGraphics.fillRect(barX, barY, (int) (barWidth * progress), 6);
+	}
+
+	/**
 	 * Draws game title.
 	 * 
 	 * @param screen
@@ -302,6 +371,7 @@ public final class DrawManager {
 	public void drawMenu(final Screen screen, final int option) {
 		String playString = "Play";
 		String highScoresString = "High scores";
+		String settingsString = "Settings";
 		String exitString = "exit";
 
 		if (option == 2)
@@ -316,12 +386,18 @@ public final class DrawManager {
 			backBufferGraphics.setColor(Color.WHITE);
 		drawCenteredRegularString(screen, highScoresString, screen.getHeight()
 				/ 3 * 2 + fontRegularMetrics.getHeight() * 2);
+		if (option == 4)
+			backBufferGraphics.setColor(Color.GREEN);
+		else
+			backBufferGraphics.setColor(Color.WHITE);
+		drawCenteredRegularString(screen, settingsString, screen.getHeight()
+				/ 3 * 2 + fontRegularMetrics.getHeight() * 4);
 		if (option == 0)
 			backBufferGraphics.setColor(Color.GREEN);
 		else
 			backBufferGraphics.setColor(Color.WHITE);
 		drawCenteredRegularString(screen, exitString, screen.getHeight() / 3
-				* 2 + fontRegularMetrics.getHeight() * 4);
+				* 2 + fontRegularMetrics.getHeight() * 6);
 	}
 
 	/**
@@ -422,10 +498,12 @@ public final class DrawManager {
 	 *            If the screen accepts input.
 	 * @param isNewRecord
 	 *            If the score is a new high score.
+	 * @param gameCleared
+	 *            If the game was cleared successfully.
 	 */
 	public void drawGameOver(final Screen screen, final boolean acceptsInput,
-			final boolean isNewRecord) {
-		String gameOverString = "Game Over";
+			final boolean isNewRecord, final boolean gameCleared) {
+		String gameOverString = gameCleared ? "Game Clear" : "Game Over";
 		String continueOrExitString =
 				"Press Space to play again, Escape to exit";
 
@@ -441,6 +519,25 @@ public final class DrawManager {
 			backBufferGraphics.setColor(Color.GRAY);
 		drawCenteredRegularString(screen, continueOrExitString,
 				screen.getHeight() / 2 + fontRegularMetrics.getHeight() * 10);
+	}
+
+	/**
+	 * Draws which stage was failed, right below the game over title.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param stage
+	 *            Number of the stage that was failed.
+	 * @param isNewRecord
+	 *            If the score is a new high score (changes the layout).
+	 */
+	public void drawStageFailed(final Screen screen, final int stage,
+			final boolean isNewRecord) {
+		int height = isNewRecord ? 4 : 2;
+
+		backBufferGraphics.setColor(Color.RED);
+		drawCenteredRegularString(screen, "Stage " + stage + " Failed",
+				screen.getHeight() / height - fontBigMetrics.getHeight());
 	}
 
 	/**
@@ -524,7 +621,7 @@ public final class DrawManager {
 	 * @param screen
 	 *            Screen to draw on.
 	 * @param level
-	 *            Game difficulty level.
+	 *            Level number.
 	 * @param number
 	 *            Countdown number.
 	 * @param bonusLife
@@ -532,29 +629,117 @@ public final class DrawManager {
 	 */
 	public void drawCountDown(final Screen screen, final int level,
 			final int number, final boolean bonusLife) {
+		String title = "Level " + level;
+		if (bonusLife)
+			title += " - Bonus life!";
+
+		drawCountDown(screen, title, number);
+	}
+
+	/**
+	 * Draws the countdown with the given title.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param title
+	 *            Title shown before the countdown numbers.
+	 * @param number
+	 *            Countdown number.
+	 */
+	public void drawCountDown(final Screen screen, final String title,
+			final int number) {
 		int rectWidth = screen.getWidth();
 		int rectHeight = screen.getHeight() / 6;
+
 		backBufferGraphics.setColor(Color.BLACK);
-		backBufferGraphics.fillRect(0, screen.getHeight() / 2 - rectHeight / 2,
+		backBufferGraphics.fillRect(0,
+				screen.getHeight() / 2 - rectHeight / 2,
 				rectWidth, rectHeight);
 		backBufferGraphics.setColor(Color.GREEN);
+
 		if (number >= 4)
-			if (!bonusLife) {
-				drawCenteredBigString(screen, "Level " + level,
-						screen.getHeight() / 2
-						+ fontBigMetrics.getHeight() / 3);
-			} else {
-				drawCenteredBigString(screen, "Level " + level
-						+ " - Bonus life!",
-						screen.getHeight() / 2
-						+ fontBigMetrics.getHeight() / 3);
-			}
+			drawCenteredBigString(screen, title,
+					screen.getHeight() / 2 + fontBigMetrics.getHeight() / 3);
 		else if (number != 0)
 			drawCenteredBigString(screen, Integer.toString(number),
 					screen.getHeight() / 2 + fontBigMetrics.getHeight() / 3);
 		else
-			drawCenteredBigString(screen, "GO!", screen.getHeight() / 2
-					+ fontBigMetrics.getHeight() / 3);
+			drawCenteredBigString(screen, "GO!",
+					screen.getHeight() / 2 + fontBigMetrics.getHeight() / 3);
+	}
+
+	public void drawSettingsMenu(final Screen screen, final int selectedOption) {
+		String[] options = { "Audio", "Controls", "Gameplay", "Back" };
+
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen, "Settings", screen.getHeight() / 5);
+
+		for (int i = 0; i < options.length; i++) {
+			backBufferGraphics.setColor(
+					i == selectedOption ? Color.GREEN : Color.WHITE);
+			drawCenteredRegularString(screen, options[i],
+					screen.getHeight() / 2
+							+ i * fontRegularMetrics.getHeight() * 2);
+		}
+
+		backBufferGraphics.setColor(Color.GRAY);
+		drawCenteredRegularString(screen, "Up/Down: select  Space: confirm",
+				screen.getHeight() / 8 * 7);
+	}
+
+	public void drawControlsSettings(final Screen screen,
+			final int selectedOption, final boolean waitingForKey) {
+		String[] options = {
+			"Move Left", "Move Right", "Fire", "Back"
+		};
+		String[] keys = {
+			getKeyDisplayText(ControlsConfig.getKey(ControlsConfig.LEFT)),
+			getKeyDisplayText(ControlsConfig.getKey(ControlsConfig.RIGHT)),
+			getKeyDisplayText(ControlsConfig.getKey(ControlsConfig.FIRE)),
+			""
+		};
+
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen, "Controls", screen.getHeight() / 5);
+
+		for (int i = 0; i < options.length; i++) {
+			String text = options[i];
+
+			if (i < 3) {
+				text += ": ";
+				text += waitingForKey && i == selectedOption
+						? "Press a key (Esc to cancel)" : keys[i];
+			}
+
+			backBufferGraphics.setColor(
+					i == selectedOption ? Color.GREEN : Color.WHITE);
+			drawCenteredRegularString(screen, text,
+					screen.getHeight() / 2
+							+ i * fontRegularMetrics.getHeight() * 2);
+		}
+
+		backBufferGraphics.setColor(Color.GRAY);
+		drawCenteredRegularString(screen, "Up/Down: select  Space: change",
+				screen.getHeight() / 8 * 7);
+	}
+
+	public void drawGameplaySettings(final Screen screen, final int selectedOption) {
+		String[] options = { "Easy", "Normal", "Hard" };
+
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen, "Gameplay", screen.getHeight() / 5);
+
+		for (int i = 0; i < options.length; i++) {
+			backBufferGraphics.setColor(
+					i == selectedOption ? Color.GREEN : Color.WHITE);
+			drawCenteredRegularString(screen, options[i],
+					screen.getHeight() / 2
+							+ i * fontRegularMetrics.getHeight() * 2);
+		}
+
+		backBufferGraphics.setColor(Color.GRAY);
+		drawCenteredRegularString(screen, "Up/Down: select  Space: confirm",
+				screen.getHeight() / 8 * 7);
 	}
 
 	/**
@@ -693,5 +878,59 @@ public final class DrawManager {
 		backBufferGraphics.setColor(color);
 		backBufferGraphics.fillRect(positionX, positionY,
 				width * volume / 100, height);
+	}
+
+	/**
+	 * Dessine un bouclier protecteur autour du vaisseau.
+	 *
+	 * @param screen Écran de jeu cible.
+	 * @param ship Vaisseau à entourer.
+	 */
+	public void drawShield(final Screen screen, final Entity ship) {
+		backBufferGraphics.setColor(new Color(0, 200, 255, 120)); // Cyan semi-transparent
+
+		int padding = 4;
+		int x = ship.getPositionX() - padding;
+		int y = ship.getPositionY() - padding;
+		int width = ship.getWidth() + (padding * 2);
+		int height = ship.getHeight() + (padding * 2);
+
+		// Dessine l'intérieur lumineux du bouclier
+		backBufferGraphics.fillOval(x, y, width, height);
+
+		// Dessine le contour plus net du bouclier
+		backBufferGraphics.setColor(Color.CYAN);
+		backBufferGraphics.drawOval(x, y, width, height);
+	}
+
+	private String getKeyDisplayText(final int keyCode) {
+		switch (keyCode) {
+		case java.awt.event.KeyEvent.VK_LEFT:
+			return "Left Arrow";
+		case java.awt.event.KeyEvent.VK_RIGHT:
+			return "Right Arrow";
+		case java.awt.event.KeyEvent.VK_UP:
+			return "Up Arrow";
+		case java.awt.event.KeyEvent.VK_DOWN:
+			return "Down Arrow";
+		case java.awt.event.KeyEvent.VK_SPACE:
+			return "Space";
+		default:
+			if (keyCode >= java.awt.event.KeyEvent.VK_A
+					&& keyCode <= java.awt.event.KeyEvent.VK_Z) {
+				return String.valueOf((char) keyCode);
+			}
+			return java.awt.event.KeyEvent.getKeyText(keyCode);
+		}
+	}
+		/**
+	 * Draws every live explosion particle.
+	 */
+	public void drawParticles(final vfx.ParticleSystem particleSystem) {
+		for (vfx.Particle p : particleSystem.getParticles()) {
+			backBufferGraphics.setColor(p.getColor());
+			backBufferGraphics.fillRect(p.getX(), p.getY(), p.getSize(),
+					p.getSize());
+		}
 	}
 }
