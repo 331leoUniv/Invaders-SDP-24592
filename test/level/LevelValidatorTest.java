@@ -1,7 +1,9 @@
 package level;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -42,6 +44,63 @@ class LevelValidatorTest {
                 wave("boss", 20, 9, 10, 1000, 1)));
         new LevelValidator(policy).validate(level("Custom",
                 wave("boss", 20, 9, 10, 1000, 100000)));
+    }
+
+    @Test
+    void acceptsBoundariesAndRejectsValuesJustOutsideThem() throws Exception {
+        validator.validate(level("Boundary", wave("A", 10, 7, 8, 600, 60000)));
+        rejected(level("Stage", wave("A", 1, 8, 1, 60, 1000)), "waves[0].formation.grid");
+        rejected(level("Stage", wave("A", 1, 1, 9, 60, 1000)), "waves[0].formation.grid[0]");
+        rejected(level("Stage", wave("A", 1, 1, 1, 601, 1000)), "waves[0].movementBaseFrames");
+        rejected(level("Stage", wave("A", 1, 1, 1, 60, 99)), "waves[0].shootingIntervalMs");
+        rejected(level("Stage", wave("A", 1, 1, 1, 60, 60001)), "waves[0].shootingIntervalMs");
+    }
+
+    @Test
+    void boundsTheNumberOfOrderedWaves() throws Exception {
+        List<WaveDefinition> waves = new ArrayList<WaveDefinition>();
+        for (int index = 0; index < 10; index++) {
+            waves.add(new WaveDefinition("wave-" + index,
+                    new EnemyCell[][] { { new EnemyCell("A", 1) } }, 0, 0, 0, 100));
+        }
+        validator.validate(new LevelDefinition(1, "stage", "Ten waves", waves));
+        waves.add(new WaveDefinition("wave-10",
+                new EnemyCell[][] { { new EnemyCell("A", 1) } }, 0, 0, 0, 100));
+        rejected(new LevelDefinition(1, "stage", "Eleven waves", waves), "waves");
+    }
+
+    @Test
+    void boundsTextAndCountsSupplementaryCharactersOnce() throws Exception {
+        WaveDefinition wave = wave("A", 1, 1, 1, 60, 1000);
+        String id = repeat("a", 64);
+        validator.validate(new LevelDefinition(1, id, repeat("\ud83d\ude80", 100),
+                Collections.singletonList(wave)));
+        rejected(new LevelDefinition(1, id + "a", "Stage", Collections.singletonList(wave)), "id");
+        rejected(level(repeat("\ud83d\ude80", 101), wave), "name");
+        WaveDefinition longWaveId = new WaveDefinition(id + "a", wave.getGrid(), 0, 0, 0, 100);
+        rejected(level("Stage", longWaveId), "waves[0].id");
+        new LevelValidator(LevelImportPolicy.builder().maxIdLength(65).maxNameLength(101).build())
+                .validate(new LevelDefinition(1, id + "a", repeat("x", 101),
+                        Collections.singletonList(longWaveId)));
+    }
+
+    @Test
+    void rejectsMalformedUnicodeAndNullDefinitionsWithoutChangingValidData() throws Exception {
+        LevelDefinition valid = level("한글 \ud83d\ude80", wave("A", 1, 1, 1, 60, 1000));
+        validator.validate(valid);
+        rejected(level("bad\ud800", valid.getWaves().get(0)), "name");
+        rejected(level("bad\udc00", valid.getWaves().get(0)), "name");
+        rejected(level("Stage", wave("bad\ud800", 1, 1, 1, 60, 1000)),
+                "waves[0].formation.grid[0][0].enemyType");
+        assertThrows(NullPointerException.class, () -> validator.validate(null));
+        assertThrows(NullPointerException.class, () -> new LevelValidator(null));
+        assertEquals("한글 \ud83d\ude80", valid.getName());
+    }
+
+    private static String repeat(final String text, final int count) {
+        StringBuilder result = new StringBuilder();
+        for (int index = 0; index < count; index++) result.append(text);
+        return result.toString();
     }
 
     private void rejected(final LevelDefinition definition, final String path) {
