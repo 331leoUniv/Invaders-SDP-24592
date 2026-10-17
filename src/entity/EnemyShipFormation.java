@@ -455,7 +455,14 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 		for (int row = 0; row < wave.getRows(); row++)
 			for (int column = 0; column < wave.getColumns(); column++) {
 				EnemyCell cell = wave.getCell(row, column);
-				if (cell != null) spriteFor(cell.getEnemyType());
+				if (cell != null) {
+					try {
+						spriteFor(cell.getEnemyType());
+					} catch (IllegalArgumentException invalid) {
+						throw new IllegalArgumentException("formation.grid[" + row + "]["
+								+ column + "].enemyType: " + invalid.getMessage(), invalid);
+					}
+				}
 			}
 	}
 
