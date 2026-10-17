@@ -2,11 +2,14 @@ package level;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Integration checks against the existing, unmodified JSON exporter. */
@@ -58,9 +61,13 @@ class JsonLevelRoundTripTest {
         assertDefinitionEquals(original, reader.read(output));
     }
 
-    @Test
-    void importsTheExistingExporterFixtureWithExplicitPolicyOverrides() throws Exception {
+    @ParameterizedTest(name = "{displayName} [{index}]")
+    @ValueSource(strings = { "\n", "\r\n" })
+    void importsTheExistingExporterFixtureWithExplicitPolicyOverrides(final String lineEnding)
+            throws Exception {
         Path fixture = resource("/level/fixtures/export-expected.json", "export-fixture.json");
+        String json = readWithLfLineEndings(fixture);
+        Files.write(fixture, json.replace("\n", lineEnding).getBytes(StandardCharsets.UTF_8));
         assertThrows(LevelFormatException.class, () -> new JsonLevelReader().read(fixture));
         LevelImportPolicy policy = LevelImportPolicy.builder()
                 .enemyTypes(Arrays.asList("A", "C", "enemy\"\\\n\t\u0001X"))
@@ -77,8 +84,18 @@ class JsonLevelRoundTripTest {
 
         writer.write(output, imported);
 
-        assertArrayEquals(Files.readAllBytes(fixture), Files.readAllBytes(output));
+        byte[] exported = Files.readAllBytes(output);
+        // Checkouts may use CRLF, while the exporter always writes LF.
+        assertArrayEquals(readWithLfLineEndings(fixture).getBytes(StandardCharsets.UTF_8), exported);
+        String exportedJson = new String(exported, StandardCharsets.UTF_8);
+        assertFalse(exportedJson.contains("\r"), "Exported JSON must use LF line endings");
+        assertTrue(exportedJson.endsWith("\n"), "Exported JSON must end with LF");
         assertDefinitionEquals(imported, reader.read(output));
+    }
+
+    private static String readWithLfLineEndings(final Path file) throws IOException {
+        return new String(Files.readAllBytes(file), StandardCharsets.UTF_8)
+                .replace("\r\n", "\n").replace('\r', '\n');
     }
 
     private Path resource(final String name, final String filename) throws IOException {
