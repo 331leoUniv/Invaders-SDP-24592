@@ -1,8 +1,10 @@
 # Level JSON Format — Draft v1
 
 Status: draft contract. A shared model/interface prototype is available in
-`src/level/`; custom gameplay handoff is documented in `Custom_Level_Gameplay.md`.
-Concrete JSON IO and menu wiring are separate work.
+`src/level/`; JSON export is implemented by `JsonLevelWriter`, and custom gameplay
+handoff is available through `GameScreen.forCustomLevel` / `Core.playCustomLevel`.
+See `Level_JSON_Export.md` and `Custom_Level_Gameplay.md` for their behavior and
+checks. JSON import and menu wiring remain separate work.
 See `Level_Model_API.md` for the prototype API and remaining decisions.
 
 ## Review questions
@@ -171,7 +173,7 @@ implemented. The sample's provisional values are not that registry.
 
 A reviewable prototype now implements these models and interfaces in `level`.
 See `Level_Model_API.md` for proposed signatures and validation boundaries.
-Concrete reader/writer implementations and interaction with
+The concrete writer is `JsonLevelWriter`; the reader and interaction with
 `campaign.CampaignStageData` are still pending. Confirm the contract through
 issue #16 and PR review before implementing the two sides independently.
 
@@ -270,6 +272,7 @@ After resolving the review questions above:
 - After gameplay integration, verify that wave one does not clear the stage,
   that wave two can complete it, and that zero lives prevents progression.
 
-The shared models now have a validated custom gameplay handoff. Concrete JSON IO,
-menu wiring, and actual reader/writer round trips remain separate work. See
-`Custom_Level_Gameplay.md` for the gameplay checks performed and remaining limits.
+The implementation includes shared models, IO interfaces, JSON export, and
+validated custom gameplay handoff. JSON import, menu wiring, and reader/writer
+round trips remain separate work. See `Level_JSON_Export.md` and
+`Custom_Level_Gameplay.md` for the checks performed and remaining limitations.
