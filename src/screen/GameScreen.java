@@ -24,6 +24,7 @@ import entity.item.TwinCanon;
 import entity.item.ClusterGrenadeItem;
 import entity.Grenade;
 import entity.GrenadeFragment;
+import entity.item.ChameleonHull;
 
 /**
  * Implements the game screen, where the action happens.
@@ -214,6 +215,23 @@ public class GameScreen extends Screen {
                 if (moveLeft && !isLeftBorder) {
                     this.ship.moveLeft();
                 }
+                if (this.ship.isChameleonHullActive()) {
+                    boolean moveUp = inputManager.isKeyDown(KeyEvent.VK_UP);
+                    boolean moveDown = inputManager.isKeyDown(KeyEvent.VK_DOWN);
+                    int verticalSpeed = (int) this.ship.getMovementSpeed();
+
+                    boolean isTopBorder = this.ship.getPositionY()
+                            - verticalSpeed < SEPARATION_LINE_HEIGHT;
+                    boolean isBottomBorder = this.ship.getPositionY()
+                            + this.ship.getHeight() + verticalSpeed > this.height - 1;
+
+                    if (moveUp && !isTopBorder) {
+                        this.ship.moveUp();
+                    }
+                    if (moveDown && !isBottomBorder) {
+                        this.ship.moveDown();
+                    }
+                }
 
                 // Normal shooting using configured controls.
                 if (inputManager.isKeyDown(
@@ -309,6 +327,8 @@ public class GameScreen extends Screen {
         this.itemManager.checkCollisions(this.ship);
         manageCollisions();
         manageGrenades();
+        if (this.ship.isChameleonHullActive())
+            manageChameleonCollisions();
         if (this.annihilator.isFiring())
             manageAnnihilatorBeam();
         cleanBullets();
@@ -420,6 +440,8 @@ public class GameScreen extends Screen {
                     if (!this.ship.isDestroyed()) {
                         if (this.ship.isShieldActive()) {
                             this.logger.info("Enemy shot absorbed by Energy Shield.");
+                        } else if (this.ship.isChameleonHullActive()) {
+                            this.logger.info("Enemy shot ignored by Chameleon Hull.");
                         } else {
                             this.ship.destroy();
                             this.lives--;
@@ -458,6 +480,15 @@ public class GameScreen extends Screen {
                                 this.shieldDroppedThisLevel = true;
                                 this.logger.info("Shield item dropped from enemy ship.");
                             }
+                        }
+                        if (!this.chameleonDroppedThisLevel
+                                && this.level >= ChameleonHull.REQUIRED_LEVEL
+                                && Math.random() < ChameleonHull.DROP_CHANCE) {
+                            this.itemManager.spawnItem(new ChameleonHull(
+                                    enemyShip.getPositionX(),
+                                    enemyShip.getPositionY()));
+                            this.chameleonDroppedThisLevel = true;
+                            this.logger.info("Chameleon Hull dropped from enemy ship.");
                         }
                         tryDropGrenade(enemyShip);
                     }
@@ -581,6 +612,29 @@ public class GameScreen extends Screen {
                 expired.add(fragment);
         }
         this.fragments.removeAll(expired);
+    }
+    /**
+     * Chameleon Hull: the ball destroys the enemies it touches.
+     */
+    private void manageChameleonCollisions() {
+        for (EnemyShip enemyShip : this.enemyShipFormation)
+            if (!enemyShip.isDestroyed()
+                    && checkCollision(this.ship, enemyShip)) {
+                this.score += enemyShip.getPointValue();
+                this.shipsDestroyed++;
+                this.enemyShipFormation.destroy(enemyShip);
+                this.logger.info("Enemy destroyed by Chameleon Hull.");
+            }
+
+        if (this.enemyShipSpecial != null
+                && !this.enemyShipSpecial.isDestroyed()
+                && checkCollision(this.ship, this.enemyShipSpecial)) {
+            this.score += this.enemyShipSpecial.getPointValue();
+            this.shipsDestroyed++;
+            this.enemyShipSpecial.destroy();
+            this.enemyShipSpecialExplosionCooldown.reset();
+            this.logger.info("Special ship destroyed by Chameleon Hull.");
+        }
     }
     /**
      * Applies the Orbital Annihilator beam.
