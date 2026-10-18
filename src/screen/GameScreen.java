@@ -24,6 +24,7 @@ import entity.item.TwinCanon;
 import entity.item.ClusterGrenadeItem;
 import entity.Grenade;
 import entity.GrenadeFragment;
+import entity.item.BuffHud;
 
 /**
  * Implements the game screen, where the action happens.
@@ -373,6 +374,9 @@ public class GameScreen extends Screen {
         drawManager.drawScore(this, this.score);
         drawManager.drawLives(this, this.lives);
         drawManager.drawGrenadeCount(this, this.ship.getGrenadeCount());
+        drawManager.drawBuffs(this, BuffHud.buildLines(
+                this.itemManager.getBuffManager().getActiveBuffsRemainingTime(),
+                System.currentTimeMillis()));
         if (this.annihilator.isReady())
             drawManager.drawAnnihilatorReady(this);
         drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
