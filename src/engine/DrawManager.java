@@ -1340,4 +1340,24 @@ public final class DrawManager {
                 return java.awt.event.KeyEvent.getKeyText(keyCode);
         }
     }
+    /**
+     * Draws the names of the active buffs, top right, under the separator.
+     *
+     * @param screen
+     *            Screen to draw on.
+     * @param lines
+     *            Buff names to show.
+     */
+    public void drawBuffs(final Screen screen, final List<String> lines) {
+        backBufferGraphics.setFont(fontRegular);
+        backBufferGraphics.setColor(Color.CYAN);
+        int y = 62;
+        for (String line : lines) {
+            int textWidth = backBufferGraphics.getFontMetrics()
+                    .stringWidth(line);
+            backBufferGraphics.drawString(line,
+                    screen.getWidth() - textWidth - 10, y);
+            y += 20;
+        }
+    }
 }
