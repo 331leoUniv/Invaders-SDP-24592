@@ -378,30 +378,6 @@ public final class DrawManager {
     }
 
     /**
-     * Draws a buff remaining-time gauge under the lives.
-     *
-     * @param barX
-     *            Left position of the gauge.
-     * @param progress
-     *            Remaining time ratio, from 0 to 1.
-     * @param color
-     *            Fill color.
-     */
-    public void drawBuffGauge(final int barX, final float progress,
-                              final Color color) {
-        int barWidth = 44;
-        int barY = 29;
-
-        backBufferGraphics.setColor(Color.DARK_GRAY);
-        backBufferGraphics.fillRect(barX, barY, barWidth, 6);
-
-        backBufferGraphics.setColor(color);
-        backBufferGraphics.fillRect(
-                barX, barY, (int) (barWidth * progress), 6
-        );
-    }
-
-    /**
      * Draws game title.
      *
      * @param screen
