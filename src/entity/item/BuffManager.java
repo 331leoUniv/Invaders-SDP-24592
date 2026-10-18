@@ -74,4 +74,18 @@ public class BuffManager {
 
         return remainingTimes;
     }
+
+    public float getBuffRemainingRatio(final String name) {
+        long currentTime = System.currentTimeMillis();
+        float ratio = 0f;
+
+        for (Map.Entry<Item, Long> entry : this.activeBuffs.entrySet()) {
+            if (entry.getKey().getName().equals(name)) {
+                ratio = Math.max(ratio, (float) (entry.getValue() - currentTime)
+                        / entry.getKey().getDuration());
+            }
+        }
+
+        return ratio;
+    }
 }
