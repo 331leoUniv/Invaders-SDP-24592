@@ -59,20 +59,26 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	private Screen screen;
 
 	/** Available movement patterns for enemy formations. */
-	private enum MovementPattern {
-		CLASSIC,
-		WAVE_BOUNCE
-	}
+    private enum MovementPattern {
+        CLASSIC,
+        WAVE_BOUNCE,
+        DIAGONAL_BOUNCE
+    }
 
 	/** Current movement pattern. */
-	private MovementPattern movementPattern = MovementPattern.WAVE_BOUNCE;
+    private MovementPattern movementPattern = MovementPattern.DIAGONAL_BOUNCE;
 	/** Horizontal direction of the wave: 1 = right, -1 = left. */
 	private int waveDirection = 1;
 	/** Current phase of the wave. */
 	private double wavePhase = 0;
 	/** Reference vertical position the wave oscillates around. */
 	private int waveBaseY;
-
+    /** Horizontal and vertical speed of the diagonal movement. */
+    private static final int DIAGONAL_SPEED = 4;
+    /** Current segment of the diamond loop (0 to 3). */
+    private int diagonalPhase = 0;
+    /** Initial vertical position of the diamond loop. */
+    private int diagonalBaseY;
 	/** List of enemy ships forming the formation. */
 	private List<List<EnemyShip>> enemyShips;
 	/** Minimum time between shots. */
@@ -151,6 +157,8 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 					+ "have X >= " + SIDE_MARGIN + " and non-negative Y divisible by "
 					+ DESCENT_DISTANCE + ": (" + positionX + "," + positionY + ")");
 		this.waveBaseY = this.positionY;
+        // Initial position of the diagonal movement.
+        this.diagonalBaseY = this.positionY;
 		this.shooters = new ArrayList<EnemyShip>();
 		SpriteType spriteType;
 
@@ -235,6 +243,82 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 		return new int[] { nextX - this.positionX, nextY - this.positionY };
 	}
 
+
+    /**
+     * Moves the formation along a diamond-shaped loop.
+     * The path adapts to the formation's size.
+     *
+     * @return Movement on the X and Y axes.
+     */
+    private int[] moveDiagonalBounce() {
+        int minX = SIDE_MARGIN;
+        int maxX = screen.getWidth() - SIDE_MARGIN - this.width;
+        int minY = Math.max(0, this.diagonalBaseY);
+        int maxY = screen.getHeight() - BOTTOM_MARGIN - this.height;
+
+        maxX = Math.max(minX, maxX);
+        maxY = Math.max(minY, maxY);
+
+        // Adapt the diamond to the available space.
+        int radiusX = Math.min(80, (maxX - minX) / 2);
+        int radiusY = Math.min(40, (maxY - minY) / 2);
+
+        int centerX = minX + (maxX - minX) / 2;
+        int centerY = minY + (maxY - minY) / 2;
+
+        // Diamond vertices: top, right, bottom, left.
+        int[] pointsX = {
+                centerX,
+                centerX + radiusX,
+                centerX,
+                centerX - radiusX
+        };
+
+        int[] pointsY = {
+                centerY - radiusY,
+                centerY,
+                centerY + radiusY,
+                centerY
+        };
+
+        // Current destination vertex.
+        int targetX = pointsX[this.diagonalPhase];
+        int targetY = pointsY[this.diagonalPhase];
+
+        int dx = targetX - this.positionX;
+        int dy = targetY - this.positionY;
+
+        double distance = Math.hypot(dx, dy);
+
+        // Move towards the destination without jumping.
+        int movementX;
+        int movementY;
+
+        if (distance <= DIAGONAL_SPEED) {
+            movementX = dx;
+            movementY = dy;
+
+            // Move to the next vertex.
+            this.diagonalPhase = (this.diagonalPhase + 1) % 4;
+        } else {
+            movementX = (int) Math.round(
+                    dx / distance * DIAGONAL_SPEED);
+            movementY = (int) Math.round(
+                    dy / distance * DIAGONAL_SPEED);
+        }
+
+        // Keep the formation inside the screen.
+        int nextX = Math.max(minX,
+                Math.min(this.positionX + movementX, maxX));
+        int nextY = Math.max(minY,
+                Math.min(this.positionY + movementY, maxY));
+
+        return new int[] {
+                nextX - this.positionX,
+                nextY - this.positionY
+        };
+    }
+
 	/**
 	 * Associates the formation to a given screen.
 	 * 
@@ -283,16 +367,28 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 		this.movementSpeed = (int) (Math.pow(remainingProportion, 2)
 				* this.baseSpeed);
 		this.movementSpeed += MINIMUM_SPEED;
-		
-		movementInterval++;
-		if (movementInterval >= this.movementSpeed) {
-			movementInterval = 0;
 
-			if (this.movementPattern == MovementPattern.WAVE_BOUNCE) {
-				int[] waveMovement = moveWaveBounce();
-				movementX = waveMovement[0];
-				movementY = waveMovement[1];
-			} else {
+        movementInterval++;
+
+        int movementDelay = this.movementSpeed;
+
+// Update diagonal movement more frequently for smooth animation.
+        if (this.movementPattern == MovementPattern.DIAGONAL_BOUNCE) {
+            movementDelay = 2;
+        }
+
+        if (movementInterval >= movementDelay) {
+            movementInterval = 0;
+
+            if (this.movementPattern == MovementPattern.WAVE_BOUNCE) {
+                int[] waveMovement = moveWaveBounce();
+                movementX = waveMovement[0];
+                movementY = waveMovement[1];
+            } else if (this.movementPattern == MovementPattern.DIAGONAL_BOUNCE) {
+                int[] diagonalMovement = moveDiagonalBounce();
+                movementX = diagonalMovement[0];
+                movementY = diagonalMovement[1];
+            } else {
 
 			boolean isAtBottom = positionY
 					+ this.height > screen.getHeight() - BOTTOM_MARGIN;
