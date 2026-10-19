@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Random;
-
+import engine.DifficultyAdjustWhilePlaying;
 import entity.item.ChameleonHull;
 import entity.item.ItemManager;
 import entity.item.ShieldItem;
@@ -428,6 +428,8 @@ public class GameScreen extends Screen {
 	 */
 	protected final void update() {
 		super.update();
+
+		
         if (this.recordsService != null) {
             long now = System.currentTimeMillis();
             if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
@@ -439,6 +441,8 @@ public class GameScreen extends Screen {
 		// Outside the input-delay check: a shield that runs out has to be
 		// announced even while the level is finishing.
 		this.playerStatus.update();
+		//Sends the current number of lives remaining to the DifficultyAdjustWhilePlaying class
+		DifficultyAdjustWhilePlaying.getInstance().update(this.playerStatus.getLives());
 
         if (this.inputDelay.checkFinished() && !this.levelFinished) {
             if (this.runSession != null) this.runSession.startActiveSegment(System.nanoTime());
@@ -581,6 +585,11 @@ public class GameScreen extends Screen {
 					this.stageCleared = true;
 					this.screenFinishedCooldown.reset();
 					this.logger.info("Stage " + this.level + " cleared.");
+					
+				//Whenever the player clears a level while the temporary difficulty adjustment is active,
+				//  it notifies the DifficultyAdjustWhilePlaying class that a level has been cleared.
+				
+       			 DifficultyAdjustWhilePlaying.getInstance().onLevelCleared();
 				}
 			}
 		}

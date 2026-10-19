@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
-
+import engine.DifficultyAdjustWhilePlaying;
 import screen.Screen;
 import engine.Cooldown;
 import engine.Core;
@@ -116,6 +116,10 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	private List<EnemyShip> shooters;
 	/** Number of not destroyed ships. */
 	private int shipCount;
+	//lowers the speed of enemy bullets by half when the temporary difficulty adjustment is active
+private int getBulletSpeed() {
+    return DifficultyAdjustWhilePlaying.getInstance().adjustEnemyBulletSpeed(BULLET_SPEED);
+}
 
 	/** Directions the formation can move. */
 	private enum Direction {
@@ -544,7 +548,10 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 		int enemyY = shooter.getPositionY();
 
 		if (player == null) {
-			bullets.add(BulletPool.getBullet(enemyX, enemyY, BULLET_SPEED,
+			
+			
+
+			bullets.add(BulletPool.getBullet(enemyX, enemyY, getBulletSpeed(),
 					Bullet.Owner.ENEMY));
 			return;
 		}
@@ -557,10 +564,10 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 		double distance = Math.sqrt(dx * dx + dy * dy);
 
 		int speedX = 0;
-		int speedY = BULLET_SPEED;
+		int speedY = getBulletSpeed(); // Default to straight down if distance is zero.
 		if (distance > 0) {
-			speedX = (int) Math.round((dx / distance) * BULLET_SPEED);
-			speedY = (int) Math.round((dy / distance) * BULLET_SPEED);
+			speedX = (int) Math.round((dx / distance) * getBulletSpeed());
+			speedY = (int) Math.round((dy / distance) * getBulletSpeed());
 		}
 
 		// An aimed shot can travel sideways or upwards, so the owner is set
