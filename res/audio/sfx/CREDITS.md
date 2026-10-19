@@ -91,6 +91,30 @@ Third-party sound effects used in this project and their licenses.
 - Changes: Renamed file and increased volume.
 
 
+## player_shoot.wav
+
+- Original: "Shoot 2" from "8-Bit Sound Effect Pack (Vol. 001)" by Deva (@Shades)
+- Source: https://opengameart.org/content/8-bit-sound-effect-pack-vol-001
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed to player_shoot.wav; audio unchanged.
+
+
+## enemy_shoot.wav
+
+- Original: "Shoot 3" from "8-Bit Sound Effect Pack (Vol. 001)" by Deva (@Shades)
+- Source: https://opengameart.org/content/8-bit-sound-effect-pack-vol-001
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed to enemy_shoot.wav; audio unchanged.
+
+
+## player_hit.wav
+
+- Original: "Hit 1" from "8-Bit Sound Effect Pack (Vol. 001)" by Deva (@Shades)
+- Source: https://opengameart.org/content/8-bit-sound-effect-pack-vol-001
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed to player_hit.wav; audio unchanged.
+
+
 ## item_pickup.wav
 
 - Original: Created for this project (synthesized 8-bit tone, no third-party source)
