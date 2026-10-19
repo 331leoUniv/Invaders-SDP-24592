@@ -67,6 +67,30 @@ Third-party sound effects used in this project and their licenses.
 - Changes: Renamed to countdown_go.wav.
 
 
+## enemy_explosion.wav
+
+- Original: "retro explosion sfx.wav" by stumpbutt
+- Source: https://freesound.org/people/stumpbutt/sounds/381686/
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed file and increased volume.
+
+
+## bonus_explosion.wav
+
+- Original: "Retro Super Jump" by Jerimee
+- Source: https://freesound.org/people/Jerimee/sounds/527524/
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed file and increased volume.
+
+
+## bonus_appear.wav
+
+- Original: "Teleport Casual" by GameAudio
+- Source: https://freesound.org/people/GameAudio/sounds/220202/
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed file and increased volume.
+
+
 ## item_pickup.wav
 
 - Original: Created for this project (synthesized 8-bit tone, no third-party source)
@@ -83,14 +107,12 @@ Third-party sound effects used in this project and their licenses.
 - Changes: None (16-bit / 44.1kHz mono WAV)
 
 
-
 ## item_laser_charge.wav
 
 - Original: Created for this project (synthesized rising power-up whine, no third-party source)
 - Source: Generated with a Python (NumPy) script, made with AI assistance
 - License: No third-party license; original work for this project
 - Changes: None (16-bit / 44.1kHz mono WAV)
-
 
 
 ## item_laser_beam.wav
@@ -101,7 +123,6 @@ Third-party sound effects used in this project and their licenses.
 - Changes: None (16-bit / 44.1kHz mono WAV)
 
 
-
 ## item_laser_cancel.wav
 
 - Original: Created for this project (synthesized falling fizzle, no third-party source)
@@ -110,14 +131,12 @@ Third-party sound effects used in this project and their licenses.
 - Changes: None (16-bit / 44.1kHz mono WAV)
 
 
-
 ## item_hyperfire_shot.wav
 
 - Original: Created for this project (synthesized short 8-bit zap, no third-party source)
 - Source: Generated with a Python (NumPy) script, made with AI assistance
 - License: No third-party license; original work for this project
 - Changes: None (16-bit / 44.1kHz mono WAV)
-
 
 
 ## item_hyperfire_activate.wav

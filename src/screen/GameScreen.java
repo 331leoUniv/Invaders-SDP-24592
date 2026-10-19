@@ -38,7 +38,8 @@ import entity.item.OrbitalAnnihilator;
 
 /**
  * Implements the game screen, where the action happens.
- *
+ * Plays sound effects for gameplay events.
+ * 
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
  *
  */
@@ -258,7 +259,8 @@ public class GameScreen extends Screen {
 	}
 
 	/**
-	 * Updates the elements on screen and checks for events.
+	 * Updates the elements on screen, checks for events, and plays the bonus
+	 * enemy appearance sound.
 	 */
 	protected final void update() {
 		super.update();
@@ -345,6 +347,7 @@ public class GameScreen extends Screen {
 			if (this.enemyShipSpecial == null
 					&& this.enemyShipSpecialCooldown.checkFinished()) {
 				this.enemyShipSpecial = new EnemyShip();
+				AudioManager.playSFX("audio/sfx/bonus_appear.wav");
 				this.enemyShipSpecialCooldown.reset();
 				this.logger.info("A special ship appears");
 			}
@@ -527,7 +530,8 @@ public class GameScreen extends Screen {
 	}
 
 	/**
-	 * Manages collisions between bullets and ships.
+	 * Manages collisions between bullets and ships and plays destruction
+	 * sounds for regular and bonus enemies.
 	 */
 	private void manageCollisions() {
         if (this.levelFinished) return;
@@ -565,6 +569,7 @@ public class GameScreen extends Screen {
 						this.shipsDestroyed++;
 						recordEnemyDefeat(enemyShip);
 						this.enemyShipFormation.destroy(enemyShip);
+						AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
 						this.particleSystem.spawnEnemyExplosion(
 								enemyShip.getPositionX() + enemyShip.getWidth() / 2,
 								enemyShip.getPositionY() + enemyShip.getHeight() / 2);
@@ -596,6 +601,7 @@ public class GameScreen extends Screen {
 					this.shipsDestroyed++;
 					recordEnemyDefeat(this.enemyShipSpecial);
 					this.enemyShipSpecial.destroy();
+					AudioManager.playSFX("audio/sfx/bonus_explosion.wav");
 					this.particleSystem.spawnEnemyExplosion(
 							this.enemyShipSpecial.getPositionX() + this.enemyShipSpecial.getWidth() / 2,
 							this.enemyShipSpecial.getPositionY() + this.enemyShipSpecial.getHeight() / 2);
