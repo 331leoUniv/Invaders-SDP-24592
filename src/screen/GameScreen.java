@@ -25,6 +25,7 @@ import entity.EnemyShipFormation;
 import entity.Entity;
 import entity.Ship;
 import audio.AudioManager;
+import hud.FloatingScoreHud;
 import entity.item.Hyperfire;
 import entity.item.OrbitalAnnihilator;
 
@@ -84,6 +85,7 @@ public class GameScreen extends Screen {
     private ParticleSystem particleSystem = new ParticleSystem();
     /** Current score. */
     private int score;
+	private final FloatingScoreHud floatingScoreHud = new FloatingScoreHud();
     /** Player lives left. */
     private int lives;
     /** Total bullets shot by the player. */
@@ -428,6 +430,7 @@ public class GameScreen extends Screen {
 					bullet.getPositionY());
 
         this.itemManager.draw(this.drawManager);
+        drawManager.drawFloatingScores(floatingScoreHud, this);
 
         // Interface.
         drawManager.drawScore(this, this.score);
@@ -512,6 +515,7 @@ public class GameScreen extends Screen {
                     if (!enemyShip.isDestroyed()
                             && checkCollision(bullet, enemyShip)) {
                         this.score += enemyShip.getPointValue();
+                        floatingScoreHud.show(enemyShip);
                         this.shipsDestroyed++;
                         this.enemyShipFormation.destroy(enemyShip);
                         this.particleSystem.spawnEnemyExplosion(
@@ -544,6 +548,7 @@ public class GameScreen extends Screen {
                         && !this.enemyShipSpecial.isDestroyed()
                         && checkCollision(bullet, this.enemyShipSpecial)) {
                     this.score += this.enemyShipSpecial.getPointValue();
+                    floatingScoreHud.show(this.enemyShipSpecial);
                     this.shipsDestroyed++;
                     this.enemyShipSpecial.destroy();
                     this.particleSystem.spawnEnemyExplosion(
@@ -569,6 +574,7 @@ public class GameScreen extends Screen {
             if (!enemyShip.isDestroyed()
                     && OrbitalAnnihilator.hits(this.ship, enemyShip)) {
                 this.score += enemyShip.getPointValue();
+                floatingScoreHud.show(enemyShip);
                 this.shipsDestroyed++;
 
                 this.enemyShipFormation.destroy(enemyShip);
@@ -579,6 +585,7 @@ public class GameScreen extends Screen {
                 && !this.enemyShipSpecial.isDestroyed()
                 && OrbitalAnnihilator.hits(this.ship, this.enemyShipSpecial)) {
             this.score += this.enemyShipSpecial.getPointValue();
+            floatingScoreHud.show(this.enemyShipSpecial);
             this.shipsDestroyed++;
 
             this.enemyShipSpecial.destroy();
@@ -730,6 +737,7 @@ public class GameScreen extends Screen {
         for (EnemyShip enemy : this.enemyShipFormation) {
             if (!enemy.isDestroyed() && checkCollision(this.ship, enemy)) {
                 this.score += enemy.getPointValue();
+                floatingScoreHud.show(enemy);
                 this.shipsDestroyed++;
 
                 this.enemyShipFormation.destroy(enemy);
@@ -741,6 +749,7 @@ public class GameScreen extends Screen {
                 && !this.enemyShipSpecial.isDestroyed()
                 && checkCollision(this.ship, this.enemyShipSpecial)) {
             this.score += this.enemyShipSpecial.getPointValue();
+            floatingScoreHud.show(this.enemyShipSpecial);
             this.shipsDestroyed++;
 
             this.enemyShipSpecial.destroy();
