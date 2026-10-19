@@ -4,19 +4,20 @@ import java.util.Map;
 
 /**
  * Central facade and unified access point for all in-memory persistent player assets.
- * <p>
+ *
  * PlayerAssets coordinates three distinct domain managers:
  * - CurrencyBalance: Owns fungible currency balance and affordability checks.
  * - UnlockManager: Tracks permanent, one-time boolean content unlocks.
  * - InventoryManager: Manages quantity-based consumable item stock.
- * <p>
+ *
  * Architectural Invariants and Encapsulation:
  * - Delegation Only: State validation rules are strictly delegated to internal managers;
  *   this class performs no duplicate validation logic.
- * - Package-Private Mutators: Direct mutations (addCurrency, deductCurrency, unlock,
- *   addItem, removeItem) are restricted to package-private scope. External layers
- *   (UI screens, game engine) cannot modify assets directly and must route transactions
- *   through authorized currency services (such as PurchaseSystem or ItemUseService).
+ * - Access Restrictions: Direct transaction mutators (addCurrency, deductCurrency, unlock,
+ *   addItem, removeItem) are package-private so that gameplay screens and external layers
+ *   must route transactions through authorized currency services (such as PurchaseSystem
+ *   or ItemUseService). As an exception, restore() is public so that game lifecycle code
+ *   (such as Core) can initialize and load saved assets from disk.
  * - Local State Isolation: This class handles in-memory runtime assets only. File I/O,
  *   gameplay scoring, active buff durations, and drop probabilities are handled outside this class.
  *
