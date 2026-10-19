@@ -1,5 +1,6 @@
 package engine;
 
+import entity.ShipType;
 import entity.item.ChameleonHull;
 
 import java.awt.Color;
@@ -1216,4 +1217,49 @@ public final class DrawManager {
 					p.getSize());
 		}
 	}
+
+	/**
+	 * Draws the ship selection screen, listing every selectable ship with its
+	 * stats and marking the highlighted one.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param selectedIndex
+	 *            Index of the currently highlighted ship.
+	 * @param shipTypes
+	 *            Ships available for selection, in display order.
+	 */
+    public void drawShipSelection(final Screen screen, final ShipType[] shipTypes,
+                                  final int selectedIndex) {
+        String titleString = "SELECT SHIP";
+        String instructionsString = "PRESS SPACE TO LAUNCH";
+
+        backBufferGraphics.setColor(Color.GREEN);
+        drawCenteredRegularString(screen, titleString, screen.getHeight() / 6);
+
+        int startY = screen.getHeight() / 3;
+        int spacing = 85;
+
+        for (int i = 0; i < shipTypes.length; i++) {
+            ShipType type = shipTypes[i];
+            boolean isSelected = (i == selectedIndex);
+
+            if (isSelected) {
+                entity.Ship previewShip = new entity.Ship(screen.getWidth() / 2 - 13,
+                        startY + i * spacing - 40, type);
+                drawEntity(previewShip, screen.getWidth() / 2 - 13, startY + i * spacing - 40);
+            }
+
+            String name = (isSelected ? "> " : "") + type.getName() + (isSelected ? " <" : "");
+            String stats = String.format("SPEED: %d | HP: %d | RELOAD: %dMS",
+                    type.getSpeed(), type.getMaxLives(), type.getShootingInterval());
+
+            backBufferGraphics.setColor(isSelected ? Color.GREEN : Color.GRAY);
+            drawCenteredRegularString(screen, name, startY + i * spacing);
+            drawCenteredRegularString(screen, stats, startY + i * spacing + 20);
+        }
+
+        backBufferGraphics.setColor(Color.GRAY);
+        drawCenteredRegularString(screen, instructionsString, screen.getHeight() - 60);
+    }
 }
