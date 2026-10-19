@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import screen.Screen;
+import hud.FloatingScoreHud;
 import entity.Entity;
 import entity.Ship;
 
@@ -1003,4 +1004,10 @@ public final class DrawManager {
 					p.getSize());
 		}
 	}
+
+    /** Draws earned points without changing the existing score HUD. */
+    public void drawFloatingScores(final FloatingScoreHud hud, final Screen screen) {
+        hud.draw((java.awt.Graphics2D) backBufferGraphics,
+                screen.getWidth(), screen.getHeight());
+    }
 }
