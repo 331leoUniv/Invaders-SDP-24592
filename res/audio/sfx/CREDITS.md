@@ -8,7 +8,7 @@ Third-party sound effects used in this project and their licenses.
 - Original: "Cancel (Pixel SFX Free)" by heyheytheree
 - Source: https://freesound.org/people/heyheytheree/sounds/871877/
 - License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
-- Changes: Duplicated the mono channel into both stereo channels, preserving 16-bit / 44.1kHz PCM WAV.
+- Changes: None (used as-is, 16-bit / 44.1kHz WAV)
 
 
 ## name_char_change.wav
@@ -16,7 +16,7 @@ Third-party sound effects used in this project and their licenses.
 - Original: "Button_Blip_ 3" by PoundSoundUK
 - Source: https://freesound.org/people/PoundSoundUK/sounds/770114/
 - License: CC BY-NC 4.0 (https://creativecommons.org/licenses/by-nc/4.0/)
-- Changes: Converted to 16-bit / 44.1kHz WAV; duplicated the mono channel into both stereo channels.
+- Changes: Converted to 16-bit / 44.1kHz WAV.
 
 
 ## name_cursor_move.wav
@@ -48,7 +48,7 @@ Third-party sound effects used in this project and their licenses.
 - Original: "8-Bit Coin" by TheDweebMan
 - Source: https://freesound.org/people/TheDweebMan/sounds/277215/
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
-- Changes: Renamed to item_coin.wav; duplicated the mono channel into both stereo channels, preserving 16-bit / 44.1kHz PCM WAV.
+- Changes: Renamed to item_coin.wav.
 
 
 ## countdown_beep.wav
@@ -56,7 +56,7 @@ Third-party sound effects used in this project and their licenses.
 - Original: "beep.wav" by jeckkech
 - Source: https://freesound.org/people/jeckkech/sounds/391650/
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
-- Changes: Renamed to countdown_beep.wav; duplicated the mono channel into both stereo channels, preserving 16-bit / 44.1kHz PCM WAV.
+- Changes: Renamed to countdown_beep.wav.
 
 
 ## countdown_go.wav
@@ -64,7 +64,7 @@ Third-party sound effects used in this project and their licenses.
 - Original: "Game Start" by CasperThePancake
 - Source: https://freesound.org/people/CasperThePancake/sounds/521939/
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
-- Changes: Renamed to countdown_go.wav; duplicated the mono channel into both stereo channels, preserving 16-bit / 44.1kHz PCM WAV.
+- Changes: Renamed to countdown_go.wav.
 
 
 ## item_pickup.wav
@@ -72,7 +72,7 @@ Third-party sound effects used in this project and their licenses.
 - Original: Created for this project (synthesized 8-bit tone, no third-party source)
 - Source: Generated with a Python (NumPy) script, made with AI assistance
 - License: No third-party license; original work for this project
-- Changes: Duplicated the mono channel into both stereo channels, preserving 16-bit / 44.1kHz PCM WAV.
+- Changes: None (16-bit / 44.1kHz mono WAV)
 
 
 ## item_buff_expire.wav
@@ -80,7 +80,7 @@ Third-party sound effects used in this project and their licenses.
 - Original: Created for this project (synthesized fading 8-bit shimmer, no third-party source)
 - Source: Generated with a Python (NumPy) script, made with AI assistance
 - License: No third-party license; original work for this project
-- Changes: Duplicated the mono channel into both stereo channels, preserving 16-bit / 44.1kHz PCM WAV.
+- Changes: None (16-bit / 44.1kHz mono WAV)
 
 
 
@@ -89,7 +89,7 @@ Third-party sound effects used in this project and their licenses.
 - Original: Created for this project (synthesized rising power-up whine, no third-party source)
 - Source: Generated with a Python (NumPy) script, made with AI assistance
 - License: No third-party license; original work for this project
-- Changes: Duplicated the mono channel into both stereo channels, preserving 16-bit / 44.1kHz PCM WAV.
+- Changes: None (16-bit / 44.1kHz mono WAV)
 
 
 
@@ -98,7 +98,7 @@ Third-party sound effects used in this project and their licenses.
 - Original: Created for this project (synthesized sustained energy beam, no third-party source)
 - Source: Generated with a Python (NumPy) script, made with AI assistance
 - License: No third-party license; original work for this project
-- Changes: Duplicated the mono channel into both stereo channels, preserving 16-bit / 44.1kHz PCM WAV.
+- Changes: None (16-bit / 44.1kHz mono WAV)
 
 
 
@@ -107,7 +107,7 @@ Third-party sound effects used in this project and their licenses.
 - Original: Created for this project (synthesized falling fizzle, no third-party source)
 - Source: Generated with a Python (NumPy) script, made with AI assistance
 - License: No third-party license; original work for this project
-- Changes: Duplicated the mono channel into both stereo channels, preserving 16-bit / 44.1kHz PCM WAV.
+- Changes: None (16-bit / 44.1kHz mono WAV)
 
 
 
@@ -116,7 +116,7 @@ Third-party sound effects used in this project and their licenses.
 - Original: Created for this project (synthesized short 8-bit zap, no third-party source)
 - Source: Generated with a Python (NumPy) script, made with AI assistance
 - License: No third-party license; original work for this project
-- Changes: Duplicated the mono channel into both stereo channels, preserving 16-bit / 44.1kHz PCM WAV.
+- Changes: None (16-bit / 44.1kHz mono WAV)
 
 
 
@@ -125,4 +125,4 @@ Third-party sound effects used in this project and their licenses.
 - Original: Created for this project (synthesized overclock rev-up tone, no third-party source)
 - Source: Generated with a Python (NumPy) script, made with AI assistance
 - License: No third-party license; original work for this project
-- Changes: Duplicated the mono channel into both stereo channels, preserving 16-bit / 44.1kHz PCM WAV.
+- Changes: None (16-bit / 44.1kHz mono WAV)

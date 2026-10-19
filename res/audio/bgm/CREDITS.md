@@ -24,7 +24,6 @@ Third-party background music used in this project and their licenses.
 - Original: "Happy Plains" by Erick Soto 624
 - Source: https://opengameart.org/content/happy-plains
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
-- Changes: Resampled from 48kHz to 44.1kHz, preserving 16-bit PCM stereo WAV.
 
 
 ## music_end_defeat
@@ -32,7 +31,6 @@ Third-party background music used in this project and their licenses.
 - Original: "Spooky Dungeon" by Memoraphile @ You're Perfect Studio
 - Source: https://opengameart.org/content/spooky-dungeon
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
-- Changes: Resampled from 48kHz to 44.1kHz, preserving 16-bit PCM stereo WAV.
 
 
 ## music_game_urgent
