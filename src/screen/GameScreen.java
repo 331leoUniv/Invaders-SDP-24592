@@ -1,9 +1,16 @@
 package screen;
 
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.Random;
 
+import entity.item.ChameleonHull;
+import entity.item.ItemManager;
+import entity.item.ShieldItem;
 import engine.Cooldown;
 import engine.Core;
 import engine.GameSettings;
@@ -11,18 +18,30 @@ import engine.GameState;
 import engine.ControlsConfig;
 import entity.Bullet;
 import entity.BulletPool;
+import vfx.ParticleSystem;
 import entity.EnemyShip;
 import entity.EnemyShipFormation;
 import entity.Entity;
 import entity.Ship;
 import audio.AudioManager;
+import records.RunSession;
+import records.RecordsService;
+import records.Achievement;
+import event.EnemyDefeatedEvent;
+import event.GameplayEventListener;
+import event.GameplayEventPublisher;
+import java.util.Map;
+import java.util.IdentityHashMap;
+import java.util.UUID;
+import entity.item.Hyperfire;
+import entity.item.OrbitalAnnihilator;
 
 /**
  * Implements the game screen, where the action happens.
  * Plays sound effects for gameplay events.
  * 
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
 public class GameScreen extends Screen {
 
@@ -40,9 +59,20 @@ public class GameScreen extends Screen {
 	private static final int SCREEN_CHANGE_INTERVAL = 1500;
 	/** Height of the interface separation line. */
 	private static final int SEPARATION_LINE_HEIGHT = 40;
+	/** Time the space key must be held to trigger the Annihilator. */
+	private static final int ANNIHILATOR_HOLD_TIME = 1000;
+
+	private ItemManager itemManager;
+	private final Random itemDropRandom = new Random();
+	private boolean chameleonDroppedThisLevel = false;
+	private boolean shieldDroppedThisLevel = false;
 
 	/** Current game difficulty settings. */
 	private GameSettings gameSettings;
+	/** Settings of every wave in this stage, in play order. */
+	private List<GameSettings> waves;
+	/** Index of the wave currently being played. */
+	private int currentWave;
 	/** Current difficulty level number. */
 	private int level;
 	/** Formation of enemy ships. */
@@ -59,6 +89,8 @@ public class GameScreen extends Screen {
 	private Cooldown screenFinishedCooldown;
 	/** Set of all bullets fired by on screen ships. */
 	private Set<Bullet> bullets;
+		/** Explosion particles. */
+	private ParticleSystem particleSystem = new ParticleSystem();
 	/** Current score. */
 	private int score;
 	/** Player lives left. */
@@ -75,17 +107,31 @@ public class GameScreen extends Screen {
 	private boolean levelFinished;
 	/** Checks if a bonus life is received. */
 	private boolean bonusLife;
+	/** Orbital Annihilator (Doomsday Laser), only available on level 7. */
+	private OrbitalAnnihilator annihilator;
+	/** Moment the space key started being held, 0 if not held. */
+	private long spaceHeldSince;
 	/** Last countdown number that played a sound. */
 	private int lastCountdown = -1;
+	private RunSession runSession;
+    private RecordsService recordsService;
+    private Achievement visibleAchievement;
+    private long achievementNoticeUntil;
+    private final GameplayEventPublisher recordsEvents = new GameplayEventPublisher();
+    private final Map<EnemyShip,String> defeatIds = new IdentityHashMap<EnemyShip,String>();
+	/** Prevents repeated activation while holding H. */
+	private boolean hyperfireKeyPressed = false;
+    /** Flag to track if the urgent low-health BGM is currently playing. */
+    private boolean isLowHealthBGM = false;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
-	 * 
+	 *
 	 * @param gameState
 	 *            Current game state.
 	 * @param gameSettings
 	 *            Current game settings.
-	 * @param bonnusLife
+	 * @param bonusLife
 	 *            Checks if a bonus life is awarded this level.
 	 * @param width
 	 *            Screen width.
@@ -95,11 +141,57 @@ public class GameScreen extends Screen {
 	 *            Frames per second, frame rate at which the game is run.
 	 */
 	public GameScreen(final GameState gameState,
-			final GameSettings gameSettings, final boolean bonusLife,
-			final int width, final int height, final int fps) {
-		super(width, height, fps);
+					  final GameSettings gameSettings, final boolean bonusLife,
+					  final int width, final int height, final int fps) {
+		this(gameState, Collections.singletonList(gameSettings), bonusLife,
+				width, height, fps);
+	}
 
-		this.gameSettings = gameSettings;
+	/**
+	 * Constructor for a stage with one or more waves.
+	 *
+	 * @param gameState
+	 * 			Current game state.
+	 * @param waves
+	 * 			Settings of each wave, in play order.
+	 * @param bonusLife
+	 * 			Checks if a bonus life is awarded this level.
+	 * @param width
+	 * 			Screen width.
+	 * @param height
+	 * 			Screen height.
+	 * @param fps
+	 * 			Frames per second, frame rate at which the game is run.
+	 */
+	public GameScreen(final GameState gameState,
+					  final List<GameSettings> waves, final boolean bonusLife,
+					  final int width, final int height, final int fps) {
+		this(gameState, waves, bonusLife, width, height, fps, null);
+    }
+
+    public GameScreen(final GameState gameState, final GameSettings gameSettings,
+            final boolean bonusLife, final int width, final int height, final int fps,
+            final RunSession runSession) {
+        this(gameState, Collections.singletonList(gameSettings), bonusLife, width, height, fps, runSession);
+    }
+
+    public GameScreen(final GameState gameState, final List<GameSettings> waves,
+            final boolean bonusLife, final int width, final int height, final int fps,
+            final RunSession runSession) {
+        super(width, height, fps);
+        this.runSession = runSession;
+        this.recordsService = Core.getRecordsService();
+        this.recordsEvents.subscribe(EnemyDefeatedEvent.class,
+                new GameplayEventListener<EnemyDefeatedEvent>() {
+            public void onEvent(final EnemyDefeatedEvent event) {
+                if (recordsService != null)
+                    recordsService.enemyDefeated(event.getRunId(), event.getEventId());
+            }
+        });
+
+		this.waves = copyWaves(waves);
+		this.currentWave = 0;
+		this.gameSettings = this.waves.get(0);
 		this.bonusLife = bonusLife;
 		this.level = gameState.getLevel();
 		this.score = gameState.getScore();
@@ -119,6 +211,12 @@ public class GameScreen extends Screen {
 		enemyShipFormation = new EnemyShipFormation(this.gameSettings);
 		enemyShipFormation.attach(this);
 		this.ship = new Ship(this.width / 2, this.height - 30);
+		this.itemManager = new ItemManager(this.height);
+
+		this.shieldDroppedThisLevel = false;
+		this.chameleonDroppedThisLevel = false;
+		this.hyperfireKeyPressed = false;
+
 		// Appears each 10-30 seconds.
 		this.enemyShipSpecialCooldown = Core.getVariableCooldown(
 				BONUS_SHIP_INTERVAL, BONUS_SHIP_VARIANCE);
@@ -127,22 +225,30 @@ public class GameScreen extends Screen {
 				.getCooldown(BONUS_SHIP_EXPLOSION);
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
 		this.bullets = new HashSet<Bullet>();
+		this.annihilator = new OrbitalAnnihilator();
 
 		// Special input delay / countdown.
 		this.gameStartTime = System.currentTimeMillis();
 		this.inputDelay = Core.getCooldown(INPUT_DELAY);
 		this.inputDelay.reset();
 
-		AudioManager.playBGM("audio/bgm/music_game.wav");
+        if (this.lives == 1) {
+            AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+            this.isLowHealthBGM = true;
+        } else {
+            AudioManager.playBGM("audio/bgm/music_game.wav");
+            this.isLowHealthBGM = false;
+        }
 	}
 
 	/**
 	 * Starts the action.
-	 * 
+	 *
 	 * @return Next screen code.
 	 */
 	public final int run() {
-		super.run();
+        try { super.run(); }
+        finally { if (this.runSession != null) this.runSession.stopActiveSegment(System.nanoTime()); }
 
 		// Life bonus is only awarded when the stage was cleared.
 		if (this.stageCleared)
@@ -158,8 +264,19 @@ public class GameScreen extends Screen {
 	 */
 	protected final void update() {
 		super.update();
+        if (this.recordsService != null) {
+            long now = System.currentTimeMillis();
+            if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
+                this.visibleAchievement = this.recordsService.pollNotification();
+                this.achievementNoticeUntil = this.visibleAchievement == null ? 0 : now + 3000;
+            }
+        }
 
-		if (this.inputDelay.checkFinished() && !this.levelFinished) {
+        if (this.inputDelay.checkFinished() && !this.levelFinished) {
+            if (this.runSession != null) this.runSession.startActiveSegment(System.nanoTime());
+            if (this.runSession != null && this.recordsService != null)
+                this.recordsService.activeDuration(this.runSession.getRunId(),
+                        this.runSession.getActiveDurationMillis(System.nanoTime()));
 
 			if (!this.ship.isDestroyed()) {
 				boolean moveRight = inputManager.isKeyDown(
@@ -174,16 +291,51 @@ public class GameScreen extends Screen {
 
 				if (moveRight && !isRightBorder) {
 					this.ship.moveRight();
+					clampShipPosition();
 				}
 				if (moveLeft && !isLeftBorder) {
 					this.ship.moveLeft();
+					clampShipPosition();
 				}
+
+				// Normal shooting using configured controls.
 				if (inputManager.isKeyDown(
 						ControlsConfig.getKey(ControlsConfig.FIRE))) {
-					if (this.ship.shoot(this.bullets)) {
-						this.bulletsShot++;
+					if (!this.annihilator.isCharging()) {
+						if (this.ship.shoot(this.bullets)) {
+							this.bulletsShot++;
+						}
 					}
 				}
+
+				// Hyperfire test activation with the H key.
+				boolean hyperfireKeyDown = inputManager.isKeyDown(KeyEvent.VK_H);
+				if (hyperfireKeyDown && !this.hyperfireKeyPressed) {
+					this.itemManager.getBuffManager().addBuff(
+							new Hyperfire(0, 0), this.ship);
+				}
+				this.hyperfireKeyPressed = hyperfireKeyDown;
+
+				// Orbital Annihilator charging mechanic.
+				if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
+					if (!this.annihilator.isReady()) {
+						this.spaceHeldSince = 0;
+					} else if (this.spaceHeldSince == 0) {
+						this.spaceHeldSince = System.currentTimeMillis();
+					}
+
+					if (this.spaceHeldSince != 0
+							&& this.level == OrbitalAnnihilator.REQUIRED_LEVEL
+							&& System.currentTimeMillis() - this.spaceHeldSince >= ANNIHILATOR_HOLD_TIME) {
+						this.annihilator.trigger();
+					}
+				} else {
+					this.spaceHeldSince = 0;
+				}
+			} else {
+				// Cancel charging when the ship is destroyed.
+				this.annihilator.cancelCharge();
+				this.spaceHeldSince = 0;
 			}
 
 			if (this.enemyShipSpecial != null) {
@@ -191,7 +343,6 @@ public class GameScreen extends Screen {
 					this.enemyShipSpecial.move(2, 0);
 				else if (this.enemyShipSpecialExplosionCooldown.checkFinished())
 					this.enemyShipSpecial = null;
-
 			}
 			if (this.enemyShipSpecial == null
 					&& this.enemyShipSpecialCooldown.checkFinished()) {
@@ -206,13 +357,34 @@ public class GameScreen extends Screen {
 				this.logger.info("The special ship has escaped");
 			}
 
-			this.ship.update();
+			updateBallMovement();
+
+			this.annihilator.update();
 			this.enemyShipFormation.update();
 			this.enemyShipFormation.shoot(this.bullets);
 		}
 
+		this.ship.update();
+
+		if (this.inputDelay.checkFinished() && !this.levelFinished) {
+			this.itemManager.update(this.ship);
+
+			if (!this.ship.isDestroyed()) {
+				this.itemManager.checkCollisions(this.ship);
+			}
+
+			clampShipPosition();
+			clampBallPositionY();
+		}
+
 		manageCollisions();
+		manageBallContact();
+
+		if (this.annihilator.isFiring())
+			manageAnnihilatorBeam();
+
 		cleanBullets();
+		this.particleSystem.update(); 
 		draw();
 
 		if (!this.levelFinished) {
@@ -222,16 +394,57 @@ public class GameScreen extends Screen {
 				this.screenFinishedCooldown.reset();
 				this.logger.info("Stage " + this.level + " failed.");
 			} else if (this.enemyShipFormation.isEmpty()) {
-				this.levelFinished = true;
-				this.stageCleared = true;
-				this.screenFinishedCooldown.reset();
-				this.logger.info("Stage " + this.level + " cleared.");
+				if (this.currentWave < this.waves.size() - 1) {
+					startNextWave();
+				} else {
+					this.levelFinished = true;
+					this.stageCleared = true;
+					this.screenFinishedCooldown.reset();
+					this.logger.info("Stage " + this.level + " cleared.");
+				}
 			}
 		}
 
+        if (this.levelFinished && this.runSession != null)
+            this.runSession.stopActiveSegment(System.nanoTime());
+
 		if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
 			this.isRunning = false;
+	}
 
+	/**
+	 * Copies the wave list after checking that it can be played.
+	 *
+	 * @param waves
+	 *            Settings of each wave, in play order.
+	 * @return A copy of the wave list.
+	 * @throws IllegalArgumentException
+	 *             If the list is null or empty, or contains a null wave.
+	 */
+	static List<GameSettings> copyWaves(final List<GameSettings> waves) {
+		if (waves == null || waves.isEmpty())
+			throw new IllegalArgumentException(
+					"A stage must contain at least one wave.");
+		List<GameSettings> copy = new ArrayList<GameSettings>(waves);
+		for (int i = 0; i < copy.size(); i++)
+			if (copy.get(i) == null)
+				throw new IllegalArgumentException(
+						"Wave " + (i + 1) + " must not be null.");
+		return copy;
+	}
+
+	/**
+	 * Replaces the empty formation with the next wave's formation.
+	 */
+	private void startNextWave() {
+		this.logger.info("Stage " + this.level + " wave " +
+				(this.currentWave + 1) + " cleared.");
+		this.currentWave++;
+		this.gameSettings = this.waves.get(this.currentWave);
+		this.enemyShipFormation = new EnemyShipFormation(this.gameSettings);
+		this.enemyShipFormation.attach(this);
+		this.logger.info("Stage " + this.level + " wave " + (this.currentWave + 1) +
+				" of " + this.waves.size() + " started.");
 	}
 
 	/**
@@ -240,8 +453,22 @@ public class GameScreen extends Screen {
 	private void draw() {
 		drawManager.initDrawing(this);
 
+		if (this.annihilator.isCharging() || this.annihilator.isFiring())
+			drawManager.drawOrbitalAnnihilator(
+					this.ship,
+					OrbitalAnnihilator.BEAM_WIDTH,
+					SEPARATION_LINE_HEIGHT,
+					this.annihilator.isFiring(),
+					this.annihilator.getChargeProgress()
+			);
+
 		drawManager.drawEntity(this.ship, this.ship.getPositionX(),
 				this.ship.getPositionY());
+
+		if (this.ship.isShieldActive() && !this.ship.isDestroyed()) {
+			drawManager.drawShield(this, this.ship);
+		}
+
 		if (this.enemyShipSpecial != null)
 			drawManager.drawEntity(this.enemyShipSpecial,
 					this.enemyShipSpecial.getPositionX(),
@@ -253,16 +480,25 @@ public class GameScreen extends Screen {
 			drawManager.drawEntity(bullet, bullet.getPositionX(),
 					bullet.getPositionY());
 
+		this.itemManager.draw(this.drawManager);
+
 		// Interface.
 		drawManager.drawScore(this, this.score);
 		drawManager.drawLives(this, this.lives);
+
+		if (this.level == OrbitalAnnihilator.REQUIRED_LEVEL)
+			drawManager.drawAnnihilatorGauge(
+					this,
+					this.annihilator.getRechargeProgress()
+			);
+
 		drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
 
 		// Countdown to game start.
 		if (!this.inputDelay.checkFinished()) {
 			int countdown = (int) ((INPUT_DELAY
 					- (System.currentTimeMillis()
-							- this.gameStartTime)) / 1000);
+					- this.gameStartTime)) / 1000);
 			playCountdownSound(countdown);
 			drawManager.drawCountDown(this, this.level, countdown,
 					this.bonusLife);
@@ -271,7 +507,10 @@ public class GameScreen extends Screen {
 			drawManager.drawHorizontalLine(this, this.height / 2 + this.height
 					/ 12);
 		}
+		drawManager.drawParticles(this.particleSystem); 
 
+        if (this.visibleAchievement != null)
+            drawManager.drawAchievementNotice(this, this.visibleAchievement);
 		drawManager.completeDrawing(this);
 	}
 
@@ -295,16 +534,31 @@ public class GameScreen extends Screen {
 	 * sounds for regular and bonus enemies.
 	 */
 	private void manageCollisions() {
+        if (this.levelFinished) return;
 		Set<Bullet> recyclable = new HashSet<Bullet>();
 		for (Bullet bullet : this.bullets)
 			if (bullet.getSpeed() > 0) {
 				if (checkCollision(bullet, this.ship) && !this.levelFinished) {
 					recyclable.add(bullet);
-					if (!this.ship.isDestroyed()) {
-						this.ship.destroy();
-						this.lives--;
-						this.logger.info("Hit on player ship, " + this.lives
-								+ " lives remaining.");
+					if (!this.ship.isChameleonHullActive()) {
+						if (!this.ship.isDestroyed()) {
+							if (this.ship.isShieldActive()) {
+								this.logger.info("Enemy shot absorbed by Energy Shield.");
+							} else {
+								this.ship.destroy();
+								this.ship.triggerDamageFeedback();
+								this.particleSystem.spawnPlayerExplosion(
+										this.ship.getPositionX() + this.ship.getWidth() / 2,
+										this.ship.getPositionY() + this.ship.getHeight() / 2);
+								this.lives = Math.max(0, this.lives - 1);
+								this.itemManager.getBuffManager().resetAllBuffs(this.ship);
+                                if (this.lives == 1 && !this.isLowHealthBGM) {
+                                    AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+                                    this.isLowHealthBGM = true;
+                                }
+								this.logger.info("Hit on player ship, " + this.lives + " lives remaining.");
+							}
+						}
 					}
 				}
 			} else {
@@ -313,17 +567,45 @@ public class GameScreen extends Screen {
 							&& checkCollision(bullet, enemyShip)) {
 						this.score += enemyShip.getPointValue();
 						this.shipsDestroyed++;
+						recordEnemyDefeat(enemyShip);
 						this.enemyShipFormation.destroy(enemyShip);
 						AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
+						this.particleSystem.spawnEnemyExplosion(
+								enemyShip.getPositionX() + enemyShip.getWidth() / 2,
+								enemyShip.getPositionY() + enemyShip.getHeight() / 2);
+						tryDropChameleonHull(enemyShip);
 						recyclable.add(bullet);
+
+						// --- DROP DU BOUCLIER ---
+						if (!this.shieldDroppedThisLevel) {
+							boolean shouldDrop = (Math.random() < 0.15)
+									|| (this.enemyShipFormation.isEmpty());
+							if (shouldDrop) {
+								this.itemManager.spawnItem(
+										new ShieldItem(
+												enemyShip.getPositionX(),
+												enemyShip.getPositionY()
+										)
+								);
+								this.shieldDroppedThisLevel = true;
+								this.logger.info("Shield item dropped from enemy ship at ("
+										+ enemyShip.getPositionX() + ", "
+										+ enemyShip.getPositionY() + ").");
+							}
+						}
 					}
 				if (this.enemyShipSpecial != null
 						&& !this.enemyShipSpecial.isDestroyed()
 						&& checkCollision(bullet, this.enemyShipSpecial)) {
 					this.score += this.enemyShipSpecial.getPointValue();
 					this.shipsDestroyed++;
+					recordEnemyDefeat(this.enemyShipSpecial);
 					this.enemyShipSpecial.destroy();
 					AudioManager.playSFX("audio/sfx/bonus_explosion.wav");
+					this.particleSystem.spawnEnemyExplosion(
+							this.enemyShipSpecial.getPositionX() + this.enemyShipSpecial.getWidth() / 2,
+							this.enemyShipSpecial.getPositionY() + this.enemyShipSpecial.getHeight() / 2);
+					tryDropChameleonHull(this.enemyShipSpecial);
 					this.enemyShipSpecialExplosionCooldown.reset();
 					recyclable.add(bullet);
 				}
@@ -333,8 +615,49 @@ public class GameScreen extends Screen {
 	}
 
 	/**
+	 * Applies the Orbital Annihilator beam: destroys every enemy in the
+	 * corridor and neutralizes enemy projectiles inside it.
+	 */
+	private void manageAnnihilatorBeam() {
+        if (this.levelFinished) return;
+		for (EnemyShip enemyShip : this.enemyShipFormation)
+			if (!enemyShip.isDestroyed()
+					&& OrbitalAnnihilator.hits(this.ship, enemyShip)) {
+				this.score += enemyShip.getPointValue();
+				this.shipsDestroyed++;
+				recordEnemyDefeat(enemyShip);
+
+				this.enemyShipFormation.destroy(enemyShip);
+				tryDropChameleonHull(enemyShip);
+			}
+
+		if (this.enemyShipSpecial != null
+				&& !this.enemyShipSpecial.isDestroyed()
+				&& OrbitalAnnihilator.hits(this.ship, this.enemyShipSpecial)) {
+			this.score += this.enemyShipSpecial.getPointValue();
+			this.shipsDestroyed++;
+			recordEnemyDefeat(this.enemyShipSpecial);
+
+			this.enemyShipSpecial.destroy();
+			tryDropChameleonHull(this.enemyShipSpecial);
+
+			this.enemyShipSpecialExplosionCooldown.reset();
+		}
+
+		Set<Bullet> neutralized = new HashSet<Bullet>();
+
+		for (Bullet bullet : this.bullets)
+			if (bullet.getSpeed() > 0
+					&& OrbitalAnnihilator.hits(this.ship, bullet))
+				neutralized.add(bullet);
+
+		this.bullets.removeAll(neutralized);
+		BulletPool.recycle(neutralized);
+	}
+
+	/**
 	 * Checks if two entities are colliding.
-	 * 
+	 *
 	 * @param a
 	 *            First entity, the bullet.
 	 * @param b
@@ -368,7 +691,7 @@ public class GameScreen extends Screen {
 
 	/**
 	 * Returns a GameState object representing the status of the game.
-	 * 
+	 *
 	 * @return Current game state.
 	 */
 	public final GameState getGameState() {
@@ -390,5 +713,110 @@ public class GameScreen extends Screen {
 			AudioManager.playSFX("audio/sfx/countdown_go.wav");
 		else if (countdown <= 3)
 			AudioManager.playSFX("audio/sfx/countdown_beep.wav");
+	}
+
+    private void recordEnemyDefeat(final EnemyShip enemy) {
+        if (this.runSession == null) return;
+        String id = this.defeatIds.get(enemy);
+        if (id == null) { id=UUID.randomUUID().toString(); this.defeatIds.put(enemy,id); }
+        this.recordsEvents.publish(new EnemyDefeatedEvent(this.runSession.getRunId(),id));
+    }
+
+    public GameplayEventPublisher getGameplayEvents() { return this.recordsEvents; }
+
+    public String getActiveRunId() { return this.runSession == null ? null : this.runSession.getRunId(); }
+
+	/** Keep the extra movement inside the existing playfield borders. */
+	private void clampShipPosition() {
+		int maximumX = this.width - this.ship.getWidth() - 1;
+		this.ship.setPositionX(
+				Math.max(1, Math.min(maximumX, this.ship.getPositionX()))
+		);
+	}
+
+	private void tryDropChameleonHull(final EnemyShip enemy) {
+		if (!this.chameleonDroppedThisLevel
+				&& this.level >= ChameleonHull.REQUIRED_LEVEL
+				&& !this.levelFinished
+				&& this.lives > 0
+				&& this.itemDropRandom.nextDouble() < ChameleonHull.DROP_CHANCE) {
+
+			this.itemManager.spawnItem(
+					new ChameleonHull(
+							enemy.getPositionX(),
+							enemy.getPositionY()
+					)
+			);
+			this.chameleonDroppedThisLevel = true;
+		}
+	}
+
+	/** Vertical keys are enabled only during the star transformation. */
+	private void updateBallMovement() {
+		if (!this.ship.isChameleonHullActive() || this.ship.isDestroyed()) {
+			return;
+		}
+
+		boolean up = inputManager.isKeyDown(KeyEvent.VK_UP)
+				|| inputManager.isKeyDown(KeyEvent.VK_W);
+		boolean down = inputManager.isKeyDown(KeyEvent.VK_DOWN)
+				|| inputManager.isKeyDown(KeyEvent.VK_S);
+
+		if (up && !down) {
+			this.ship.moveUp();
+		}
+		if (down && !up) {
+			this.ship.moveDown();
+		}
+
+		clampBallPositionY();
+	}
+
+	private void clampBallPositionY() {
+		if (this.ship.isChameleonHullActive()) {
+			int minimumY = SEPARATION_LINE_HEIGHT + 1;
+			int maximumY = this.height - this.ship.getHeight() - 1;
+
+			this.ship.setPositionY(
+					Math.max(
+							minimumY,
+							Math.min(maximumY, this.ship.getPositionY())
+					)
+			);
+		}
+	}
+
+	/** Contact kills use the existing score, destruction and drop systems. */
+	private void manageBallContact() {
+		if (!this.inputDelay.checkFinished()
+				|| this.levelFinished
+				|| this.ship.isDestroyed()
+				|| !this.ship.isChameleonHullActive()) {
+			return;
+		}
+
+		for (EnemyShip enemy : this.enemyShipFormation) {
+			if (!enemy.isDestroyed() && checkCollision(this.ship, enemy)) {
+				this.score += enemy.getPointValue();
+				this.shipsDestroyed++;
+				recordEnemyDefeat(enemy);
+
+				this.enemyShipFormation.destroy(enemy);
+				tryDropChameleonHull(enemy);
+			}
+		}
+
+		if (this.enemyShipSpecial != null
+				&& !this.enemyShipSpecial.isDestroyed()
+				&& checkCollision(this.ship, this.enemyShipSpecial)) {
+			this.score += this.enemyShipSpecial.getPointValue();
+			this.shipsDestroyed++;
+			recordEnemyDefeat(this.enemyShipSpecial);
+
+			this.enemyShipSpecial.destroy();
+			this.enemyShipSpecialExplosionCooldown.reset();
+
+			tryDropChameleonHull(this.enemyShipSpecial);
+		}
 	}
 }
