@@ -5,11 +5,14 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import campaign.CampaignStageData;
 import engine.Cooldown;
 import engine.Core;
 import engine.GameState;
 import engine.Score;
 import audio.AudioManager;
+import records.Achievement;
+import java.util.ArrayList;
 
 /**
  * Implements the score screen.
@@ -32,6 +35,11 @@ public class ScoreScreen extends Screen {
 	private int level;
 	/** Checks if the last stage was failed (no lives left). */
 	private boolean stageFailed;
+    private final List<Achievement> runUnlocks;
+  /** Checks if every campaign stage was cleared. */
+  private boolean gameCleared;
+	/** Checks if the game that just ended was the infinite mode. */
+	private boolean infiniteMode;
 	/** Current score. */
 	private int score;
 	/** Player lives left. */
@@ -63,12 +71,28 @@ public class ScoreScreen extends Screen {
 	 * @param gameState
 	 *            Current game state.
 	 */
-	public ScoreScreen(final int width, final int height, final int fps,
-			final GameState gameState) {
-		super(width, height, fps);
+    public ScoreScreen(final int width, final int height, final int fps, final GameState state) {
+        this(width,height,fps,state,false,Collections.<Achievement>emptyList());
+    }
+    public ScoreScreen(final int width, final int height, final int fps,
+            final GameState state, final boolean infiniteMode) {
+        this(width,height,fps,state,infiniteMode,Collections.<Achievement>emptyList());
+    }
+    public ScoreScreen(final int width, final int height, final int fps,
+            final GameState state, final List<Achievement> unlocks) {
+        this(width,height,fps,state,false,unlocks);
+    }
+    public ScoreScreen(final int width, final int height, final int fps,
+            final GameState gameState, final boolean infiniteMode, final List<Achievement> unlocks) {
+        super(width,height,fps);
+        this.runUnlocks = new ArrayList<Achievement>(unlocks);
+
+		this.infiniteMode = infiniteMode;
 
 		this.level = gameState.getLevel();
 		this.stageFailed = gameState.getLivesRemaining() == 0;
+        this.gameCleared = !this.infiniteMode && !this.stageFailed
+                && gameState.getLevel() > CampaignStageData.getTotalStages();
 		this.score = gameState.getScore();
 		this.livesRemaining = gameState.getLivesRemaining();
 		this.bulletsShot = gameState.getBulletsShot();
@@ -128,7 +152,8 @@ public class ScoreScreen extends Screen {
 			} else if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
 				// Play again.
 				AudioManager.playSFX("audio/sfx/menu_select.wav");
-				this.returnCode = 2;
+				// The infinite mode (8) restarts itself instead of the campaign.
+				this.returnCode = this.infiniteMode ? 8 : 2;
 				this.isRunning = false;
 				if (this.isNewRecord)
 					saveScore();
@@ -189,14 +214,21 @@ public class ScoreScreen extends Screen {
 	 */
 	private void draw() {
 		drawManager.initDrawing(this);
+        float accuracy = this.bulletsShot == 0 ? 1f : (float)this.shipsDestroyed / this.bulletsShot;
+        if (!this.runUnlocks.isEmpty()) {
+            drawManager.drawAchievementResults(this,this.score,this.livesRemaining,
+                    this.shipsDestroyed,accuracy,this.isNewRecord,this.name,this.nameCharSelected,
+                    this.runUnlocks,this.inputDelay.checkFinished(),
+                    this.stageFailed && !this.infiniteMode ? this.level : 0, this.gameCleared);
+            drawManager.completeDrawing(this); return;
+        }
 
 		drawManager.drawGameOver(this, this.inputDelay.checkFinished(),
-				this.isNewRecord);
-		if (this.stageFailed)
+				this.isNewRecord,this.gameCleared);
+		if (this.stageFailed && !this.infiniteMode)
 			drawManager.drawStageFailed(this, this.level, this.isNewRecord);
 		drawManager.drawResults(this, this.score, this.livesRemaining,
-				this.shipsDestroyed, (float) this.shipsDestroyed
-						/ this.bulletsShot, this.isNewRecord);
+				this.shipsDestroyed, accuracy, this.isNewRecord);
 
 		if (this.isNewRecord)
 			drawManager.drawNameInput(this, this.name, this.nameCharSelected);

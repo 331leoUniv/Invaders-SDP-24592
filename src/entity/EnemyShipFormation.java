@@ -13,6 +13,7 @@ import engine.Core;
 import engine.DrawManager;
 import engine.DrawManager.SpriteType;
 import engine.GameSettings;
+import audio.AudioManager;
 
 /**
  * Groups enemy ships into a formation that moves together.
@@ -22,10 +23,6 @@ import engine.GameSettings;
  */
 public class EnemyShipFormation implements Iterable<EnemyShip> {
 
-	/** Initial position in the x-axis. */
-	private static final int INIT_POS_X = 20;
-	/** Initial position in the y-axis. */
-	private static final int INIT_POS_Y = 100;
 	/** Distance between ships. */
 	private static final int SEPARATION_DISTANCE = 40;
 	/** Proportion of C-type ships. */
@@ -110,6 +107,8 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	 * 
 	 * @param gameSettings
 	 *            Current game settings.
+	 * @throws IllegalArgumentException If the initial position is outside the
+	 *            left/top bounds or is not aligned to the descent distance.
 	 */
 	public EnemyShipFormation(final GameSettings gameSettings) {
 		this.drawManager = Core.getDrawManager();
@@ -124,8 +123,13 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 				* SHOOTING_VARIANCE);
 		this.baseSpeed = gameSettings.getBaseSpeed();
 		this.movementSpeed = this.baseSpeed;
-		this.positionX = INIT_POS_X;
-		this.positionY = INIT_POS_Y;
+		this.positionX = gameSettings.getInitialX();
+		this.positionY = gameSettings.getInitialY();
+		if (this.positionX < SIDE_MARGIN || this.positionY < 0
+				|| this.positionY % DESCENT_DISTANCE != 0)
+			throw new IllegalArgumentException("Initial formation position must "
+					+ "have X >= " + SIDE_MARGIN + " and non-negative Y divisible by "
+					+ DESCENT_DISTANCE + ": (" + positionX + "," + positionY + ")");
 		this.shooters = new ArrayList<EnemyShip>();
 		SpriteType spriteType;
 
@@ -171,8 +175,17 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	 * 
 	 * @param newScreen
 	 *            Screen to attach.
+	 * @throws IllegalArgumentException If the formation exceeds the screen's
+	 *            right or bottom margin.
 	 */
 	public final void attach(final Screen newScreen) {
+		if ((long) positionX + this.width > newScreen.getWidth() - SIDE_MARGIN
+				|| (long) positionY + this.height
+						> newScreen.getHeight() - BOTTOM_MARGIN)
+			throw new IllegalArgumentException("Formation does not fit within "
+					+ "the screen margins: (" + positionX + "," + positionY + "), "
+					+ this.width + "x" + this.height + " on "
+					+ newScreen.getWidth() + "x" + newScreen.getHeight());
 		screen = newScreen;
 	}
 
@@ -339,6 +352,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 			this.shootingCooldown.reset();
 			bullets.add(BulletPool.getBullet(shooter.getPositionX()
 					+ shooter.width / 2, shooter.getPositionY(), BULLET_SPEED));
+			AudioManager.playSFX("audio/sfx/enemy_shoot.wav");
 		}
 	}
 
