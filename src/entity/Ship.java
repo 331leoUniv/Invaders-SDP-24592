@@ -1,11 +1,10 @@
 package entity;
 
-import java.awt.Color;
-import java.util.Set;
-
 import engine.Cooldown;
 import engine.Core;
 import engine.DrawManager.SpriteType;
+import java.awt.Color;
+import java.util.Set;
 
 /**
  * Implements a ship, to be controlled by the player.
@@ -52,6 +51,18 @@ public class Ship extends Entity {
     private int heightBeforeChameleon;
     private int normalPositionY;
 
+    /** Duration of the damage flashing feedback in milliseconds (0.5s). */
+    private static final int DAMAGE_FEEDBACK_DURATION = 500;
+    /** Rate in ms at which the ship color alternates during damage feedback. */
+    private static final int FLASH_INTERVAL = 100;
+    /** Default normal color of the ship. */
+    private static final Color DEFAULT_COLOR = Color.GREEN;
+
+    /** Cooldown tracking the 0.5s damage feedback duration. */
+    private Cooldown damageFeedbackCooldown;
+    /** Timestamp tracking when the damage effect started. */
+    private long damageFeedbackStartTime;
+
     /**
      * Constructor, establishes the ship's properties.
      *
@@ -65,6 +76,7 @@ public class Ship extends Entity {
 
         this.spriteType = SpriteType.Ship;
         this.destructionCooldown = Core.getCooldown(1000);
+        this.damageFeedbackCooldown = Core.getCooldown(DAMAGE_FEEDBACK_DURATION);
     }
 
     /**
@@ -139,7 +151,7 @@ public class Ship extends Entity {
     }
 
     /**
-     * Updates status of the ship.
+     * Updates status and visual feedback of the ship.
      */
     public final void update() {
         if (this.chameleonHullActive) {
@@ -151,6 +163,18 @@ public class Ship extends Entity {
             );
 
             setColor(CHAMELEON_COLORS[index]);
+        } else if (this.damageFeedbackCooldown != null
+                && !this.damageFeedbackCooldown.checkFinished()) {
+            // Alternate red and normal for 0.5s immediately after damage
+            long elapsed = System.currentTimeMillis() - this.damageFeedbackStartTime;
+            if ((elapsed / FLASH_INTERVAL) % 2 == 0) {
+                setColor(Color.RED);
+            } else {
+                setColor(DEFAULT_COLOR);
+            }
+        } else {
+            // Restore default color once the feedback is over
+            setColor(DEFAULT_COLOR);
         }
 
         if (!this.destructionCooldown.checkFinished())
@@ -268,5 +292,16 @@ public class Ship extends Entity {
         if (this.chameleonHullActive && !isDestroyed()) {
             this.positionY += (int) getMovementSpeed();
         }
+    }
+
+    /**
+     * Triggers the 0.5-second red flashing damage feedback.
+     */
+    public final void triggerDamageFeedback() {
+        if (this.chameleonHullActive || this.isShieldActive) {
+            return;
+        }
+        this.damageFeedbackStartTime = System.currentTimeMillis();
+        this.damageFeedbackCooldown.reset();
     }
 }
