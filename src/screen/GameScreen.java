@@ -232,6 +232,10 @@ public class GameScreen extends Screen {
 		this.inputDelay = Core.getCooldown(INPUT_DELAY);
 		this.inputDelay.reset();
 
+		if (this.bonusLife) {
+			AudioManager.playSFX("audio/sfx/bonus_life.wav");
+		}
+
         if (this.lives == 1) {
             AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
             this.isLowHealthBGM = true;
@@ -400,6 +404,7 @@ public class GameScreen extends Screen {
 				} else {
 					this.levelFinished = true;
 					this.stageCleared = true;
+					AudioManager.playSFX("audio/sfx/level_clear.wav");
 					this.screenFinishedCooldown.reset();
 					this.logger.info("Stage " + this.level + " cleared.");
 				}

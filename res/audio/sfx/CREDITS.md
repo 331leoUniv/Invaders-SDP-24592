@@ -1,6 +1,10 @@
 # Sound Credits
 
-Third-party sound effects used in this project and their licenses.
+Sound effects used in this project, their sources, and license information.
+
+`player_shoot.wav`, `level_clear.wav`, and `bonus_life.wav` are original sounds
+created specifically for this project, rather than third-party assets. They are
+documented below for completeness.
 
 
 ## menu_back.wav
@@ -91,14 +95,6 @@ Third-party sound effects used in this project and their licenses.
 - Changes: Renamed file and increased volume.
 
 
-## player_shoot.wav
-
-- Original: "Shoot 2" from "8-Bit Sound Effect Pack (Vol. 001)" by Deva (@Shades)
-- Source: https://opengameart.org/content/8-bit-sound-effect-pack-vol-001
-- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
-- Changes: Renamed to player_shoot.wav; audio unchanged.
-
-
 ## enemy_shoot.wav
 
 - Original: "Shoot 3" from "8-Bit Sound Effect Pack (Vol. 001)" by Deva (@Shades)
@@ -113,6 +109,30 @@ Third-party sound effects used in this project and their licenses.
 - Source: https://opengameart.org/content/8-bit-sound-effect-pack-vol-001
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
 - Changes: Renamed to player_hit.wav; audio unchanged.
+
+
+## player_shoot.wav
+
+- Original: Created specifically for this project (no third-party source)
+- Source: Original sound created for this project
+- License: No third-party license; original work for this project
+- Changes: None.
+
+
+## level_clear.wav
+
+- Original: Created specifically for this project (no third-party source)
+- Source: Original sound created for this project
+- License: No third-party license; original work for this project
+- Changes: None.
+
+
+## bonus_life.wav
+
+- Original: Created specifically for this project (no third-party source)
+- Source: Original sound created for this project
+- License: No third-party license; original work for this project
+- Changes: None.
 
 
 ## item_pickup.wav
