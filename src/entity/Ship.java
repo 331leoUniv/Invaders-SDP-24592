@@ -14,14 +14,35 @@ import java.util.Set;
  */
 public class Ship extends Entity {
 
-    /** Time between shots. */
-    private static final int SHOOTING_INTERVAL = 400;
+    /** Type of this ship, which supplies its speed, fire rate and lives. */
+    private final ShipType shipType;
 
-    /** Speed of the bullets shot by the ship. */
-    private static final int BULLET_SPEED = -6;
+    /** Time between shots, taken from the ship type. */
+    private int shootingInterval;
 
-    /** Movement of the ship for each unit of time. */
-    private static final int SPEED = 2;
+    /** Baseline time between shots, before any buff changes it. */
+    private int baseShootingInterval;
+
+    /** Bullet type the ship is currently firing. */
+    private BulletType currentBulletType = BulletType.NORMAL;
+
+    /** Bullets still owed by an in-flight RAPID burst. */
+    private int remainingShots = 0;
+
+    /** Time the next bullet of a burst may be fired. */
+    private long nextShotTime = 0;
+
+    /** Speed of the bullets shot by the ship, from the bullet type. */
+    private int bulletSpeed = BulletType.NORMAL.getSpeed();
+
+    /** Movement of the ship for each unit of time, from the ship type. */
+    private int speed;
+
+    /** Baseline movement speed, before any buff changes it. */
+    private int baseSpeed;
+
+    /** Number of times the current stats have explicitly been restored. */
+    private long baseStatsRestoreVersion;
 
     /** Whether the Hyperfire buff is currently enabled. */
     private boolean hyperfireEnabled = false;
@@ -46,6 +67,11 @@ public class Ship extends Entity {
     private long chameleonActivationTime;
     private Color colorBeforeChameleon;
     private double chameleonMovementRemainder;
+
+    /** Whether the player-status slow debuff is affecting ship movement. */
+    private boolean slowDebuffActive;
+    /** Fractional slow movement retained independently for each direction. */
+    private final double[] slowMovementRemainders = new double[4];
 
     private int widthBeforeChameleon;
     private int heightBeforeChameleon;
@@ -72,8 +98,33 @@ public class Ship extends Entity {
      *            Initial position of the ship in the Y axis.
      */
     public Ship(final int positionX, final int positionY) {
+        this(positionX, positionY, ShipType.STANDARD);
+    }
+
+    /**
+     * Constructor, establishes the ship's properties from a selected type.
+     *
+     * @param positionX
+     *            Initial position of the ship in the X axis.
+     * @param positionY
+     *            Initial position of the ship in the Y axis.
+     * @param shipType
+     *            Selected ship type, source of speed, fire rate and lives.
+     */
+    public Ship(final int positionX, final int positionY,
+            final ShipType shipType) {
         super(positionX, positionY, 13 * 2, 8 * 2, Color.GREEN);
 
+        if (shipType == null)
+            throw new IllegalArgumentException("Ship type cannot be null.");
+
+        this.shipType = shipType;
+        this.baseSpeed = shipType.getSpeed();
+        this.speed = this.baseSpeed;
+        this.baseShootingInterval = shipType.getShootingInterval();
+        this.shootingInterval = this.baseShootingInterval;
+        this.currentBulletType = shipType.getBulletType();
+        this.bulletSpeed = this.currentBulletType.getSpeed();
         this.spriteType = SpriteType.Ship;
         this.destructionCooldown = Core.getCooldown(1000);
         this.damageFeedbackCooldown = Core.getCooldown(DAMAGE_FEEDBACK_DURATION);
@@ -84,7 +135,11 @@ public class Ship extends Entity {
      * reached.
      */
     public final void moveRight() {
-        this.positionX += SPEED;
+        if (this.slowDebuffActive) {
+            this.positionX += getSlowedMovementPixels(0);
+            return;
+        }
+        this.positionX += this.speed;
         addChameleonMovement(1);
     }
 
@@ -93,8 +148,41 @@ public class Ship extends Entity {
      * reached.
      */
     public final void moveLeft() {
-        this.positionX -= SPEED;
+        if (this.slowDebuffActive) {
+            this.positionX -= getSlowedMovementPixels(1);
+            return;
+        }
+        this.positionX -= this.speed;
         addChameleonMovement(-1);
+    }
+
+    /** Enables or disables the PlayerStatus-owned slow movement modifier. */
+    final void setSlowDebuffActive(final boolean active) {
+        if (this.slowDebuffActive != active)
+            resetSlowMovementRemainders();
+        this.slowDebuffActive = active;
+    }
+
+    /** Clears fractional movement after the effective speed changes. */
+    final void resetSlowMovementRemainders() {
+        for (int i = 0; i < this.slowMovementRemainders.length; i++)
+            this.slowMovementRemainders[i] = 0;
+    }
+
+    /**
+     * Applies half of the current movement distance while retaining fractional
+     * pixels per direction. Separate remainders prevent a direction change
+     * from converting a fraction in one direction into movement in the other.
+     *
+     * @param direction Direction slot, kept separate to avoid cross-direction carry.
+     * @return Whole pixels to move in this update.
+     */
+    private int getSlowedMovementPixels(final int direction) {
+        double movement = getMovementSpeed() * 0.5
+                + this.slowMovementRemainders[direction];
+        int wholePixels = (int) Math.floor(movement + 1e-9);
+        this.slowMovementRemainders[direction] = movement - wholePixels;
+        return wholePixels;
     }
 
     /**
@@ -102,36 +190,87 @@ public class Ship extends Entity {
      *
      * @param bullets
      *            List of bullets on screen, to add the new bullet.
-     * @return Checks if the bullet was shot correctly.
+     * @return Number of bullets added to the screen.
      */
-    public final boolean shoot(final Set<Bullet> bullets) {
+    public final int shoot(final Set<Bullet> bullets) {
         if (this.chameleonHullActive) {
-            return false;
+            return 0;
         }
 
         long currentTime = System.currentTimeMillis();
 
-        int shootingInterval = SHOOTING_INTERVAL;
+        int interval = this.shootingInterval;
 
         if (this.hyperfireEnabled) {
-            shootingInterval = (int) (SHOOTING_INTERVAL * 0.40);
+            interval = (int) (this.shootingInterval * 0.40);
         }
 
-        if (lastShotTime == 0
-                || currentTime - lastShotTime >= shootingInterval) {
-
-            lastShotTime = currentTime;
-
-            bullets.add(BulletPool.getBullet(
-                    positionX + this.width / 2,
-                    positionY,
-                    BULLET_SPEED
-            ));
-
-            return true;
+        if (lastShotTime != 0 && currentTime - lastShotTime < interval) {
+            return 0;
         }
 
-        return false;
+        lastShotTime = currentTime;
+
+        int x = this.positionX + this.width / 2;
+        int y = this.positionY;
+
+        // A MULTI shot spreads sideways and owes no follow-up bullets.
+        if (this.currentBulletType == BulletType.MULTI) {
+            int count = 0;
+            if (bullets.add(BulletPool.getBullet(x, y, this.bulletSpeed, -2,
+                    Bullet.Owner.PLAYER)))
+                count++;
+            if (bullets.add(BulletPool.getBullet(x, y, this.bulletSpeed, 0,
+                    Bullet.Owner.PLAYER)))
+                count++;
+            if (bullets.add(BulletPool.getBullet(x, y, this.bulletSpeed, 2,
+                    Bullet.Owner.PLAYER)))
+                count++;
+            return count;
+        }
+
+        boolean added = bullets.add(
+                BulletPool.getBullet(x, y, this.bulletSpeed,
+                        Bullet.Owner.PLAYER));
+
+        this.remainingShots = this.currentBulletType.getShotCount() - 1;
+        this.nextShotTime = currentTime
+                + this.currentBulletType.getShotDelay();
+
+        return added ? 1 : 0;
+    }
+
+    /**
+     * Fires the bullets still owed by a RAPID burst, one per shot delay.
+     *
+     * @param bullets
+     *            List of bullets on screen, to add the new bullet.
+     * @return Number of bullets added to the screen.
+     */
+    public final int updateBurst(final Set<Bullet> bullets) {
+        // The Chameleon Hull blocks shoot(), so it has to block the rest of
+        // a burst too. The shots are cancelled when it is picked up, and
+        // this guard keeps the rule true however updateBurst is reached.
+        if (this.remainingShots <= 0 || this.isDestroyed()
+                || this.chameleonHullActive) {
+            return 0;
+        }
+
+        long currentTime = System.currentTimeMillis();
+
+        if (currentTime < this.nextShotTime) {
+            return 0;
+        }
+
+        boolean added = bullets.add(BulletPool.getBullet(
+                this.positionX + this.width / 2, this.positionY,
+                this.bulletSpeed, Bullet.Owner.PLAYER));
+
+        this.remainingShots--;
+        this.nextShotTime = currentTime
+                + this.currentBulletType.getShotDelay();
+
+        return added ? 1 : 0;
     }
 
     /**
@@ -210,7 +349,129 @@ public class Ship extends Entity {
      * @return Speed of the ship.
      */
     public final int getSpeed() {
-        return SPEED;
+        return this.speed;
+    }
+
+    /**
+     * Getter for the type this ship was created from.
+     *
+     * @return Selected ship type.
+     */
+    public final ShipType getShipType() {
+        return this.shipType;
+    }
+
+    /**
+     * Changes the bullet type and cancels any burst still in flight.
+     *
+     * @param bulletType
+     *            New bullet type.
+     */
+    public final void setBulletType(final BulletType bulletType) {
+        if (bulletType == null)
+            throw new IllegalArgumentException("Bullet type cannot be null.");
+        this.currentBulletType = bulletType;
+        this.bulletSpeed = bulletType.getSpeed();
+        this.remainingShots = 0;
+        this.nextShotTime = 0;
+    }
+
+    /**
+     * Returns the bullet type the ship is firing now. It can differ from the
+     * ship type's default after setBulletType().
+     *
+     * @return Current bullet type.
+     */
+    public final BulletType getCurrentBulletType() {
+        return this.currentBulletType;
+    }
+
+    /** @return Time between shots in milliseconds. */
+    public final int getShootingInterval() {
+        return this.shootingInterval;
+    }
+
+    /** @return Baseline movement speed. */
+    public final int getBaseSpeed() {
+        return this.baseSpeed;
+    }
+
+    /** @return Baseline time between shots in milliseconds. */
+    public final int getBaseShootingInterval() {
+        return this.baseShootingInterval;
+    }
+
+    /**
+     * Changes the ship's current movement speed. Zero stops movement.
+     *
+     * @param speed
+     *            Non-negative movement distance per update.
+     * @throws IllegalArgumentException
+     *             If the speed is negative.
+     */
+    public final void setSpeed(final int speed) {
+        if (speed < 0)
+            throw new IllegalArgumentException(
+                    "Ship speed must be non-negative.");
+        this.speed = speed;
+    }
+
+    /**
+     * Sets the baseline movement speed without changing the current speed.
+     *
+     * @param speed
+     *            Positive movement distance per update.
+     * @throws IllegalArgumentException
+     *             If the baseline speed is not positive.
+     */
+    public final void setBaseSpeed(final int speed) {
+        if (speed <= 0)
+            throw new IllegalArgumentException(
+                    "Base ship speed must be positive.");
+        this.baseSpeed = speed;
+    }
+
+    /**
+     * Changes the firing interval. The upstream ship measures the interval
+     * from the time of the last shot, so there is no cooldown to restart.
+     *
+     * @param shootingInterval
+     *            Positive interval in milliseconds.
+     * @throws IllegalArgumentException
+     *             If the interval is not positive.
+     */
+    public final void setShootingInterval(final int shootingInterval) {
+        if (shootingInterval <= 0)
+            throw new IllegalArgumentException(
+                    "Shooting interval must be positive (milliseconds).");
+        this.shootingInterval = shootingInterval;
+    }
+
+    /**
+     * Sets the baseline shooting interval without changing the current one.
+     *
+     * @param shootingInterval
+     *            Positive interval in milliseconds.
+     * @throws IllegalArgumentException
+     *             If the baseline interval is not positive.
+     */
+    public final void setBaseShootingInterval(final int shootingInterval) {
+        if (shootingInterval <= 0)
+            throw new IllegalArgumentException(
+                    "Base shooting interval must be positive (milliseconds).");
+        this.baseShootingInterval = shootingInterval;
+    }
+
+    /** Restores the current speed and shooting interval to their baselines. */
+    public final void restoreBaseStats() {
+        this.speed = this.baseSpeed;
+        setShootingInterval(this.baseShootingInterval);
+        this.baseStatsRestoreVersion++;
+    }
+
+    /** @return Version used internally to detect an explicit base-stat restore. */
+    final long getBaseStatsRestoreVersion() {
+        return this.baseStatsRestoreVersion;
     }
 
     public boolean isShieldActive() {
@@ -221,8 +482,19 @@ public class Ship extends Entity {
         this.isShieldActive = active;
     }
 
+    /**
+     * Drops the bullets a burst still owes. Used when the ship stops being
+     * allowed to shoot part-way through one, so the remaining shots are
+     * lost rather than fired once shooting is allowed again.
+     */
+    public final void cancelBurst() {
+        this.remainingShots = 0;
+        this.nextShotTime = 0;
+    }
+
     public final void activateChameleonHull() {
         if (!this.chameleonHullActive) {
+            cancelBurst();
             this.colorBeforeChameleon = getColor();
             this.widthBeforeChameleon = this.width;
             this.heightBeforeChameleon = this.height;
@@ -256,7 +528,7 @@ public class Ship extends Entity {
     }
 
     public final double getMovementSpeed() {
-        return SPEED * (
+        return this.speed * (
                 this.chameleonHullActive
                         ? entity.item.ChameleonHull.SPEED_MULTIPLIER
                         : 1.0
@@ -269,7 +541,7 @@ public class Ship extends Entity {
             return;
         }
 
-        this.chameleonMovementRemainder += direction * SPEED
+        this.chameleonMovementRemainder += direction * this.speed
                 * (entity.item.ChameleonHull.SPEED_MULTIPLIER - 1.0);
 
         int extraPixels = (int) (
@@ -284,13 +556,19 @@ public class Ship extends Entity {
 
     public final void moveUp() {
         if (this.chameleonHullActive && !isDestroyed()) {
-            this.positionY -= (int) getMovementSpeed();
+            if (this.slowDebuffActive)
+                this.positionY -= getSlowedMovementPixels(2);
+            else
+                this.positionY -= (int) getMovementSpeed();
         }
     }
 
     public final void moveDown() {
         if (this.chameleonHullActive && !isDestroyed()) {
-            this.positionY += (int) getMovementSpeed();
+            if (this.slowDebuffActive)
+                this.positionY += getSlowedMovementPixels(3);
+            else
+                this.positionY += (int) getMovementSpeed();
         }
     }
 
