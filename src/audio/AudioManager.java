@@ -57,7 +57,8 @@ public class AudioManager {
     /**
      * Plays the specified background music in a continuous loop.
      * Playback failures are logged.
-     * Resources must be 44.1 kHz, 16-bit signed PCM, stereo, little-endian WAV.
+     * Source WAV resources are converted to the mixer's 44.1 kHz, 16-bit signed
+     * stereo PCM format by the cache; 48 kHz and mono sources are supported.
      *
      * @param path the resource path relative to the classpath root,
      *             without a leading slash or the res directory prefix
@@ -116,7 +117,8 @@ public class AudioManager {
      * Each playback receives a separate ID.
      * Finished playbacks are automatically removed by the bus during sample collection.
      * Playback failures are logged.
-     * Resources must be 44.1 kHz, 16-bit signed PCM, stereo, little-endian WAV.
+     * Source WAV resources are converted to the mixer's 44.1 kHz, 16-bit signed
+     * stereo PCM format by the cache; 48 kHz and mono sources are supported.
      *
      * @param path the resource path relative to the classpath root,
      *             without a leading slash or the res directory prefix
