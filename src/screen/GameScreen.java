@@ -549,6 +549,7 @@ public class GameScreen extends Screen {
 					if (!this.ship.isChameleonHullActive()) {
 						if (!this.ship.isDestroyed()) {
 							if (this.ship.isShieldActive()) {
+								AudioManager.playSFX("audio/sfx/item_shield_block.wav");
 								this.logger.info("Enemy shot absorbed by Energy Shield.");
 							} else {
 								this.ship.destroy();
