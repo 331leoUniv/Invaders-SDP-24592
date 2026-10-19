@@ -508,6 +508,10 @@ public class GameScreen extends Screen {
 							&& this.level == OrbitalAnnihilator.REQUIRED_LEVEL
 							&& System.currentTimeMillis() - this.spaceHeldSince >= ANNIHILATOR_HOLD_TIME) {
 						this.annihilator.trigger();
+						// Charging stops the ship shooting, so a burst that
+						// is still owed is dropped rather than fired when
+						// the beam is over.
+						this.ship.cancelBurst();
 					}
 				} else {
 					this.spaceHeldSince = 0;
@@ -560,7 +564,7 @@ public class GameScreen extends Screen {
 						this.ship.getPositionY(), this.bossBullets);
 			}
 
-			if (!this.ship.isDestroyed())
+			if (!this.ship.isDestroyed() && !this.annihilator.isCharging())
 				this.bulletsShot += this.ship.updateBurst(this.bullets);
 
 			updateBallMovement();
@@ -736,8 +740,15 @@ public class GameScreen extends Screen {
 		Set<Bullet> recyclable = new HashSet<Bullet>();
 		for (Bullet bullet : this.bullets) {
 			bullet.update();
+			// An aimed shot can travel almost horizontally, so a bullet that
+			// leaves sideways has to be retired as well. Checking only the Y
+			// axis left a bullet with no vertical speed on screen for the
+			// rest of the level, drawn and collision-checked every frame and
+			// never returned to the pool.
 			if (bullet.getPositionY() < SEPARATION_LINE_HEIGHT
-					|| bullet.getPositionY() > this.height)
+					|| bullet.getPositionY() > this.height
+					|| bullet.getPositionX() + bullet.getWidth() < 0
+					|| bullet.getPositionX() > this.width)
 				recyclable.add(bullet);
 		}
 		this.bullets.removeAll(recyclable);
@@ -760,31 +771,10 @@ public class GameScreen extends Screen {
         if (this.levelFinished) return;
 		Set<Bullet> recyclable = new HashSet<Bullet>();
 		for (Bullet bullet : this.bullets)
-			if (bullet.getSpeed() > 0) {
+			if (bullet.isEnemyBullet()) {
 				if (checkCollision(bullet, this.ship) && !this.levelFinished) {
 					recyclable.add(bullet);
-					if (!this.ship.isChameleonHullActive()) {
-						if (!this.ship.isDestroyed()) {
-							if (this.ship.isShieldActive()) {
-								this.logger.info("Enemy shot absorbed by Energy Shield.");
-							} else {
-								this.ship.destroy();
-								this.ship.triggerDamageFeedback();
-								this.particleSystem.spawnPlayerExplosion(
-										this.ship.getPositionX() + this.ship.getWidth() / 2,
-										this.ship.getPositionY() + this.ship.getHeight() / 2);
-								this.playerStatus.takeDamage(1);
-								this.itemManager.getBuffManager().resetAllBuffs(this.ship);
-                                if (this.playerStatus.getLives() == 1 && !this.isLowHealthBGM) {
-                                    AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
-                                    this.isLowHealthBGM = true;
-                                }
-								this.logger.info("Hit on player ship, "
-										+ this.playerStatus.getLives()
-										+ " lives remaining.");
-							}
-						}
-					}
+					damagePlayer(1, "Hit on player ship");
 				}
 			} else {
 				for (EnemyShip enemyShip : this.enemyShipFormation)
@@ -848,13 +838,8 @@ public class GameScreen extends Screen {
 		for (BossBullet bossBullet : this.bossBullets)
 			if (checkCollision(bossBullet, this.ship) && !this.levelFinished) {
 				hitBossBullets.add(bossBullet);
-				if (!this.ship.isDestroyed() && this.playerStatus
-						.takeDamage(bossBullet.getDamage())) {
-					this.ship.destroy();
-					this.logger.info("Hit on player ship by the boss, "
-							+ this.playerStatus.getLives()
-							+ " lives remaining.");
-				}
+				damagePlayer(bossBullet.getDamage(),
+						"Hit on player ship by the boss");
 			}
 		this.bossBullets.removeAll(hitBossBullets);
 	}
@@ -892,12 +877,66 @@ public class GameScreen extends Screen {
 		Set<Bullet> neutralized = new HashSet<Bullet>();
 
 		for (Bullet bullet : this.bullets)
-			if (bullet.getSpeed() > 0
+			if (bullet.isEnemyBullet()
 					&& OrbitalAnnihilator.hits(this.ship, bullet))
 				neutralized.add(bullet);
 
 		this.bullets.removeAll(neutralized);
 		BulletPool.recycle(neutralized);
+	}
+
+	/**
+	 * Applies one hit to the player. Every source of damage goes through this
+	 * method, so that the protections and the effects of a hit cannot differ
+	 * between an enemy bullet and a boss bullet.
+	 *
+	 * <p>The order matters. A protection returns before any life is taken,
+	 * and the ship is destroyed only once the damage was actually accepted,
+	 * which also stops several bullets in the same frame from each costing a
+	 * life: the first accepted hit starts the destruction cooldown and the
+	 * rest are turned away by {@link Ship#isDestroyed()}.</p>
+	 *
+	 * @param damage
+	 *            Amount of damage the source deals.
+	 * @param logMessage
+	 *            Description of the source, for the log line.
+	 * @return Whether a life was lost.
+	 */
+	// The damage path is accessible to tests in the screen package.
+	boolean damagePlayer(final int damage, final String logMessage) {
+		// The Chameleon Hull makes the ship immune while it is active.
+		if (this.ship.isChameleonHullActive())
+			return false;
+		// Still inside the recovery period from an earlier hit.
+		if (this.ship.isDestroyed())
+			return false;
+		if (this.ship.isShieldActive()) {
+			this.logger.info("Shot absorbed by Energy Shield.");
+			// The Energy Shield belongs to Ship, so PlayerStatus cannot see
+			// this hit by itself. Announce it anyway, or a listener would
+			// hear a blocked hit only when the timed shield was the one that
+			// blocked it.
+			this.playerStatus.announceDamageBlocked(damage);
+			return false;
+		}
+		// PlayerStatus owns the timed shield, so its answer decides whether
+		// the hit lands at all; the effects below must not run otherwise.
+		if (!this.playerStatus.takeDamage(damage))
+			return false;
+
+		this.ship.destroy();
+		this.ship.triggerDamageFeedback();
+		this.particleSystem.spawnPlayerExplosion(
+				this.ship.getPositionX() + this.ship.getWidth() / 2,
+				this.ship.getPositionY() + this.ship.getHeight() / 2);
+		this.itemManager.getBuffManager().resetAllBuffs(this.ship);
+		if (this.playerStatus.getLives() == 1 && !this.isLowHealthBGM) {
+			AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+			this.isLowHealthBGM = true;
+		}
+		this.logger.info(logMessage + ", " + this.playerStatus.getLives()
+				+ " lives remaining.");
+		return true;
 	}
 
 	/**

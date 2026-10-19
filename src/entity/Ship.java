@@ -217,17 +217,21 @@ public class Ship extends Entity {
         // A MULTI shot spreads sideways and owes no follow-up bullets.
         if (this.currentBulletType == BulletType.MULTI) {
             int count = 0;
-            if (bullets.add(BulletPool.getBullet(x, y, this.bulletSpeed, -2)))
+            if (bullets.add(BulletPool.getBullet(x, y, this.bulletSpeed, -2,
+                    Bullet.Owner.PLAYER)))
                 count++;
-            if (bullets.add(BulletPool.getBullet(x, y, this.bulletSpeed, 0)))
+            if (bullets.add(BulletPool.getBullet(x, y, this.bulletSpeed, 0,
+                    Bullet.Owner.PLAYER)))
                 count++;
-            if (bullets.add(BulletPool.getBullet(x, y, this.bulletSpeed, 2)))
+            if (bullets.add(BulletPool.getBullet(x, y, this.bulletSpeed, 2,
+                    Bullet.Owner.PLAYER)))
                 count++;
             return count;
         }
 
         boolean added = bullets.add(
-                BulletPool.getBullet(x, y, this.bulletSpeed));
+                BulletPool.getBullet(x, y, this.bulletSpeed,
+                        Bullet.Owner.PLAYER));
 
         this.remainingShots = this.currentBulletType.getShotCount() - 1;
         this.nextShotTime = currentTime
@@ -244,7 +248,11 @@ public class Ship extends Entity {
      * @return Number of bullets added to the screen.
      */
     public final int updateBurst(final Set<Bullet> bullets) {
-        if (this.remainingShots <= 0 || this.isDestroyed()) {
+        // The Chameleon Hull blocks shoot(), so it has to block the rest of
+        // a burst too. The shots are cancelled when it is picked up, and
+        // this guard keeps the rule true however updateBurst is reached.
+        if (this.remainingShots <= 0 || this.isDestroyed()
+                || this.chameleonHullActive) {
             return 0;
         }
 
@@ -256,7 +264,7 @@ public class Ship extends Entity {
 
         boolean added = bullets.add(BulletPool.getBullet(
                 this.positionX + this.width / 2, this.positionY,
-                this.bulletSpeed));
+                this.bulletSpeed, Bullet.Owner.PLAYER));
 
         this.remainingShots--;
         this.nextShotTime = currentTime
@@ -474,8 +482,19 @@ public class Ship extends Entity {
         this.isShieldActive = active;
     }
 
+    /**
+     * Drops the bullets a burst still owes. Used when the ship stops being
+     * allowed to shoot part-way through one, so the remaining shots are
+     * lost rather than fired once shooting is allowed again.
+     */
+    public final void cancelBurst() {
+        this.remainingShots = 0;
+        this.nextShotTime = 0;
+    }
+
     public final void activateChameleonHull() {
         if (!this.chameleonHullActive) {
+            cancelBurst();
             this.colorBeforeChameleon = getColor();
             this.widthBeforeChameleon = this.width;
             this.heightBeforeChameleon = this.height;
