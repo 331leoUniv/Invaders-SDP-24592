@@ -16,6 +16,9 @@ import engine.Core;
 import engine.GameSettings;
 import engine.GameState;
 import engine.ControlsConfig;
+import engine.LevelGameplayAdapter;
+import level.LevelDefinition;
+import level.WaveDefinition;
 import entity.Bullet;
 import boss.BossManager;
 import boss.BossSpawnRequest;
@@ -101,6 +104,8 @@ public class GameScreen extends Screen {
 	private GameSettings gameSettings;
 	/** Settings of every wave in this stage, in play order. */
 	private List<GameSettings> waves;
+	/** Original custom grids; null for the unchanged official campaign path. */
+	private List<WaveDefinition> customWaves;
 	/** Index of the wave currently being played. */
 	private int currentWave;
 	/** Current difficulty level number. */
@@ -349,14 +354,32 @@ public class GameScreen extends Screen {
 		this.shipsDestroyed = gameState.getShipsDestroyed();
 	}
 
+	/** Validates every wave before allocating a screen or changing active gameplay. */
+	public static GameScreen forCustomLevel(final GameState state,
+			final LevelDefinition definition, final double difficultyMultiplier,
+			final int width, final int height, final int fps) {
+		List<GameSettings> settings = LevelGameplayAdapter.prepare(
+				definition, width, height, difficultyMultiplier);
+		GameScreen screen = new GameScreen(state, settings, false, width, height, fps);
+		screen.customWaves = definition.getWaves();
+		return screen;
+	}
+
+	private EnemyShipFormation createFormation() {
+		EnemyShipFormation formation = this.customWaves == null
+				? new EnemyShipFormation(this.gameSettings)
+				: new EnemyShipFormation(this.gameSettings, this.customWaves.get(this.currentWave));
+		formation.attach(this);
+		return formation;
+	}
+
 	/**
 	 * Initializes basic screen properties, and adds necessary elements.
 	 */
 	public final void initialize() {
 		super.initialize();
 
-		enemyShipFormation = new EnemyShipFormation(this.gameSettings);
-		enemyShipFormation.attach(this);
+		enemyShipFormation = createFormation();
 		this.ship = new Ship(this.width / 2, this.height - 30,
 				this.shipType);
 		this.itemManager = new ItemManager(this.height);
@@ -567,6 +590,14 @@ public class GameScreen extends Screen {
 		this.particleSystem.update(); 
 		draw();
 
+		advanceStageIfReady();
+
+		if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
+			this.isRunning = false;
+	}
+
+	/** Progression shared by official and custom stages. */
+	void advanceStageIfReady() {
 		if (!this.levelFinished) {
 			if (!this.playerStatus.isAlive()) {
 				this.levelFinished = true;
@@ -585,11 +616,8 @@ public class GameScreen extends Screen {
 			}
 		}
 
-        if (this.levelFinished && this.runSession != null)
-            this.runSession.stopActiveSegment(System.nanoTime());
-
-		if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
-			this.isRunning = false;
+		if (this.levelFinished && this.runSession != null)
+			this.runSession.stopActiveSegment(System.nanoTime());
 	}
 
 	/**
@@ -621,8 +649,7 @@ public class GameScreen extends Screen {
 				(this.currentWave + 1) + " cleared.");
 		this.currentWave++;
 		this.gameSettings = this.waves.get(this.currentWave);
-		this.enemyShipFormation = new EnemyShipFormation(this.gameSettings);
-		this.enemyShipFormation.attach(this);
+		this.enemyShipFormation = createFormation();
 		this.logger.info("Stage " + this.level + " wave " + (this.currentWave + 1) +
 				" of " + this.waves.size() + " started.");
 	}
@@ -750,15 +777,16 @@ public class GameScreen extends Screen {
 				for (EnemyShip enemyShip : this.enemyShipFormation)
 					if (!enemyShip.isDestroyed()
 							&& checkCollision(bullet, enemyShip)) {
+						recyclable.add(bullet);
+						if (!this.enemyShipFormation.hit(enemyShip))
+							break;
 						this.score += enemyShip.getPointValue();
 						this.shipsDestroyed++;
 						recordEnemyDefeat(enemyShip);
-						this.enemyShipFormation.destroy(enemyShip);
 						this.particleSystem.spawnEnemyExplosion(
 								enemyShip.getPositionX() + enemyShip.getWidth() / 2,
 								enemyShip.getPositionY() + enemyShip.getHeight() / 2);
 						tryDropChameleonHull(enemyShip);
-						recyclable.add(bullet);
 
 						// --- DROP DU BOUCLIER ---
 						if (!this.shieldDroppedThisLevel) {
@@ -777,9 +805,10 @@ public class GameScreen extends Screen {
 										+ enemyShip.getPositionY() + ").");
 							}
 						}
+						break;
 					}
 				EnemyShip bonusShip = this.bonusEnemyManager.getShip();
-				if (this.bonusEnemyManager.isActive()
+				if (!recyclable.contains(bullet) && this.bonusEnemyManager.isActive()
 						&& checkCollision(bullet, bonusShip)) {
 					recordEnemyDefeat(bonusShip);
 					this.score += this.bonusEnemyManager.destroy();
