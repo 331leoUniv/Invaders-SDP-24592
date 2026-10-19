@@ -25,7 +25,7 @@ public class AudioManager {
     private static final AudioBus bgmBus = new AudioBus(true);
 
     /** Non-looping audio bus for independently controlled sound effects. */
-    private static final AudioBus sfxBus = new AudioBus();;
+    private static final AudioBus sfxBus = new AudioBus();
 
     /** Whether the mixer, audio buses, and cache were successfully initialized. */
     private static boolean initialized = false;
@@ -33,20 +33,42 @@ public class AudioManager {
     /** Global mute state, visible across audio control threads. */
     private static volatile boolean muted = false;
 
+    /** Total initialization attempts, including startup and mixer recovery. */
+    private static int initAttempts = 0;
+
+    /** Maximum initialization attempts during this application run. */
+    private static final int MAX_INIT_ATTEMPTS = 10;
+
     static {
         initialize();
     }
 
     /**
      * Initializes the audio system and required internal resources.
+     * Returns immediately if already initialized or the attempt limit is reached.
+     * Each attempt clears active playbacks but preserves bus settings and cached
+     * resources. The error listener requests recovery after mixer cleanup.
      */
-    private static void initialize() {
-        if (initialized) return;
+    private synchronized static void initialize() {
+        if (initialized || initAttempts >= MAX_INIT_ATTEMPTS) return;
+        initAttempts++;
         try {
-            audioMixer = new AudioMixer();
+            bgmBus.stopAll();
+            sfxBus.stopAll();
+            if (audioMixer != null) audioMixer.shutdown();
+            audioMixer = new AudioMixer(new AudioMixer.MixerErrorListener() {
+                /** Marks audio unavailable and retries initialization under the manager lock. */
+                @Override
+                public void onError(Exception e) {
+                    synchronized (AudioManager.class) {
+                        initialized = false;
+                        initialize();
+                    }
+                }
+            });
             audioMixer.registerPlaybackGroup("bgm", bgmBus);
             audioMixer.registerPlaybackGroup("sfx", sfxBus);
-            audioCache = new AudioCache();
+            if (audioCache == null) audioCache = new AudioCache();
             logger.info("Audio system initialized.");
             initialized = true;
         } catch (Exception e) {
@@ -64,7 +86,8 @@ public class AudioManager {
      *             without a leading slash or the res directory prefix
      */
     public static void playBGM(String path) {
-        if (!initialized) initialize();
+        initialize();
+        if (!initialized) return;
         try {
             AudioResource resource = audioCache.getAudioData(path);
             AudioBus group = bgmBus;
@@ -125,7 +148,8 @@ public class AudioManager {
      * @return the playback ID, or -1 if playback fails
      */
     public static int playSFX(String path) {
-        if (!initialized) initialize();
+        initialize();
+        if (!initialized) return -1;
         try {
             return sfxBus.play(audioCache.getAudioData(path));
         } catch (Exception e) {
