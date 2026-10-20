@@ -362,6 +362,7 @@ public class GameScreen extends Screen {
         enemyShipFormation.attach(this);
 		this.ship = new Ship(this.width / 2, this.height - 30,
 				this.shipType);
+		this.ship.setColor(ShipCustomization.getColor());
         this.itemManager = new ItemManager(this.height);
 
         this.shieldDroppedThisLevel = false;
