@@ -65,9 +65,9 @@ public class DifficultyAdjustWhilePlaying {
     }
 
     /** Returns the adjusted enemy bullet speed depending on whether the difficulty is adjusted. */
-    public int adjustEnemyBulletSpeed(int baseSpeed) {
+    public double adjustEnemyBulletSpeed(double baseSpeed) {
         if (tooLowLives&&!ClearedEnoughLevels) {
-            return  (int) (baseSpeed * 0.5);
+            return   (baseSpeed * 0.5);
         }
             return baseSpeed;
     }

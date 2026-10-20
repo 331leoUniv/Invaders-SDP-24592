@@ -118,7 +118,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	private int shipCount;
 	//lowers the speed of enemy bullets by half when the temporary difficulty adjustment is active
 private int getBulletSpeed() {
-    return DifficultyAdjustWhilePlaying.getInstance().adjustEnemyBulletSpeed(BULLET_SPEED);
+    return (int)DifficultyAdjustWhilePlaying.getInstance().adjustEnemyBulletSpeed(BULLET_SPEED);
 }
 
 	/** Directions the formation can move. */
