@@ -39,6 +39,7 @@ public class TitleScreen extends Screen {
 		this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
 		this.selectionCooldown.reset();
 
+		AudioManager.playBGM("audio/bgm/music_menu.wav");
 	}
 
 	/**
@@ -77,33 +78,24 @@ public class TitleScreen extends Screen {
 				AudioManager.playSFX("audio/sfx/menu_select.wav");
 				this.isRunning = false;
 			}
+			// Shortcut to the infinite mode, until it gets a menu entry.
+			if (inputManager.isKeyDown(KeyEvent.VK_I)) {
+				AudioManager.playSFX("audio/sfx/menu_select.wav");
+				this.returnCode = 8;
+				this.isRunning = false;
+			}
 		}
 	}
 
 	/**
 	 * Shifts the focus to the next menu item.
 	 */
-	private void nextMenuItem() {
-		// Order: Play (2) -> High scores (3) -> Settings (4) -> Exit (0).
-		if (this.returnCode == 4)
-			this.returnCode = 0;
-		else if (this.returnCode == 0)
-			this.returnCode = 2;
-		else
-			this.returnCode++;
-	}
+
 
 	/**
 	 * Shifts the focus to the previous menu item.
 	 */
-	private void previousMenuItem() {
-		if (this.returnCode == 0)
-			this.returnCode = 4;
-		else if (this.returnCode == 2)
-			this.returnCode = 0;
-		else
-			this.returnCode--;
-	}
+
 
 	/**
 	 * Draws the elements associated with the screen.
@@ -117,4 +109,20 @@ public class TitleScreen extends Screen {
 		drawManager.completeDrawing(this);
 	}
 
+
+    private void nextMenuItem() {
+        if (this.returnCode == 2) this.returnCode=3;
+        else if (this.returnCode == 3) this.returnCode=9;
+        else if (this.returnCode == 9) this.returnCode=4;
+        else if (this.returnCode == 4) this.returnCode=0;
+        else this.returnCode=2;
+    }
+
+    private void previousMenuItem() {
+        if (this.returnCode == 2) this.returnCode=0;
+        else if (this.returnCode == 0) this.returnCode=4;
+        else if (this.returnCode == 4) this.returnCode=9;
+        else if (this.returnCode == 9) this.returnCode=3;
+        else this.returnCode=2;
+    }
 }
