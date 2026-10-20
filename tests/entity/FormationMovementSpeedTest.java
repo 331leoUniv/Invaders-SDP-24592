@@ -26,7 +26,7 @@ public final class FormationMovementSpeedTest {
 	private static final double TOLERANCE = 0.05;
 	/** Frames to average a measurement over. */
 	private static final int SAMPLE_FRAMES = 600;
-	/** DIAGONAL_MAX_SPEED / DIAGONAL_INTERVAL, the fastest the pattern goes. */
+	/** MAX_STEP / STEP_INTERVAL, the fastest the pattern goes. */
 	private static final double MAXIMUM_PACE = 16.0 / 2.0;
 
 	private FormationMovementSpeedTest() {
@@ -146,25 +146,47 @@ public final class FormationMovementSpeedTest {
 			formation.destroy(it.next());
 	}
 
+
 	/**
 	 * Builds a formation attached to a real screen. GameScreen owns that
 	 * wiring, so it is borrowed rather than rebuilt here.
 	 */
-	private static EnemyShipFormation formation(final int baseSpeed)
-			throws Exception {
-		GameScreen game = new GameScreen(new GameState(1, 0, 3, 0, 0),
-				new GameSettings(5, 4, baseSpeed, 2000), false, 448, 520, 60);
-		game.initialize();
 
-		Field field = GameScreen.class.getDeclaredField("enemyShipFormation");
-		field.setAccessible(true);
-		return (EnemyShipFormation) field.get(game);
-	}
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private static EnemyShipFormation formation(final int baseSpeed)
+            throws Exception {
 
-	private static int readInt(final Object target, final String name)
-			throws Exception {
-		Field field = EnemyShipFormation.class.getDeclaredField(name);
-		field.setAccessible(true);
-		return field.getInt(target);
-	}
+        GameScreen game = new GameScreen(
+                new GameState(1, 0, 3, 0, 0),
+                new GameSettings(5, 4, baseSpeed, 2000),
+                false, 448, 520, 60);
+
+        game.initialize();
+
+        Field field = GameScreen.class.getDeclaredField("enemyShipFormation");
+        field.setAccessible(true);
+
+        EnemyShipFormation formation =
+                (EnemyShipFormation) field.get(game);
+
+        // Explicitly select the diagonal pattern.
+        Field patternField = EnemyShipFormation.class
+                .getDeclaredField("movementPattern");
+
+        patternField.setAccessible(true);
+        patternField.set(formation,
+                Enum.valueOf((Class<Enum>) patternField.getType(),
+                        "DIAGONAL_BOUNCE"));
+
+        return formation;
+    }
+
+    private static int readInt(final Object target, final String name)
+            throws Exception {
+        Field field = EnemyShipFormation.class.getDeclaredField(name);
+        field.setAccessible(true);
+        return field.getInt(target);
+    }
 }
+
+
