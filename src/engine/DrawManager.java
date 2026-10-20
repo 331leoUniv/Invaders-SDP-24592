@@ -1410,10 +1410,11 @@ int[] ys = { headTop, headTop, positionY + h };
             "Records & Achievements", "Settings", "Exit"
         };
         int[] codes = { 2, 10, 11, 3, 9, 4, 0 };
-        int y = screen.getHeight() / 3 * 2;
+        int spacing = fontRegularMetrics.getHeight() * 3 / 2;
+        int firstY = screen.getHeight() / 2 + fontRegularMetrics.getHeight() * 2;
         for (int i = 0; i < labels.length; i++) {
             backBufferGraphics.setColor(option == codes[i] ? Color.GREEN : Color.WHITE);
-            drawCenteredRegularString(screen, labels[i], y + i * fontRegularMetrics.getHeight() * 3 / 2);
+            drawCenteredRegularString(screen, labels[i], firstY + i * spacing);
         }
     }
 
@@ -1427,13 +1428,14 @@ int[] ys = { headTop, headTop, positionY + h };
                 "Records & Achievements", "Settings", "Exit"
         };
         int[] codes = { 2, 10, 11, 3, 9, 4, 0 };
-        int firstY = screen.getHeight() / 3 * 2;
         int fontHeight = fontRegularMetrics.getHeight();
+        int spacing = fontHeight * 3 / 2;
+        int firstY = screen.getHeight() / 2 + fontHeight * 2;
 
         for (int i = 0; i < labels.length; i++) {
             int textWidth = fontRegularMetrics.stringWidth(labels[i]);
             int left = screen.getWidth() / 2 - textWidth / 2;
-            int baseline = firstY + i * fontHeight * 3 / 2;
+            int baseline = firstY + i * spacing;
             int top = baseline - fontRegularMetrics.getAscent();
             int bottom = baseline + fontRegularMetrics.getDescent();
 
