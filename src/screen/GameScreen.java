@@ -4,6 +4,7 @@ import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.Random;
@@ -33,6 +34,7 @@ import vfx.ParticleSystem;
 import entity.EnemyShip;
 import entity.EnemyShipFormation;
 import entity.Entity;
+import entity.FallingObstacle;
 import entity.LoggingPlayerStatusListener;
 import entity.PlayerStatusListener;
 import entity.PlayerStatusEvent;
@@ -67,6 +69,10 @@ public class GameScreen extends Screen {
     private static final int LIFE_SCORE = 100;
     /** Time from finishing the level to screen change. */
     private static final int SCREEN_CHANGE_INTERVAL = 1500;
+	/** Average time between falling obstacle spawns, in milliseconds. */
+	private static final int FALLING_OBSTACLE_INTERVAL = 17500;
+	/** Spawn interval varies from fifteen to twenty seconds. */
+	private static final int FALLING_OBSTACLE_VARIANCE = 2500;
 	/**
 	 * Enables the debug keys used to exercise player status by hand. Off
 	 * unless the game is started with -Dinvaders.debugKeys=true, so a normal
@@ -102,6 +108,11 @@ public class GameScreen extends Screen {
 
     private ItemManager itemManager;
     private final Random itemDropRandom = new Random();
+	private final Random obstacleRandom = new Random();
+	/** Active hazards; a set permits future expansion beyond one obstacle. */
+	private Set<FallingObstacle> fallingObstacles;
+	/** Time until the next falling hazard appears. */
+	private Cooldown fallingObstacleCooldown;
     private boolean chameleonDroppedThisLevel = false;
     private boolean shieldDroppedThisLevel = false;
 
@@ -380,6 +391,10 @@ public class GameScreen extends Screen {
 		this.bonusEnemyManager = new BonusEnemyManager();
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
         this.bullets = new HashSet<Bullet>();
+		this.fallingObstacles = new HashSet<FallingObstacle>();
+		this.fallingObstacleCooldown = Core.getVariableCooldown(
+				FALLING_OBSTACLE_INTERVAL, FALLING_OBSTACLE_VARIANCE);
+		this.fallingObstacleCooldown.reset();
         this.annihilator = new OrbitalAnnihilator();
 
 		this.bossBullets = new HashSet<BossBullet>();
@@ -462,6 +477,8 @@ public class GameScreen extends Screen {
 		// Outside the input-delay check: a shield that runs out has to be
 		// announced even while the level is finishing.
 		this.playerStatus.update();
+		// Reconcile shields active outside the item-collision path.
+		clearSlowIfEnergyShieldActive();
 
         if (this.inputDelay.checkFinished() && !this.levelFinished) {
             if (this.runSession != null) this.runSession.startActiveSegment(System.nanoTime());
@@ -577,12 +594,16 @@ public class GameScreen extends Screen {
 
             if (!this.ship.isDestroyed()) {
                 this.itemManager.checkCollisions(this.ship);
+				// Clear immediately in the frame an Energy Shield is collected.
+				clearSlowIfEnergyShieldActive();
             }
 
             clampShipPosition();
             clampBallPositionY();
         }
 
+		if (!updateFallingObstacles())
+			manageFallingObstacleCollisions();
         manageCollisions();
         manageBallContact();
 
@@ -643,6 +664,8 @@ public class GameScreen extends Screen {
 	 * Replaces the empty formation with the next wave's formation.
 	 */
 	private void startNextWave() {
+		this.fallingObstacles.clear();
+		this.fallingObstacleCooldown.reset();
 		this.logger.info("Stage " + this.level + " wave " +
 				(this.currentWave + 1) + " cleared.");
 		this.currentWave++;
@@ -667,6 +690,10 @@ public class GameScreen extends Screen {
                     this.annihilator.isFiring(),
                     this.annihilator.getChargeProgress()
             );
+
+		for (FallingObstacle obstacle : this.fallingObstacles)
+			drawManager.drawEntity(obstacle, obstacle.getPositionX(),
+					obstacle.getPositionY());
 
 		drawManager.drawEntity(this.ship, this.ship.getPositionX(),
 				this.ship.getPositionY());
@@ -761,6 +788,60 @@ public class GameScreen extends Screen {
 		}
 		this.bossBullets.removeAll(outside);
     }
+
+	/** Creates, advances, and retires the non-damaging falling hazards. */
+	private boolean updateFallingObstacles() {
+		if (this.levelFinished) {
+			this.fallingObstacles.clear();
+			return false;
+		}
+		if (!this.inputDelay.checkFinished())
+			return false;
+
+		if (this.fallingObstacles.isEmpty()
+				&& this.fallingObstacleCooldown.checkFinished()) {
+			int rightmostX = this.width - FallingObstacle.WIDTH - 1;
+			int positionX = 1 + this.obstacleRandom.nextInt(rightmostX);
+			this.fallingObstacles.add(new FallingObstacle(positionX,
+					SEPARATION_LINE_HEIGHT));
+			return true;
+		}
+
+		for (Iterator<FallingObstacle> iterator =
+				this.fallingObstacles.iterator(); iterator.hasNext();) {
+			FallingObstacle obstacle = iterator.next();
+			obstacle.update();
+			if (obstacle.hasLeftScreen(this.height)) {
+				iterator.remove();
+				this.fallingObstacleCooldown.reset();
+			}
+		}
+		return false;
+	}
+
+	/** Consumes a colliding hazard, applying only the existing slow effect. */
+	private void manageFallingObstacleCollisions() {
+		if (!this.inputDelay.checkFinished() || this.levelFinished)
+			return;
+
+		for (Iterator<FallingObstacle> iterator =
+				this.fallingObstacles.iterator(); iterator.hasNext();) {
+			FallingObstacle obstacle = iterator.next();
+			if (checkCollision(obstacle, this.ship)) {
+				// Remove first so a single obstacle can trigger only one collision.
+				iterator.remove();
+				this.fallingObstacleCooldown.reset();
+				if (!this.ship.isDestroyed() && !this.ship.isShieldActive())
+					this.playerStatus.applySlow(this.ship);
+			}
+		}
+	}
+
+	/** Clears an existing slow as soon as the Energy Shield item is active. */
+	private void clearSlowIfEnergyShieldActive() {
+		if (this.ship.isShieldActive())
+			this.playerStatus.clearSlowDebuff();
+	}
 
     /**
      * Manages collisions between bullets and ships.
