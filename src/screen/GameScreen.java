@@ -673,7 +673,8 @@ public class GameScreen extends Screen {
 
 		// Interface.
 		drawManager.drawScore(this, this.score);
-		drawManager.drawLives(this, this.playerStatus.getLives());
+		drawManager.drawLives(this, this.playerStatus.getLives(),
+				this.playerStatus.getMaxLives());
 
 		if (this.level == OrbitalAnnihilator.REQUIRED_LEVEL)
 			drawManager.drawAnnihilatorGauge(

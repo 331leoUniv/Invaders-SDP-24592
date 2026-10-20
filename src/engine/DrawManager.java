@@ -27,6 +27,8 @@ import java.text.DateFormat;
 import java.util.Date;
 import entity.Entity;
 import entity.Ship;
+import vfx.Icon;
+import vfx.RankBadge;
 
 /**
  * Manages screen drawing.
@@ -242,17 +244,14 @@ public final class DrawManager {
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(Color.WHITE);
 		String scoreString = String.format("%04d", score);
-		String scoreLabel = "SCORE ";
 
 		int scoreX = screen.getWidth() - 60;
-		int labelWidth = backBufferGraphics.getFontMetrics().stringWidth(scoreLabel);
-
-		backBufferGraphics.drawString(scoreLabel, scoreX - labelWidth, 25);
+		drawIcon(Icon.SCORE, scoreX - Icon.SCORE.getWidth() * 2 - 6, 12, 2);
 		backBufferGraphics.drawString(scoreString, scoreX, 25);
 	}
 
 	/**
-	 * Draws remaining lives as ship icons on screen.
+	 * Draws remaining lives as heart icons on screen.
 	 * 
 	 * @param screen
 	 *            Screen to draw on.
@@ -260,9 +259,165 @@ public final class DrawManager {
 	 *            Current lives.
 	 */
 	public void drawLives(final Screen screen, final int lives) {
-		Ship dummyShip = new Ship(0, 0);
-		for (int i = 0; i < lives; i++)
-			drawEntity(dummyShip, 20 + 35 * i, 10);
+		drawLives(screen, lives, lives);
+	}
+
+	/**
+	 * Draws remaining lives as heart icons and lost lives as broken hearts.
+	 * 
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param lives
+	 *            Current lives.
+	 * @param maxLives
+	 *            Lives the player started with.
+	 */
+	public void drawLives(final Screen screen, final int lives,
+			final int maxLives) {
+		for (int i = 0; i < Math.max(lives, maxLives); i++)
+			drawIcon(i < lives ? Icon.LIFE : Icon.LIFE_LOST,
+					20 + 22 * i, 12, 2);
+	}
+
+	/**
+	 * Draws a UI icon in its own colors.
+	 * 
+	 * @param icon
+	 *            Icon to draw.
+	 * @param positionX
+	 *            Coordinates for the left side of the icon.
+	 * @param positionY
+	 *            Coordinates for the upper side of the icon.
+	 * @param scale
+	 *            Size in screen pixels of each icon pixel.
+	 */
+	public void drawIcon(final Icon icon, final int positionX,
+			final int positionY, final int scale) {
+		drawIconPixels(icon, positionX, positionY, scale, null, false);
+	}
+
+	/**
+	 * Draws a UI icon in its own colors, darkened to show it is inactive.
+	 * 
+	 * @param icon
+	 *            Icon to draw.
+	 * @param positionX
+	 *            Coordinates for the left side of the icon.
+	 * @param positionY
+	 *            Coordinates for the upper side of the icon.
+	 * @param scale
+	 *            Size in screen pixels of each icon pixel.
+	 */
+	public void drawDimmedIcon(final Icon icon, final int positionX,
+			final int positionY, final int scale) {
+		drawIconPixels(icon, positionX, positionY, scale, null, true);
+	}
+
+	/**
+	 * Draws a UI icon in the given color.
+	 * 
+	 * @param icon
+	 *            Icon to draw.
+	 * @param positionX
+	 *            Coordinates for the left side of the icon.
+	 * @param positionY
+	 *            Coordinates for the upper side of the icon.
+	 * @param scale
+	 *            Size in screen pixels of each icon pixel.
+	 * @param color
+	 *            Color of the icon.
+	 */
+	public void drawIcon(final Icon icon, final int positionX,
+			final int positionY, final int scale, final Color color) {
+		drawIconPixels(icon, positionX, positionY, scale, color, false);
+	}
+
+	private void drawIconPixels(final Icon icon, final int positionX,
+			final int positionY, final int scale, final Color override,
+			final boolean dimmed) {
+		Color previous = backBufferGraphics.getColor();
+		for (int i = 0; i < icon.getWidth(); i++)
+			for (int j = 0; j < icon.getHeight(); j++) {
+				Color color = icon.getColor(i, j);
+				if (color == null)
+					continue;
+				if (override != null)
+					color = override;
+				if (dimmed)
+					color = new Color(color.getRed() / 2,
+							color.getGreen() / 2, color.getBlue() / 2);
+				backBufferGraphics.setColor(color);
+				backBufferGraphics.fillRect(positionX + i * scale,
+						positionY + j * scale, scale, scale);
+			}
+		backBufferGraphics.setColor(previous);
+	}
+
+	/**
+	 * Draws the pause overlay: a pause icon with a "Paused" label.
+	 * 
+	 * @param screen
+	 *            Screen to draw on.
+	 */
+	public void drawPaused(final Screen screen) {
+		int scale = 4;
+		drawIcon(Icon.PAUSE, screen.getWidth() / 2 - Icon.PAUSE.getWidth()
+				* scale / 2, screen.getHeight() / 2 - 50, scale);
+		backBufferGraphics.setColor(GameColors.TEXT);
+		drawCenteredBigString(screen, "Paused", screen.getHeight() / 2 + 20);
+	}
+
+	/**
+	 * Draws an icon to the left of a centered menu label. The selected
+	 * option's icon is in full color and bobs; the others are dimmed.
+	 * 
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param icon
+	 *            Icon to draw.
+	 * @param label
+	 *            Centered label the icon sits next to.
+	 * @param labelY
+	 *            Baseline of the label.
+	 * @param selected
+	 *            Whether the option is selected.
+	 */
+	private void drawMenuIcon(final Screen screen, final Icon icon,
+			final String label, final int labelY, final boolean selected) {
+		int iconX = screen.getWidth() / 2
+				- fontRegularMetrics.stringWidth(label) / 2
+				- icon.getWidth() * 2 - 8;
+		int iconY = labelY - 5 - icon.getHeight();
+		if (selected)
+			drawIcon(icon, iconX, iconY + (int) Math.round(
+					Math.sin(System.currentTimeMillis() / 150.0) * 2), 2);
+		else
+			drawDimmedIcon(icon, iconX, iconY, 2);
+	}
+
+	/**
+	 * Draws a grid of pixel colors.
+	 * 
+	 * @param pixels
+	 *            Pixel colors indexed [x][y]; null where empty.
+	 * @param positionX
+	 *            Coordinates for the left side of the grid.
+	 * @param positionY
+	 *            Coordinates for the upper side of the grid.
+	 * @param scale
+	 *            Size in screen pixels of each grid pixel.
+	 */
+	private void drawColorGrid(final Color[][] pixels, final int positionX,
+			final int positionY, final int scale) {
+		Color previous = backBufferGraphics.getColor();
+		for (int i = 0; i < pixels.length; i++)
+			for (int j = 0; j < pixels[i].length; j++)
+				if (pixels[i][j] != null) {
+					backBufferGraphics.setColor(pixels[i][j]);
+					backBufferGraphics.fillRect(positionX + i * scale,
+							positionY + j * scale, scale, scale);
+				}
+		backBufferGraphics.setColor(previous);
 	}
 
 	/**
@@ -348,6 +503,18 @@ public final class DrawManager {
 
 		backBufferGraphics.setColor(Color.GREEN);
 		drawCenteredBigString(screen, titleString, screen.getHeight() / 3);
+
+		long time = System.currentTimeMillis();
+		int scale = 4;
+		int shipX = screen.getWidth() / 2 - Icon.TITLE_SHIP.getWidth()
+				* scale / 2;
+		int shipY = screen.getHeight() / 3 - 40
+				- (Icon.TITLE_SHIP.getHeight() + 3) * scale
+				+ (int) Math.round(Math.sin(time / 400.0) * 3);
+		drawIcon(Icon.TITLE_SHIP, shipX, shipY, scale);
+		drawIcon((time / 90) % 2 == 0 ? Icon.TITLE_FLAME_LONG
+				: Icon.TITLE_FLAME_SHORT, shipX,
+				shipY + Icon.TITLE_SHIP.getHeight() * scale, scale);
 	}
 
 	/**
@@ -498,8 +665,13 @@ public final class DrawManager {
 		for (Score score : highScores) {
 			scoreString = String.format("%s        %04d", score.getName(),
 					score.getScore());
-			drawCenteredRegularString(screen, scoreString, screen.getHeight()
-					/ 4 + fontRegularMetrics.getHeight() * (i + 1) * 2);
+			int rowY = screen.getHeight() / 4
+					+ fontRegularMetrics.getHeight() * (i + 1) * 2;
+			drawCenteredRegularString(screen, scoreString, rowY);
+			drawColorGrid(RankBadge.forRank(i + 1), screen.getWidth() / 2
+					- fontRegularMetrics.stringWidth(scoreString) / 2
+					- RankBadge.WIDTH * 2 - 12,
+					rowY - 5 - RankBadge.HEIGHT - 4, 2);
 			i++;
 		}
 	}
@@ -601,7 +773,10 @@ public final class DrawManager {
         backBufferGraphics.setColor(Color.GREEN);
         drawCenteredBigString(screen, "Shop", 34);
         backBufferGraphics.setColor(Color.WHITE);
-        drawCenteredRegularString(screen, "Credits: " + assets.getBalance(), 61);
+        String credits = "Credits: " + assets.getBalance();
+        drawCenteredRegularString(screen, credits, 61);
+        drawIcon(Icon.COIN, width / 2 - fontRegularMetrics.stringWidth(credits) / 2
+                - Icon.COIN.getWidth() * 2 - 6, 47, 2);
 
         int cardSize = Math.max(76, Math.min(120, Math.min((width - 80) / 3, (height - 248) / 2)));
         drawShopShelf(screen, items, assets, "Items", "No items available",
@@ -749,13 +924,20 @@ public final class DrawManager {
 
 		backBufferGraphics.setColor(Color.GREEN);
 		drawCenteredBigString(screen, "Settings", screen.getHeight() / 5);
+		drawIcon(Icon.SETTINGS, screen.getWidth() / 2
+				- fontBigMetrics.stringWidth("Settings") / 2
+				- Icon.SETTINGS.getWidth() * 3 - 10,
+				screen.getHeight() / 5 - 22, 3, Color.GREEN);
+
+		Icon[] icons = { Icon.AUDIO, Icon.CONTROLS, Icon.GAMEPLAY, Icon.BACK };
 
 		for (int i = 0; i < options.length; i++) {
-			backBufferGraphics.setColor(
-					i == selectedOption ? Color.GREEN : Color.WHITE);
-			drawCenteredRegularString(screen, options[i],
-					screen.getHeight() / 2
-							+ i * fontRegularMetrics.getHeight() * 2);
+			boolean selected = i == selectedOption;
+			int labelY = screen.getHeight() / 2
+					+ i * fontRegularMetrics.getHeight() * 2;
+			backBufferGraphics.setColor(selected ? Color.GREEN : Color.WHITE);
+			drawCenteredRegularString(screen, options[i], labelY);
+			drawMenuIcon(screen, icons[i], options[i], labelY, selected);
 		}
 
 		backBufferGraphics.setColor(Color.GRAY);
@@ -1147,10 +1329,14 @@ public final class DrawManager {
     public void drawMenu(final Screen screen, final int option) {
         String[] labels={"Play","High scores","Records & Achievements","Settings","Exit"};
         int[] codes={2,3,9,4,0};
+        Icon[] icons={Icon.PLAY,Icon.HIGH_SCORES,Icon.RECORDS,Icon.SETTINGS,Icon.EXIT};
         int y=screen.getHeight()/3*2;
         for (int i=0;i<labels.length;i++) {
-            backBufferGraphics.setColor(option==codes[i]?Color.GREEN:Color.WHITE);
-            drawCenteredRegularString(screen,labels[i],y+i*fontRegularMetrics.getHeight()*3/2);
+            boolean selected=option==codes[i];
+            int labelY=y+i*fontRegularMetrics.getHeight()*3/2;
+            backBufferGraphics.setColor(selected?Color.GREEN:Color.WHITE);
+            drawCenteredRegularString(screen,labels[i],labelY);
+            drawMenuIcon(screen,icons[i],labels[i],labelY,selected);
         }
     }
 
