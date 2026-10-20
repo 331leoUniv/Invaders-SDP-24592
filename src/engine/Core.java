@@ -36,6 +36,7 @@ import screen.SettingsScreen;
 import screen.ControlsSettingsScreen;
 import screen.GameplaySettingsScreen;
 import shop.ShopController;
+import screen.HangarMenuScreen;
 
 /**
  * Implements core game logic.
@@ -44,7 +45,7 @@ import shop.ShopController;
  *
  */
 public final class Core {
-
+	ShipType selectedShip = ShipType.STANDARD;
 	/** Width of current screen. */
 	private static final int WIDTH = 448;
 	/** Height of current screen. */
@@ -221,12 +222,33 @@ public final class Core {
 					currentScreen = new ShopScreen(width, height, FPS, shopController);
 					returnCode = frame.setScreen(currentScreen);
 					break;
-				case 11:
-					currentScreen = new ShipSelectionScreen(width, height, FPS);
-					frame.setScreen(currentScreen);
-					selectedShip = ((ShipSelectionScreen) currentScreen).getSelectedShip();
-					returnCode = 1;
+				case 11: {
+					currentScreen = new HangarMenuScreen(width, height, FPS);
+					returnCode = frame.setScreen(currentScreen);
 					break;
+				}
+
+				case 12: {
+					ShipSelectionScreen shipSelection = new ShipSelectionScreen(width, height, FPS);
+					currentScreen = shipSelection;
+					int selectionResult = frame.setScreen(currentScreen);
+
+					if (selectionResult == ShipSelectionScreen.SHIP_SELECTED) {
+						selectedShip = shipSelection.getSelectedShip();
+					}
+
+					returnCode = HangarMenuScreen.RETURN_TO_MAIN_MENU == selectionResult
+							? 11
+							: 11;
+					break;
+				}
+
+				case 13: {
+					currentScreen = new HangarScreen(width, height, FPS);
+					frame.setScreen(currentScreen);
+					returnCode = 11;
+					break;
+				}
 				case 4:
 					currentScreen = new SettingsScreen(width, height, FPS);
 					returnCode = frame.setScreen(currentScreen);

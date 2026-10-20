@@ -1338,7 +1338,7 @@ public final class DrawManager {
 	public void drawShipSelection(final Screen screen, final ShipType[] shipTypes,
 			final int selectedIndex) {
 		String titleString = "SELECT SHIP";
-		String instructionsString = "PRESS SPACE TO LAUNCH";
+        String instructionsString = "SPACE: SELECT   ESC: BACK";
 
 		backBufferGraphics.setColor(Color.GREEN);
 		drawCenteredRegularString(screen, titleString, screen.getHeight() / 6);
@@ -1368,4 +1368,28 @@ public final class DrawManager {
 		backBufferGraphics.setColor(Color.GRAY);
 		drawCenteredRegularString(screen, instructionsString, screen.getHeight() - 60);
 	}
+
+    public void drawHangarMenu(final Screen screen, final int selectedOption) {
+    String[] labels = { "Choose ship", "Choose color", "Back" };
+
+    backBufferGraphics.setColor(Color.GREEN);
+    drawCenteredBigString(screen, "Hangar", screen.getHeight() / 5);
+
+    int firstY = screen.getHeight() / 2;
+    int spacing = fontRegularMetrics.getHeight() * 3;
+
+    for (int i = 0; i < labels.length; i++) {
+        backBufferGraphics.setColor(
+                i == selectedOption ? Color.GREEN : Color.WHITE);
+        drawCenteredRegularString(screen, labels[i], firstY + i * spacing);
+    }
+
+    backBufferGraphics.setColor(Color.GRAY);
+    drawCenteredRegularString(screen,
+            "Up/Down: select   Space/Enter: confirm",
+            screen.getHeight() - 50);
+    drawCenteredRegularString(screen, "Esc: main menu",
+            screen.getHeight() - 28);
+}
+
 }
