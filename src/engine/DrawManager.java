@@ -73,6 +73,19 @@ public final class DrawManager {
     /** Big sized font properties. */
     private static FontMetrics fontBigMetrics;
 
+    /** Options of the settings menu, in order. */
+    private static final String[] SETTINGS_MENU_OPTIONS =
+            { "Audio", "Controls", "Gameplay", "Back" };
+    /** Options of the gameplay settings menu, in order. */
+    private static final String[] GAMEPLAY_SETTINGS_OPTIONS =
+            { "Easy", "Normal", "Hard" };
+    /** Width of the column holding the audio settings. */
+    private static final int AUDIO_COLUMN_WIDTH = 200;
+    /** Space between an audio option name and its volume bar. */
+    private static final int AUDIO_BAR_GAP = 6;
+    /** Height of the audio volume bars. */
+    private static final int AUDIO_BAR_HEIGHT = 8;
+
     /** Sprite types mapped to their images. */
     private static Map<SpriteType, boolean[][]> spriteMap;
 
@@ -815,7 +828,7 @@ public final class DrawManager {
     }
 
 	public void drawSettingsMenu(final Screen screen, final int selectedOption) {
-		String[] options = { "Audio", "Controls", "Gameplay", "Back" };
+		String[] options = SETTINGS_MENU_OPTIONS;
 
         backBufferGraphics.setColor(Color.GREEN);
 		drawCenteredBigString(screen, "Settings", screen.getHeight() / 5);
@@ -835,31 +848,16 @@ public final class DrawManager {
 
     public void drawControlsSettings(final Screen screen,
                                      final int selectedOption, final boolean waitingForKey) {
-        String[] options = {
-                "Move Left", "Move Right", "Fire", "Back"
-        };
-        String[] keys = {
-			getKeyDisplayText(ControlsConfig.getKey(ControlsConfig.LEFT)),
-			getKeyDisplayText(ControlsConfig.getKey(ControlsConfig.RIGHT)),
-			getKeyDisplayText(ControlsConfig.getKey(ControlsConfig.FIRE)),
-                ""
-        };
+        String[] labels = getControlsSettingsLabels(selectedOption,
+                waitingForKey);
 
         backBufferGraphics.setColor(Color.GREEN);
 		drawCenteredBigString(screen, "Controls", screen.getHeight() / 5);
 
-        for (int i = 0; i < options.length; i++) {
-            String text = options[i];
-
-            if (i < 3) {
-                text += ": ";
-                text += waitingForKey && i == selectedOption
-                        ? "Press a key (Esc to cancel)" : keys[i];
-            }
-
+        for (int i = 0; i < labels.length; i++) {
             backBufferGraphics.setColor(
 					i == selectedOption ? Color.GREEN : Color.WHITE);
-			drawCenteredRegularString(screen, text,
+			drawCenteredRegularString(screen, labels[i],
                     screen.getHeight() / 2
 							+ i * fontRegularMetrics.getHeight() * 2);
         }
@@ -870,7 +868,7 @@ public final class DrawManager {
     }
 
 	public void drawGameplaySettings(final Screen screen, final int selectedOption) {
-        String[] options = { "Easy", "Normal", "Hard" };
+        String[] options = GAMEPLAY_SETTINGS_OPTIONS;
 
         backBufferGraphics.setColor(Color.GREEN);
 		drawCenteredBigString(screen, "Gameplay", screen.getHeight() / 5);
@@ -917,7 +915,7 @@ public final class DrawManager {
         int[] barVolumes = { bgmVolume, sfxVolume };
 
         // Centered column that holds the option names, values, and bars.
-        int columnWidth = 200;
+        int columnWidth = AUDIO_COLUMN_WIDTH;
         int columnLeft = screen.getWidth() / 2 - columnWidth / 2;
         // Vertical position of the first option and the space between options.
         int firstOptionY = screen.getHeight() / 3;
@@ -929,8 +927,8 @@ public final class DrawManager {
 		int valueLeft = valueRight - fontRegularMetrics.stringWidth("< 100 >");
         int valueCenter = (valueLeft + valueRight) / 2;
         // Volume bars are drawn right below the volume names.
-        int barGap = 6;
-        int barHeight = 8;
+        int barGap = AUDIO_BAR_GAP;
+        int barHeight = AUDIO_BAR_HEIGHT;
 
         // Title.
         backBufferGraphics.setColor(Color.GREEN);
@@ -1249,6 +1247,140 @@ public final class DrawManager {
         }
 
         return -1;
+    }
+
+    /**
+     * Returns the settings menu option under the mouse.
+     *
+     * @return Index of the hovered option, or -1 if none.
+     */
+    public int getSettingsMenuOptionAt(final Screen screen,
+            final int mouseX, final int mouseY) {
+        if (fontRegularMetrics == null)
+            return -1;
+
+        return getCenteredOptionAt(screen, SETTINGS_MENU_OPTIONS,
+                screen.getHeight() / 2, fontRegularMetrics.getHeight() * 2,
+                mouseX, mouseY);
+    }
+
+    /**
+     * Returns the controls settings option under the mouse.
+     *
+     * @return Index of the hovered option, or -1 if none.
+     */
+    public int getControlsSettingsOptionAt(final Screen screen,
+            final int selectedOption, final boolean waitingForKey,
+            final int mouseX, final int mouseY) {
+        if (fontRegularMetrics == null)
+            return -1;
+
+        return getCenteredOptionAt(screen,
+                getControlsSettingsLabels(selectedOption, waitingForKey),
+                screen.getHeight() / 2, fontRegularMetrics.getHeight() * 2,
+                mouseX, mouseY);
+    }
+
+    /**
+     * Returns the gameplay settings option under the mouse.
+     *
+     * @return Index of the hovered option, or -1 if none.
+     */
+    public int getGameplaySettingsOptionAt(final Screen screen,
+            final int mouseX, final int mouseY) {
+        if (fontRegularMetrics == null)
+            return -1;
+
+        return getCenteredOptionAt(screen, GAMEPLAY_SETTINGS_OPTIONS,
+                screen.getHeight() / 2, fontRegularMetrics.getHeight() * 2,
+                mouseX, mouseY);
+    }
+
+    /**
+     * Returns the audio settings option under the mouse. A volume option
+     * covers its whole row, from its name down to its volume bar.
+     *
+     * @param optionCount
+     *            Number of options on the audio settings screen.
+     * @return Index of the hovered option, or -1 if none.
+     */
+    public int getAudioSettingsOptionAt(final Screen screen,
+            final int optionCount, final int mouseX, final int mouseY) {
+        if (fontRegularMetrics == null)
+            return -1;
+
+        int columnLeft = screen.getWidth() / 2 - AUDIO_COLUMN_WIDTH / 2;
+        int firstOptionY = screen.getHeight() / 3;
+        int optionSpacing = fontRegularMetrics.getHeight() * 4;
+        int muteIndex = optionCount - 1;
+
+        if (mouseX < columnLeft || mouseX > columnLeft + AUDIO_COLUMN_WIDTH)
+            return -1;
+
+        for (int i = 0; i < optionCount; i++) {
+            int baseline = firstOptionY + optionSpacing * i;
+            int top = baseline - fontRegularMetrics.getAscent();
+            int bottom = i == muteIndex
+                    ? baseline + fontRegularMetrics.getDescent()
+                    : baseline + AUDIO_BAR_GAP + AUDIO_BAR_HEIGHT;
+
+            if (mouseY >= top && mouseY <= bottom)
+                return i;
+        }
+
+        return -1;
+    }
+
+    /**
+     * Returns the index of the horizontally centered option under the mouse.
+     *
+     * @param labels
+     *            Option texts, drawn one under the other.
+     * @param firstY
+     *            Baseline of the first option.
+     * @param spacing
+     *            Vertical space between two option baselines.
+     * @return Index of the hovered option, or -1 if none.
+     */
+    private int getCenteredOptionAt(final Screen screen, final String[] labels,
+            final int firstY, final int spacing,
+            final int mouseX, final int mouseY) {
+        for (int i = 0; i < labels.length; i++) {
+            int textWidth = fontRegularMetrics.stringWidth(labels[i]);
+            int left = screen.getWidth() / 2 - textWidth / 2;
+            int baseline = firstY + i * spacing;
+            int top = baseline - fontRegularMetrics.getAscent();
+            int bottom = baseline + fontRegularMetrics.getDescent();
+
+            if (mouseX >= left && mouseX <= left + textWidth
+                    && mouseY >= top && mouseY <= bottom)
+                return i;
+        }
+
+        return -1;
+    }
+
+    /**
+     * Builds the texts of the controls settings options, with their keys.
+     *
+     * @return One text per option: Move Left, Move Right, Fire, Back.
+     */
+    private String[] getControlsSettingsLabels(final int selectedOption,
+            final boolean waitingForKey) {
+        String[] labels = { "Move Left", "Move Right", "Fire", "Back" };
+        String[] keys = {
+                getKeyDisplayText(ControlsConfig.getKey(ControlsConfig.LEFT)),
+                getKeyDisplayText(ControlsConfig.getKey(ControlsConfig.RIGHT)),
+                getKeyDisplayText(ControlsConfig.getKey(ControlsConfig.FIRE))
+        };
+
+        for (int i = 0; i < keys.length; i++) {
+            labels[i] += ": ";
+            labels[i] += waitingForKey && i == selectedOption
+                    ? "Press a key (Esc to cancel)" : keys[i];
+        }
+
+        return labels;
     }
 
     public void drawRecordsPage(final Screen screen,
