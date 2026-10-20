@@ -127,7 +127,8 @@ public final class Core {
 		int returnCode = 1;
 		do {
 			gameState = new GameState(1, 0, MAX_LIVES, 0, 0);
-
+			// When starting a new game, reset the difficulty adjustment conditions (player has 1 life or less && player has not cleared 3 levels while on low difficulty)
+			DifficultyAdjustWhilePlaying.getInstance().reset();
 			switch (returnCode) {
 			case 1:
 				// Main menu.
