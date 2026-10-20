@@ -13,6 +13,7 @@ import java.util.Set;
  *
  */
 public class Ship extends Entity {
+    private Color baseColor = DEFAULT_COLOR;
 
     /** Type of this ship, which supplies its speed, fire rate and lives. */
     private final ShipType shipType;
@@ -46,6 +47,20 @@ public class Ship extends Entity {
 
     /** Whether the Hyperfire buff is currently enabled. */
     private boolean hyperfireEnabled = false;
+
+    /** Distance from the ship center to each barrel of the Twin Cannon. */
+    private static final int TWIN_CANNON_OFFSET = 8;
+    /** Minimum time between two grenade launches. */
+    private static final int GRENADE_COOLDOWN = 800;
+    /** Maximum number of grenades the ship can carry. */
+    private static final int MAX_GRENADES = 1;
+
+    /** Whether the Twin Cannon buff (double barrel) is currently active. */
+    private boolean twinCannonActive = false;
+    /** Grenades left (given by the Cluster Grenade item). */
+    private int grenadeCount = 0;
+    /** Minimum time between two grenade launches. */
+    private Cooldown grenadeCooldown;
 
     /** Time of the last shot. */
     private long lastShotTime = 0;
@@ -93,9 +108,9 @@ public class Ship extends Entity {
      * Constructor, establishes the ship's properties.
      *
      * @param positionX
-     *            Initial position of the ship in the X axis.
+     *                  Initial position of the ship in the X axis.
      * @param positionY
-     *            Initial position of the ship in the Y axis.
+     *                  Initial position of the ship in the Y axis.
      */
     public Ship(final int positionX, final int positionY) {
         this(positionX, positionY, ShipType.STANDARD);
@@ -105,11 +120,11 @@ public class Ship extends Entity {
      * Constructor, establishes the ship's properties from a selected type.
      *
      * @param positionX
-     *            Initial position of the ship in the X axis.
+     *                  Initial position of the ship in the X axis.
      * @param positionY
-     *            Initial position of the ship in the Y axis.
+     *                  Initial position of the ship in the Y axis.
      * @param shipType
-     *            Selected ship type, source of speed, fire rate and lives.
+     *                  Selected ship type, source of speed, fire rate and lives.
      */
     public Ship(final int positionX, final int positionY,
             final ShipType shipType) {
@@ -128,6 +143,7 @@ public class Ship extends Entity {
         this.spriteType = SpriteType.Ship;
         this.destructionCooldown = Core.getCooldown(1000);
         this.damageFeedbackCooldown = Core.getCooldown(DAMAGE_FEEDBACK_DURATION);
+        this.grenadeCooldown = Core.getCooldown(GRENADE_COOLDOWN);
     }
 
     /**
@@ -174,7 +190,8 @@ public class Ship extends Entity {
      * pixels per direction. Separate remainders prevent a direction change
      * from converting a fraction in one direction into movement in the other.
      *
-     * @param direction Direction slot, kept separate to avoid cross-direction carry.
+     * @param direction Direction slot, kept separate to avoid cross-direction
+     *                  carry.
      * @return Whole pixels to move in this update.
      */
     private int getSlowedMovementPixels(final int direction) {
@@ -189,7 +206,7 @@ public class Ship extends Entity {
      * Shoots a bullet upwards.
      *
      * @param bullets
-     *            List of bullets on screen, to add the new bullet.
+     *                List of bullets on screen, to add the new bullet.
      * @return Number of bullets added to the screen.
      */
     public final int shoot(final Set<Bullet> bullets) {
@@ -229,22 +246,48 @@ public class Ship extends Entity {
             return count;
         }
 
-        boolean added = bullets.add(
-                BulletPool.getBullet(x, y, this.bulletSpeed,
-                        Bullet.Owner.PLAYER));
+        int added = addPlayerBullets(bullets, x, y);
 
         this.remainingShots = this.currentBulletType.getShotCount() - 1;
         this.nextShotTime = currentTime
                 + this.currentBulletType.getShotDelay();
 
-        return added ? 1 : 0;
+        return added;
+    }
+
+    /**
+     * Adds the bullets of one straight shot: one bullet, or two parallel
+     * bullets while the Twin Cannon is active.
+     *
+     * @param bullets
+     *            Bullets on screen, to add the new bullets.
+     * @param x
+     *            Center of the shot on the X axis.
+     * @param y
+     *            Starting position of the shot on the Y axis.
+     * @return Number of bullets added.
+     */
+    private int addPlayerBullets(final Set<Bullet> bullets, final int x,
+            final int y) {
+        if (this.twinCannonActive) {
+            int count = 0;
+            if (bullets.add(BulletPool.getBullet(x - TWIN_CANNON_OFFSET, y,
+                    this.bulletSpeed, Bullet.Owner.PLAYER)))
+                count++;
+            if (bullets.add(BulletPool.getBullet(x + TWIN_CANNON_OFFSET, y,
+                    this.bulletSpeed, Bullet.Owner.PLAYER)))
+                count++;
+            return count;
+        }
+        return bullets.add(BulletPool.getBullet(x, y, this.bulletSpeed,
+                Bullet.Owner.PLAYER)) ? 1 : 0;
     }
 
     /**
      * Fires the bullets still owed by a RAPID burst, one per shot delay.
      *
      * @param bullets
-     *            List of bullets on screen, to add the new bullet.
+     *                List of bullets on screen, to add the new bullet.
      * @return Number of bullets added to the screen.
      */
     public final int updateBurst(final Set<Bullet> bullets) {
@@ -262,15 +305,14 @@ public class Ship extends Entity {
             return 0;
         }
 
-        boolean added = bullets.add(BulletPool.getBullet(
-                this.positionX + this.width / 2, this.positionY,
-                this.bulletSpeed, Bullet.Owner.PLAYER));
+        int added = addPlayerBullets(bullets,
+                this.positionX + this.width / 2, this.positionY);
 
         this.remainingShots--;
         this.nextShotTime = currentTime
                 + this.currentBulletType.getShotDelay();
 
-        return added ? 1 : 0;
+        return added;
     }
 
     /**
@@ -290,16 +332,79 @@ public class Ship extends Entity {
     }
 
     /**
+     * Enables or disables the Twin Cannon buff (double barrel).
+     *
+     * @param active
+     *            True to shoot two parallel bullets.
+     */
+    public final void setTwinCannonActive(final boolean active) {
+        this.twinCannonActive = active;
+    }
+
+    /**
+     * Checks whether the Twin Cannon buff is currently active.
+     *
+     * @return True if the ship shoots two parallel bullets.
+     */
+    public final boolean isTwinCannonActive() {
+        return this.twinCannonActive;
+    }
+
+    /**
+     * Adds grenades to the ship's stock.
+     *
+     * @param amount
+     *            Number of grenades to add.
+     */
+    public final void addGrenades(final int amount) {
+        this.grenadeCount = Math.min(MAX_GRENADES,
+                this.grenadeCount + amount);
+    }
+
+    /**
+     * Getter for the number of grenades left.
+     *
+     * @return Number of grenades left.
+     */
+    public final int getGrenadeCount() {
+        return this.grenadeCount;
+    }
+
+    /**
+     * Launches a grenade upwards if the ship has one and the launcher is
+     * ready. Like the bullets, grenades cannot be launched while the
+     * Chameleon Hull is active.
+     *
+     * @param grenades
+     *            Set of grenades on screen, to add the new grenade.
+     * @param detonationY
+     *            Altitude at which the grenade explodes if it hits nothing.
+     * @return True if a grenade was launched.
+     */
+    public final boolean launchGrenade(final Set<Grenade> grenades,
+            final int detonationY) {
+        if (this.chameleonHullActive || isDestroyed()) {
+            return false;
+        }
+        if (this.grenadeCount > 0 && this.grenadeCooldown.checkFinished()) {
+            this.grenadeCooldown.reset();
+            this.grenadeCount--;
+            grenades.add(new Grenade(this.positionX + this.width / 2,
+                    this.positionY, detonationY));
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Updates status and visual feedback of the ship.
      */
     public final void update() {
         if (this.chameleonHullActive) {
             long elapsed = System.nanoTime() - this.chameleonActivationTime;
 
-            int index = (int) (
-                    (elapsed / entity.item.ChameleonHull.COLOR_INTERVAL_NANOS)
-                            % CHAMELEON_COLORS.length
-            );
+            int index = (int) ((elapsed / entity.item.ChameleonHull.COLOR_INTERVAL_NANOS)
+                    % CHAMELEON_COLORS.length);
 
             setColor(CHAMELEON_COLORS[index]);
         } else if (this.damageFeedbackCooldown != null
@@ -309,11 +414,11 @@ public class Ship extends Entity {
             if ((elapsed / FLASH_INTERVAL) % 2 == 0) {
                 setColor(Color.RED);
             } else {
-                setColor(DEFAULT_COLOR);
+                setColor(this.baseColor);
             }
         } else {
             // Restore default color once the feedback is over
-            setColor(DEFAULT_COLOR);
+            setColor(this.baseColor);
         }
 
         if (!this.destructionCooldown.checkFinished())
@@ -330,6 +435,8 @@ public class Ship extends Entity {
             return;
         }
 
+        // The Twin Cannon buff expires when a life is lost.
+        this.twinCannonActive = false;
         deactivateChameleonHull();
         this.destructionCooldown.reset();
     }
@@ -365,7 +472,7 @@ public class Ship extends Entity {
      * Changes the bullet type and cancels any burst still in flight.
      *
      * @param bulletType
-     *            New bullet type.
+     *                   New bullet type.
      */
     public final void setBulletType(final BulletType bulletType) {
         if (bulletType == null)
@@ -405,9 +512,9 @@ public class Ship extends Entity {
      * Changes the ship's current movement speed. Zero stops movement.
      *
      * @param speed
-     *            Non-negative movement distance per update.
+     *              Non-negative movement distance per update.
      * @throws IllegalArgumentException
-     *             If the speed is negative.
+     *                                  If the speed is negative.
      */
     public final void setSpeed(final int speed) {
         if (speed < 0)
@@ -420,9 +527,9 @@ public class Ship extends Entity {
      * Sets the baseline movement speed without changing the current speed.
      *
      * @param speed
-     *            Positive movement distance per update.
+     *              Positive movement distance per update.
      * @throws IllegalArgumentException
-     *             If the baseline speed is not positive.
+     *                                  If the baseline speed is not positive.
      */
     public final void setBaseSpeed(final int speed) {
         if (speed <= 0)
@@ -436,9 +543,9 @@ public class Ship extends Entity {
      * from the time of the last shot, so there is no cooldown to restart.
      *
      * @param shootingInterval
-     *            Positive interval in milliseconds.
+     *                         Positive interval in milliseconds.
      * @throws IllegalArgumentException
-     *             If the interval is not positive.
+     *                                  If the interval is not positive.
      */
     public final void setShootingInterval(final int shootingInterval) {
         if (shootingInterval <= 0)
@@ -451,9 +558,9 @@ public class Ship extends Entity {
      * Sets the baseline shooting interval without changing the current one.
      *
      * @param shootingInterval
-     *            Positive interval in milliseconds.
+     *                         Positive interval in milliseconds.
      * @throws IllegalArgumentException
-     *             If the baseline interval is not positive.
+     *                                  If the baseline interval is not positive.
      */
     public final void setBaseShootingInterval(final int shootingInterval) {
         if (shootingInterval <= 0)
@@ -539,11 +646,9 @@ public class Ship extends Entity {
     }
 
     public final double getMovementSpeed() {
-        return this.speed * (
-                this.chameleonHullActive
-                        ? entity.item.ChameleonHull.SPEED_MULTIPLIER
-                        : 1.0
-        );
+        return this.speed * (this.chameleonHullActive
+                ? entity.item.ChameleonHull.SPEED_MULTIPLIER
+                : 1.0);
     }
 
     /** Adds the power-up movement; the original movement code is preserved. */
@@ -555,11 +660,9 @@ public class Ship extends Entity {
         this.chameleonMovementRemainder += direction * this.speed
                 * (entity.item.ChameleonHull.SPEED_MULTIPLIER - 1.0);
 
-        int extraPixels = (int) (
-                this.chameleonMovementRemainder >= 0
-                        ? Math.floor(this.chameleonMovementRemainder + 1e-9)
-                        : Math.ceil(this.chameleonMovementRemainder - 1e-9)
-        );
+        int extraPixels = (int) (this.chameleonMovementRemainder >= 0
+                ? Math.floor(this.chameleonMovementRemainder + 1e-9)
+                : Math.ceil(this.chameleonMovementRemainder - 1e-9));
 
         this.positionX += extraPixels;
         this.chameleonMovementRemainder -= extraPixels;
@@ -592,5 +695,13 @@ public class Ship extends Entity {
         }
         this.damageFeedbackStartTime = System.currentTimeMillis();
         this.damageFeedbackCooldown.reset();
+    }
+    public final void setBaseColor(final Color color) {
+        if (color == null) {
+            throw new IllegalArgumentException("Base color cannot be null.");
+        }
+
+        this.baseColor = color;
+        setColor(color);
     }
 }
