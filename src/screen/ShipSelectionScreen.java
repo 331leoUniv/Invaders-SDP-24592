@@ -18,8 +18,18 @@ public class ShipSelectionScreen extends Screen {
 
     private final Cooldown selectionCooldown;
     private final ShipType[] shipTypes = ShipType.values();
-    private int selectedIndex;
+    /** Currently selected index. */
+    private int selectedIndex = 0;
+    /** Tracks the previous left mouse button state. */
+    private boolean wasMousePressed = false;
 
+    /**
+     * Constructor, establishes the properties of the screen.
+     *
+     * @param width  Screen width.
+     * @param height Screen height.
+     * @param fps    Frames per second.
+     */
     public ShipSelectionScreen(final int width, final int height, final int fps) {
         super(width, height, fps);
 
@@ -38,6 +48,34 @@ public class ShipSelectionScreen extends Screen {
     @Override
     protected void update() {
         super.update();
+
+        // Get the ship currently hovered by the mouse.
+        int mouseX = inputManager.getMouseX();
+        int mouseY = inputManager.getMouseY();
+
+        int hoveredIndex = drawManager.getShipSelectionOptionAt(
+                this, this.shipTypes, mouseX, mouseY);
+
+        // Update the selected ship when hovering over a valid option.
+        if (hoveredIndex != -1 && hoveredIndex != this.selectedIndex) {
+            this.selectedIndex = hoveredIndex;
+        }
+
+        // Detect a new left mouse click.
+        boolean mousePressed = inputManager.isMousePressed();
+        boolean newMouseClick = mousePressed && !wasMousePressed;
+
+        wasMousePressed = mousePressed;
+
+        // Confirm the ship when clicking on a valid option.
+        if (newMouseClick
+                && hoveredIndex != -1
+                && this.inputDelay.checkFinished()) {
+            this.selectedIndex = hoveredIndex;
+            this.returnCode = SHIP_SELECTED;
+            this.isRunning = false;
+        }
+
         draw();
 
         if (!this.selectionCooldown.checkFinished()

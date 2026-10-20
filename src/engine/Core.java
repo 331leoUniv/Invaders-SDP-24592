@@ -11,6 +11,8 @@ import javax.swing.JOptionPane;
 
 import screen.ShopScreen;
 import screen.HangarScreen;
+import screen.HangarMenuScreen;
+import screen.GameModeScreen;
 
 import currency.PlayerAssets;
 import currency.PlayerAssetsState;
@@ -36,7 +38,6 @@ import screen.SettingsScreen;
 import screen.ControlsSettingsScreen;
 import screen.GameplaySettingsScreen;
 import shop.ShopController;
-import screen.HangarMenuScreen;
 
 /**
  * Implements core game logic.
@@ -45,7 +46,6 @@ import screen.HangarMenuScreen;
  *
  */
 public final class Core {
-	ShipType selectedShip = ShipType.STANDARD;
 	/** Width of current screen. */
 	private static final int WIDTH = 448;
 	/** Height of current screen. */
@@ -132,17 +132,26 @@ public final class Core {
 			gameState = new GameState(1, 0, MAX_LIVES, 0, 0);
 
 			switch (returnCode) {
-				case 1:
-					// Main menu.
-					currentScreen = new TitleScreen(width, height, FPS);
-					LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
-							+ " title screen at " + FPS + " fps.");
-					returnCode = frame.setScreen(currentScreen);
-					LOGGER.info("Closing title screen.");
-					break;
-				case 2:
-					// The selected ship decides how many lives the run starts with.
-					LOGGER.info("Selected ship: " + selectedShip.getName());
+			case 1:
+				// Main menu.
+				currentScreen = new TitleScreen(width, height, FPS);
+				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
+						+ " title screen at " + FPS + " fps.");
+				returnCode = frame.setScreen(currentScreen);
+				LOGGER.info("Closing title screen.");
+
+				if (returnCode == 2)
+					returnCode = 14;
+				break;
+			case 14:
+				currentScreen = new GameModeScreen(width, height, FPS);
+				LOGGER.info("Starting game mode selection screen.");
+				returnCode = frame.setScreen(currentScreen);
+				LOGGER.info("Closing game mode selection screen.");
+				break;
+			case 2:
+				// The selected ship decides how many lives the run starts with.
+				LOGGER.info("Selected ship: " + selectedShip.getName());
 
 					gameState = new GameState(1, 0, selectedShip.getMaxLives(),
 							0, 0);
@@ -237,9 +246,7 @@ public final class Core {
 						selectedShip = shipSelection.getSelectedShip();
 					}
 
-					returnCode = HangarMenuScreen.RETURN_TO_MAIN_MENU == selectionResult
-							? 11
-							: 11;
+					returnCode = 11;
 					break;
 				}
 
