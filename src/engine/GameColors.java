@@ -27,6 +27,8 @@ public final class GameColors {
 
     public static final Color ENEMY_BULLET = new Color(255, 150, 40);
 
+    public static final Color ENEMY_BULLET_GLOW = new Color(255, 80, 80);
+
 
     public static final Color DAMAGE = new Color(235, 40, 40);
 
@@ -42,6 +44,19 @@ public final class GameColors {
     public static final Color POWERUP_LIFE = new Color(72, 220, 120);
 
     public static final Color POWERUP_RAPID_FIRE = new Color(190, 110, 255);
+
+
+    public static final Color ICON_SCORE = new Color(255, 220, 70);
+
+    public static final Color ICON_LIFE = new Color(235, 64, 64);
+
+    public static final Color ICON_LIFE_LOST = new Color(110, 116, 140);
+
+    public static final Color ICON_PLANET_SHADE = new Color(120, 60, 180);
+
+    public static final Color ICON_COIN = new Color(240, 180, 40);
+
+    public static final Color ICON_UI = new Color(232, 234, 246);
 
 
     private GameColors() {
