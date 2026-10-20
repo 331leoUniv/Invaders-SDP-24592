@@ -6,6 +6,8 @@ import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 import javax.swing.JOptionPane;
 
@@ -16,6 +18,7 @@ import records.RunSession;
 import records.RunRecord;
 import records.RunRecordFormatter;
 import records.RecordsService;
+import level.LevelDefinition;
 import audio.AudioControls;
 import screen.AudioControlScreen;
 import screen.GameScreen;
@@ -313,6 +316,32 @@ public final class Core {
 				return false;
 			}
 		}
+	}
+
+	/**
+	 * Runs one validated custom stage in the existing window and returns its result.
+	 * Call on the game's screen-running thread after file selection/import completes.
+	 * This path never enters the official campaign loop, unlocks stages, or submits
+	 * a high score. The caller decides which menu/result screen to display next.
+	 */
+	public static GameState playCustomLevel(final LevelDefinition definition) {
+		if (frame == null)
+			throw new IllegalStateException("The game window must be initialized first");
+		return runCustomLevel(definition, GameplayConfig.getMultiplier(),
+				frame.getWidth(), frame.getHeight(), FPS, screen -> {
+					currentScreen = screen;
+					frame.setScreen(screen);
+				});
+	}
+
+	// Runner is separated so handoff and unlock isolation can be checked headlessly.
+	static GameState runCustomLevel(final LevelDefinition definition, final double multiplier,
+			final int width, final int height, final int fps, final Consumer<GameScreen> runner) {
+		Objects.requireNonNull(runner, "runner");
+		GameScreen custom = GameScreen.forCustomLevel(
+				new GameState(1, 0, MAX_LIVES, 0, 0), definition, multiplier, width, height, fps);
+		runner.accept(custom);
+		return custom.getGameState();
 	}
 
 	private static GameSettings applyDifficulty(
