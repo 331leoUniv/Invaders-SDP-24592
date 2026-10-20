@@ -462,6 +462,15 @@ public final class DrawManager {
 		drawCenteredRegularString(screen, "Stage " + stage + " Failed",
 				screen.getHeight() / height - fontBigMetrics.getHeight());
 	}
+    /** Draws the game mode as one more row of the results list. */
+    public void drawModeLabel(final Screen screen, final String modeLabel,
+                              final boolean isNewRecord) {
+        int height = isNewRecord ? 4 : 2;
+
+        backBufferGraphics.setColor(Color.WHITE);
+        drawCenteredRegularString(screen, modeLabel, screen.getHeight()
+                / height + fontRegularMetrics.getHeight() * 8);
+    }
 
 	/**
 	 * Draws high score screen title and instructions.
@@ -1087,17 +1096,18 @@ public final class DrawManager {
     public void drawAchievementResults(final Screen screen, final int score,
 			final int lives, final int enemies, final float accuracy,
 			final boolean isNewRecord, final char[] name, final int selected,
-			final List<Achievement> achievements, final boolean acceptsInput, final int failedStage) {
+			final List<Achievement> achievements, final boolean acceptsInput, final int failedStage, final boolean gameCleared) {
         drawAchievementResults(screen,score,lives,enemies,accuracy,isNewRecord,name,selected,
-                achievements,acceptsInput,failedStage,false);
+                achievements,acceptsInput,failedStage,gameCleared,null);
     }
 
     public void drawAchievementResults(final Screen screen, final int score,
-			final int lives, final int enemies, final float accuracy,
-			final boolean isNewRecord, final char[] name, final int selected,
-			final List<Achievement> achievements, final boolean acceptsInput, final int failedStage, final boolean gameCleared) {
-		int spacing = fontRegularMetrics.getHeight();
-		int y = fontBigMetrics.getHeight() + 10;
+                                       final int lives, final int enemies, final float accuracy,
+                                       final boolean isNewRecord, final char[] name, final int selected,
+                                       final List<Achievement> achievements, final boolean acceptsInput, final int failedStage, final boolean gameCleared,
+                                       final String modeLabel) {
+        int spacing = fontRegularMetrics.getHeight();
+        int y = fontBigMetrics.getHeight() + 10;
 		backBufferGraphics.setColor(Color.GREEN);
 		drawCenteredBigString(screen, gameCleared ? "Game Cleared!" : "Game Over", y);
         if (failedStage > 0) {
@@ -1110,6 +1120,9 @@ public final class DrawManager {
 		String[] results = { "Score " + score, "Lives remaining " + lives,
 				"Enemies destroyed " + enemies,
 				String.format("Accuracy %.2f%%", accuracy * 100) };
+        if (modeLabel != null)
+            results = new String[] { results[0], results[1], results[2],
+                    results[3], modeLabel };
 		for (String result : results) {
 			drawCenteredRegularString(screen, result, y);
 			y += spacing;
