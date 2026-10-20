@@ -27,8 +27,10 @@ import java.text.DateFormat;
 import java.util.Date;
 import entity.Entity;
 import entity.Ship;
+import entity.Bullet;
 import vfx.Icon;
 import vfx.RankBadge;
+import vfx.ShipSprites;
 
 /**
  * Manages screen drawing.
@@ -188,6 +190,23 @@ public final class DrawManager {
 		}
 
 		if (entity instanceof Ship
+				&& entity.getSpriteType() == SpriteType.Ship) {
+			image = ShipSprites.forType(((Ship) entity).getShipType());
+		}
+
+		if (entity instanceof Bullet
+				&& entity.getSpriteType() == SpriteType.Bullet) {
+			drawPixels(ShipSprites.playerBullet(), positionX, positionY);
+			return;
+		}
+
+		if (entity instanceof Bullet
+				&& entity.getSpriteType() == SpriteType.EnemyBullet) {
+			drawPixels(ShipSprites.enemyBullet(), positionX, positionY);
+			return;
+		}
+
+		if (entity instanceof Ship
 				&& ((Ship) entity).isChameleonHullActive()) {
 			image = ChameleonHull.getBallSprite();
 		}
@@ -198,6 +217,27 @@ public final class DrawManager {
 				if (image[i][j])
 					backBufferGraphics.drawRect(positionX + i * 2, positionY
 							+ j * 2, 1, 1);
+	}
+
+	/**
+	 * Draws multi-colored sprite pixels at the gameplay sprite scale.
+	 * 
+	 * @param pixels
+	 *            Pixel colors indexed [x][y]; null where empty.
+	 * @param positionX
+	 *            Coordinates for the left side of the image.
+	 * @param positionY
+	 *            Coordinates for the upper side of the image.
+	 */
+	private void drawPixels(final Color[][] pixels, final int positionX,
+			final int positionY) {
+		for (int i = 0; i < pixels.length; i++)
+			for (int j = 0; j < pixels[i].length; j++)
+				if (pixels[i][j] != null) {
+					backBufferGraphics.setColor(pixels[i][j]);
+					backBufferGraphics.drawRect(positionX + i * 2,
+							positionY + j * 2, 1, 1);
+				}
 	}
 
 	/**

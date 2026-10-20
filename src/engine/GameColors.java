@@ -26,6 +26,8 @@ public final class GameColors {
 
     public static final Color ENEMY_BULLET = new Color(255, 150, 40);
 
+    public static final Color ENEMY_BULLET_GLOW = new Color(255, 80, 80);
+
 
     public static final Color DAMAGE = new Color(235, 40, 40);
 

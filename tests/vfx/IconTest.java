@@ -1,6 +1,8 @@
 package vfx;
 
-/** Checks the UI icons and rank badges are well-formed. */
+import entity.ShipType;
+
+/** Checks the UI icons and custom ship sprites are well-formed. */
 public final class IconTest {
 
 	private IconTest() {
@@ -36,6 +38,18 @@ public final class IconTest {
 		check(!Icon.LIFE_LOST.getPixels()[3][1], "Broken heart has a crack");
 		check(Icon.PLAY.getColor(4, 2) != Icon.PLAY.getColor(4, 0),
 				"Rocket window differs from its body");
+
+		for (ShipType type : ShipType.values()) {
+			boolean[][] sprite = ShipSprites.forType(type);
+			check(sprite.length == 13 && sprite[0].length == 8,
+					type + " sprite matches the 13x8 ship hitbox");
+		}
+		java.awt.Color[][] bullet = ShipSprites.playerBullet();
+		check(bullet.length == 3 && bullet[0].length == 5,
+				"Player bullet matches the 3x5 bullet hitbox");
+		java.awt.Color[][] enemyBullet = ShipSprites.enemyBullet();
+		check(enemyBullet.length == 3 && enemyBullet[0].length == 5,
+				"Enemy bullet matches the 3x5 bullet hitbox");
 
 		for (int rank = 1; rank <= 7; rank++) {
 			java.awt.Color[][] badge = RankBadge.forRank(rank);
