@@ -47,6 +47,20 @@ public class Ship extends Entity {
     /** Whether the Hyperfire buff is currently enabled. */
     private boolean hyperfireEnabled = false;
 
+    /** Distance from the ship center to each barrel of the Twin Cannon. */
+    private static final int TWIN_CANNON_OFFSET = 8;
+    /** Minimum time between two grenade launches. */
+    private static final int GRENADE_COOLDOWN = 800;
+    /** Maximum number of grenades the ship can carry. */
+    private static final int MAX_GRENADES = 1;
+
+    /** Whether the Twin Cannon buff (double barrel) is currently active. */
+    private boolean twinCannonActive = false;
+    /** Grenades left (given by the Cluster Grenade item). */
+    private int grenadeCount = 0;
+    /** Minimum time between two grenade launches. */
+    private Cooldown grenadeCooldown;
+
     /** Time of the last shot. */
     private long lastShotTime = 0;
 
@@ -128,6 +142,7 @@ public class Ship extends Entity {
         this.spriteType = SpriteType.Ship;
         this.destructionCooldown = Core.getCooldown(1000);
         this.damageFeedbackCooldown = Core.getCooldown(DAMAGE_FEEDBACK_DURATION);
+        this.grenadeCooldown = Core.getCooldown(GRENADE_COOLDOWN);
     }
 
     /**
@@ -229,15 +244,41 @@ public class Ship extends Entity {
             return count;
         }
 
-        boolean added = bullets.add(
-                BulletPool.getBullet(x, y, this.bulletSpeed,
-                        Bullet.Owner.PLAYER));
+        int added = addPlayerBullets(bullets, x, y);
 
         this.remainingShots = this.currentBulletType.getShotCount() - 1;
         this.nextShotTime = currentTime
                 + this.currentBulletType.getShotDelay();
 
-        return added ? 1 : 0;
+        return added;
+    }
+
+    /**
+     * Adds the bullets of one straight shot: one bullet, or two parallel
+     * bullets while the Twin Cannon is active.
+     *
+     * @param bullets
+     *            Bullets on screen, to add the new bullets.
+     * @param x
+     *            Center of the shot on the X axis.
+     * @param y
+     *            Starting position of the shot on the Y axis.
+     * @return Number of bullets added.
+     */
+    private int addPlayerBullets(final Set<Bullet> bullets, final int x,
+            final int y) {
+        if (this.twinCannonActive) {
+            int count = 0;
+            if (bullets.add(BulletPool.getBullet(x - TWIN_CANNON_OFFSET, y,
+                    this.bulletSpeed, Bullet.Owner.PLAYER)))
+                count++;
+            if (bullets.add(BulletPool.getBullet(x + TWIN_CANNON_OFFSET, y,
+                    this.bulletSpeed, Bullet.Owner.PLAYER)))
+                count++;
+            return count;
+        }
+        return bullets.add(BulletPool.getBullet(x, y, this.bulletSpeed,
+                Bullet.Owner.PLAYER)) ? 1 : 0;
     }
 
     /**
@@ -262,15 +303,14 @@ public class Ship extends Entity {
             return 0;
         }
 
-        boolean added = bullets.add(BulletPool.getBullet(
-                this.positionX + this.width / 2, this.positionY,
-                this.bulletSpeed, Bullet.Owner.PLAYER));
+        int added = addPlayerBullets(bullets,
+                this.positionX + this.width / 2, this.positionY);
 
         this.remainingShots--;
         this.nextShotTime = currentTime
                 + this.currentBulletType.getShotDelay();
 
-        return added ? 1 : 0;
+        return added;
     }
 
     /**
@@ -287,6 +327,71 @@ public class Ship extends Entity {
      */
     public final boolean isHyperfireEnabled() {
         return this.hyperfireEnabled;
+    }
+
+    /**
+     * Enables or disables the Twin Cannon buff (double barrel).
+     *
+     * @param active
+     *            True to shoot two parallel bullets.
+     */
+    public final void setTwinCannonActive(final boolean active) {
+        this.twinCannonActive = active;
+    }
+
+    /**
+     * Checks whether the Twin Cannon buff is currently active.
+     *
+     * @return True if the ship shoots two parallel bullets.
+     */
+    public final boolean isTwinCannonActive() {
+        return this.twinCannonActive;
+    }
+
+    /**
+     * Adds grenades to the ship's stock.
+     *
+     * @param amount
+     *            Number of grenades to add.
+     */
+    public final void addGrenades(final int amount) {
+        this.grenadeCount = Math.min(MAX_GRENADES,
+                this.grenadeCount + amount);
+    }
+
+    /**
+     * Getter for the number of grenades left.
+     *
+     * @return Number of grenades left.
+     */
+    public final int getGrenadeCount() {
+        return this.grenadeCount;
+    }
+
+    /**
+     * Launches a grenade upwards if the ship has one and the launcher is
+     * ready. Like the bullets, grenades cannot be launched while the
+     * Chameleon Hull is active.
+     *
+     * @param grenades
+     *            Set of grenades on screen, to add the new grenade.
+     * @param detonationY
+     *            Altitude at which the grenade explodes if it hits nothing.
+     * @return True if a grenade was launched.
+     */
+    public final boolean launchGrenade(final Set<Grenade> grenades,
+            final int detonationY) {
+        if (this.chameleonHullActive || isDestroyed()) {
+            return false;
+        }
+        if (this.grenadeCount > 0 && this.grenadeCooldown.checkFinished()) {
+            this.grenadeCooldown.reset();
+            this.grenadeCount--;
+            grenades.add(new Grenade(this.positionX + this.width / 2,
+                    this.positionY, detonationY));
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -330,6 +435,8 @@ public class Ship extends Entity {
             return;
         }
 
+        // The Twin Cannon buff expires when a life is lost.
+        this.twinCannonActive = false;
         deactivateChameleonHull();
         this.destructionCooldown.reset();
     }
