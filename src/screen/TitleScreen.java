@@ -1,154 +1,128 @@
 package screen;
 
 import java.awt.event.KeyEvent;
-
 import audio.AudioManager;
+
 import engine.Cooldown;
 import engine.Core;
 
 /**
  * Implements the title screen.
- *
+ * 
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
+ * 
  */
 public class TitleScreen extends Screen {
 
-    /** Milliseconds between changes in user selection. */
-    private static final int SELECTION_TIME = 200;
+	/** Milliseconds between changes in user selection. */
+	private static final int SELECTION_TIME = 200;
+	
+	/** Time between changes in user selection. */
+	private Cooldown selectionCooldown;
 
-    /** Time between changes in user selection. */
-    private Cooldown selectionCooldown;
 
-    /**
-     * Constructor, establishes the properties of the screen.
-     *
-     * @param width Screen width.
-     * @param height Screen height.
-     * @param fps Frames per second.
-     */
-    public TitleScreen(final int width, final int height, final int fps) {
-        super(width, height, fps);
+	/**
+	 * Constructor, establishes the properties of the screen.
+	 * 
+	 * @param width
+	 *            Screen width.
+	 * @param height
+	 *            Screen height.
+	 * @param fps
+	 *            Frames per second, frame rate at which the game is run.
+	 */
+	public TitleScreen(final int width, final int height, final int fps) {
+		super(width, height, fps);
 
-        // Defaults to play.
-        this.returnCode = 2;
-        this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
-        this.selectionCooldown.reset();
+		// Defaults to play.
+		this.returnCode = 2;
+		this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
+		this.selectionCooldown.reset();
 
-        AudioManager.playBGM("audio/bgm/music_menu.wav");
-    }
+		AudioManager.playBGM("audio/bgm/music_menu.wav");
+	}
 
-    /**
-     * Starts the action.
-     *
-     * @return Next screen code.
-     */
-    public final int run() {
-        super.run();
-        return this.returnCode;
-    }
+	/**
+	 * Starts the action.
+	 * 
+	 * @return Next screen code.
+	 */
+	public final int run() {
+		super.run();
 
-    /**
-     * Updates the elements on screen and checks for events.
-     */
-    @Override
-    protected final void update() {
-        super.update();
+		return this.returnCode;
+	}
 
-        draw();
+	/**
+	 * Updates the elements on screen and checks for events.
+	 */
+	protected final void update() {
+		super.update();
 
-        if (this.selectionCooldown.checkFinished()
-                && this.inputDelay.checkFinished()) {
-            if (inputManager.isKeyDown(KeyEvent.VK_UP)
-                    || inputManager.isKeyDown(KeyEvent.VK_W)) {
-                previousMenuItem();
-                this.selectionCooldown.reset();
-                AudioManager.playSFX("audio/sfx/menu_move.wav");
-            }
+		draw();
+		if (this.selectionCooldown.checkFinished()
+				&& this.inputDelay.checkFinished()) {
+			if (inputManager.isKeyDown(KeyEvent.VK_UP)
+					|| inputManager.isKeyDown(KeyEvent.VK_W)) {
+				previousMenuItem();
+				this.selectionCooldown.reset();
+				AudioManager.playSFX("audio/sfx/menu_move.wav");
+			}
+			if (inputManager.isKeyDown(KeyEvent.VK_DOWN)
+					|| inputManager.isKeyDown(KeyEvent.VK_S)) {
+				nextMenuItem();
+				this.selectionCooldown.reset();
+				AudioManager.playSFX("audio/sfx/menu_move.wav");
+			}
+			if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
+				AudioManager.playSFX("audio/sfx/menu_select.wav");
+				this.isRunning = false;
+			}
+			// Shortcut to the infinite mode, until it gets a menu entry.
+			if (inputManager.isKeyDown(KeyEvent.VK_I)) {
+				AudioManager.playSFX("audio/sfx/menu_select.wav");
+				this.returnCode = 8;
+				this.isRunning = false;
+			}
+		}
+	}
 
-            if (inputManager.isKeyDown(KeyEvent.VK_DOWN)
-                    || inputManager.isKeyDown(KeyEvent.VK_S)) {
-                nextMenuItem();
-                this.selectionCooldown.reset();
-                AudioManager.playSFX("audio/sfx/menu_move.wav");
-            }
+	/**
+	 * Shifts the focus to the next menu item.
+	 */
 
-            if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
-                AudioManager.playSFX("audio/sfx/menu_select.wav");
-                this.isRunning = false;
-            }
 
-            // Shortcut to the infinite mode.
-            if (inputManager.isKeyDown(KeyEvent.VK_I)) {
-                AudioManager.playSFX("audio/sfx/menu_select.wav");
-                this.returnCode = 8;
-                this.isRunning = false;
-            }
-        }
-    }
+	/**
+	 * Shifts the focus to the previous menu item.
+	 */
 
-    /**
-     * Shifts the focus to the next menu item.
-     */
+
+	/**
+	 * Draws the elements associated with the screen.
+	 */
+	private void draw() {
+		drawManager.initDrawing(this);
+
+		drawManager.drawTitle(this);
+		drawManager.drawMenu(this, this.returnCode);
+
+		drawManager.completeDrawing(this);
+	}
+
+
     private void nextMenuItem() {
-        // Order: Play (2) -> High scores (3) -> Settings (4)
-        // -> Shop (9) -> Hangar (10) -> Exit (0).
-        switch (this.returnCode) {
-        case 2:
-            this.returnCode = 3;
-            break;
-        case 3:
-            this.returnCode = 4;
-            break;
-        case 4:
-            this.returnCode = 9;
-            break;
-        case 9:
-            this.returnCode = 10;
-            break;
-        case 10:
-            this.returnCode = 0;
-            break;
-        default:
-            this.returnCode = 2;
-            break;
-        }
+        if (this.returnCode == 2) this.returnCode=3;
+        else if (this.returnCode == 3) this.returnCode=9;
+        else if (this.returnCode == 9) this.returnCode=4;
+        else if (this.returnCode == 4) this.returnCode=0;
+        else this.returnCode=2;
     }
 
-    /**
-     * Shifts the focus to the previous menu item.
-     */
     private void previousMenuItem() {
-        switch (this.returnCode) {
-        case 2:
-            this.returnCode = 0;
-            break;
-        case 0:
-            this.returnCode = 10;
-            break;
-        case 10:
-            this.returnCode = 9;
-            break;
-        case 9:
-            this.returnCode = 4;
-            break;
-        case 4:
-            this.returnCode = 3;
-            break;
-        default:
-            this.returnCode = 2;
-            break;
-        }
-    }
-
-    /**
-     * Draws the elements associated with the screen.
-     */
-    private void draw() {
-        drawManager.initDrawing(this);
-
-        drawManager.drawTitle(this);
-        drawManager.drawMenu(this, this.returnCode);
-
-        drawManager.completeDrawing(this);
+        if (this.returnCode == 2) this.returnCode=0;
+        else if (this.returnCode == 0) this.returnCode=4;
+        else if (this.returnCode == 4) this.returnCode=9;
+        else if (this.returnCode == 9) this.returnCode=3;
+        else this.returnCode=2;
     }
 }
