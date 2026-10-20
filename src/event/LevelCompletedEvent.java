@@ -17,7 +17,6 @@ public final class LevelCompletedEvent implements GameplayEvent {
         this.LevelId = LevelId;
         this.difficulty = difficulty;
     }
-    
     /** @return 1-based campaign stage number that was completed. */
     public int getLevelId() {
         return this.LevelId;

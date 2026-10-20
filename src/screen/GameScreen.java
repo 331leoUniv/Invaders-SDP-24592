@@ -112,13 +112,13 @@ public class GameScreen extends Screen {
 	private List<WaveDefinition> customWaves;
 	/** Index of the wave currently being played. */
 	private int currentWave;
-	/** Current difficulty level number. */
-	private int level;
-	/** Difficulty selected when this stage was started. */
-	private int difficulty;
-	/** Formation of enemy ships. */
-	private EnemyShipFormation enemyShipFormation;
-	/** Player's ship. */
+    /** Current difficulty level number. */
+    private int level;
+    /** Difficulty selected when this stage was started. */
+    private int difficulty;
+    /** Formation of enemy ships. */
+    private EnemyShipFormation enemyShipFormation;
+    /** Player's ship. */
     private Ship ship;
     /** Bonus enemy ship that appears sometimes. */
 	private BonusEnemyManager bonusEnemyManager;
@@ -348,10 +348,10 @@ public class GameScreen extends Screen {
 		this.waves = copyWaves(waves);
 		this.currentWave = 0;
 		this.gameSettings = this.waves.get(0);
-		this.bonusLife = bonusLife;
-		this.level = gameState.getLevel();
-		this.difficulty = GameplayConfig.getDifficulty();
-		this.score = gameState.getScore();
+        this.bonusLife = bonusLife;
+        this.level = gameState.getLevel();
+        this.difficulty = GameplayConfig.getDifficulty();
+        this.score = gameState.getScore();
 		this.playerStatus = new PlayerStatus(
 				Math.min(gameState.getLivesRemaining(),
 						this.shipType.getMaxLives()),
@@ -637,17 +637,17 @@ public class GameScreen extends Screen {
 	}
 
 	/**
-	* Publishes the completion of this campaign stage.
-	* Custom levels are not included until their identifiers are agreed.
-	*/
+	 * Publishes the completion of this campaign stage.
+	 * Custom levels are not included until their identifiers are agreed.
+	 */
 	private void publishLevelCompleted() {
 		if (this.customWaves != null)
 			return;
 		this.recordsEvents.publish(
-			new LevelCompletedEvent(this.level, this.difficulty));
+				new LevelCompletedEvent(this.level, this.difficulty));
 	}
 
-	/**
+    /**
 	 * Copies the wave list after checking that it can be played.
 	 *
 	 * @param waves
