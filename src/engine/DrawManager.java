@@ -28,7 +28,7 @@ import java.text.DateFormat;
 import java.util.Date;
 import entity.Entity;
 import entity.Ship;
-
+import screen.GameModeScreen;
 /**
  * Manages screen drawing.
  *
@@ -1524,4 +1524,18 @@ public final class DrawManager {
 
         return -1;
     }
+    public void drawGameModeMenu(final Screen screen, final int option) {
+        String[] labels = { "Endless Mode", "Campaign Mode", "Back" };
+
+        backBufferGraphics.setFont(fontBig);
+        backBufferGraphics.setColor(Color.GREEN);
+        drawCenteredBigString(screen, "Game Mode", screen.getHeight() / 3);
+
+        backBufferGraphics.setFont(fontRegular);
+        for (int i = 0; i < labels.length; i++) {
+            backBufferGraphics.setColor(i == option ? Color.GREEN : Color.WHITE);
+            drawCenteredRegularString(screen, labels[i],
+                screen.getHeight() / 3 + 60 + i * 40);
+    }
+}
 }

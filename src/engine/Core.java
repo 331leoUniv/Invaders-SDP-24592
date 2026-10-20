@@ -34,6 +34,8 @@ import screen.ControlsSettingsScreen;
 import screen.GameplaySettingsScreen;
 import shop.ShopController;
 
+import screen.GameModeScreen;
+
 /**
  * Implements core game logic.
  *
@@ -120,6 +122,7 @@ public final class Core {
         if (recordsService.getLoadWarning() != null) LOGGER.warning(recordsService.getLoadWarning());
 
 		GameState gameState;
+		int startLevel = 1;
 
 		int returnCode = 1;
 		do {
@@ -133,7 +136,18 @@ public final class Core {
 						+ " title screen at " + FPS + " fps.");
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing title screen.");
+
+				if (returnCode == 2)    
+                    returnCode = 10; 
 				break;
+			case 10:
+    // Écran de sélection du mode de jeu (GameModeScreen)
+    currentScreen = new GameModeScreen(width, height, FPS);
+    LOGGER.info("Starting game mode selection screen.");
+    // run() va s'exécuter et renvoyer la valeur de returnCode configurée dans GameModeScreen
+    returnCode = frame.setScreen(currentScreen);
+    LOGGER.info("Closing game mode selection screen.");
+    break;
 			case 2:
 				// Ship selection, before the first stage starts.
 				currentScreen = new ShipSelectionScreen(width, height, FPS);
@@ -268,7 +282,7 @@ public final class Core {
 				LOGGER.info("Closing score screen.");
 				break;
 			}
-
+	
 		} while (returnCode != 0);
 
         recordsService.close();
