@@ -80,7 +80,7 @@ public class GameScreen extends Screen {
 	/** Time the boss explosion stays on screen. */
 	private static final int BOSS_EXPLOSION_TIME = 500;
 	/** Stages where a boss appears (agreed with the team, may change). */
-	private static final int[] BOSS_LEVELS = { 3, 5, 7 };
+	static final int[] BOSS_LEVELS = { 3, 5, 7 };
     /** Time the space key must be held to trigger the Annihilator. */
     private static final int ANNIHILATOR_HOLD_TIME = 1000;
 
@@ -345,7 +345,8 @@ public class GameScreen extends Screen {
 		this.playerStatus = new PlayerStatus(
 				Math.min(gameState.getLivesRemaining(),
 						this.shipType.getMaxLives()),
-				this.shipType.getMaxLives());
+				this.shipType.getMaxLives(),
+				this.shipType.isShieldCapable());
         if (this.bonusLife)
 			this.playerStatus.gainLife();
         this.bulletsShot = gameState.getBulletsShot();
@@ -391,7 +392,8 @@ public class GameScreen extends Screen {
 		// The boss appears only on boss stages.
 		if (isBossLevel(this.level))
 			this.bossManager.spawn(new BossSpawnRequest(
-					Boss.BossType.BOSS_A, this.width / 2 - Boss.WIDTH / 2, 78,
+					bossTypeForLevel(this.level),
+					this.width / 2 - Boss.WIDTH / 2, 78,
 					this.level, 0));
 		this.bossExplosionCooldown = Core.getCooldown(BOSS_EXPLOSION_TIME);
 
@@ -516,8 +518,11 @@ public class GameScreen extends Screen {
 					// so holding F2 cannot chain shields over the expiry and
 					// hide the very timing this key exists to show.
 					if (shieldKeyDown && !this.shieldDebugKeyWasDown) {
-						this.playerStatus.activateShield();
-						this.logger.info("Debug shield granted.");
+						if (this.playerStatus.activateShield())
+							this.logger.info("Debug shield granted.");
+						else
+							this.logger.info("Debug shield refused (ship not "
+									+ "shield-capable).");
 					}
 					this.shieldDebugKeyWasDown = shieldKeyDown;
 				}
@@ -769,7 +774,9 @@ public class GameScreen extends Screen {
                         recyclable.add(bullet);
 
                         // --- DROP DU BOUCLIER ---
-                        if (!this.shieldDroppedThisLevel) {
+                        // Only a ship that can hold the shield is offered it.
+                        if (!this.shieldDroppedThisLevel
+                                && this.shipType.isShieldCapable()) {
                             boolean shouldDrop = (Math.random() < 0.15)
                                     || (this.enemyShipFormation.isEmpty());
                             if (shouldDrop) {
@@ -1003,6 +1010,33 @@ public class GameScreen extends Screen {
 		return this.bossManager.getStatus().getBattleState()
 				!= BossStatus.BattleState.IN_BATTLE
 				&& getBossOnScreen() == null;
+	}
+
+	/**
+	 * Picks the boss for a stage. The slow boss opens the run; the faster
+	 * one, which reaches its stronger phases earlier, takes the later boss
+	 * stages, so the two differ in more than their health bar.
+	 *
+	 * @param level
+	 *            Stage number, starting at 1.
+	 * @return Boss to spawn on that stage.
+	 */
+	static Boss.BossType bossTypeForLevel(final int level) {
+		return level <= firstBossLevel() ? Boss.BossType.BOSS_A
+				: Boss.BossType.BOSS_B;
+	}
+
+	/**
+	 * Returns the earliest boss stage, without relying on BOSS_LEVELS being
+	 * written in ascending order.
+	 *
+	 * @return Smallest stage number in BOSS_LEVELS.
+	 */
+	static int firstBossLevel() {
+		int first = Integer.MAX_VALUE;
+		for (int bossLevel : BOSS_LEVELS)
+			first = Math.min(first, bossLevel);
+		return first;
 	}
 
 	/**
