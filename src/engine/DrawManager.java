@@ -1224,6 +1224,33 @@ public final class DrawManager {
         }
     }
 
+    public int getMenuOptionAt(final Screen screen,
+            final int mouseX, final int mouseY) {
+        if (fontRegularMetrics == null)
+            return -1;
+
+        String[] labels = {
+            "Play", "High scores", "Records & Achievements", "Settings", "Exit"
+        };
+        int[] codes = { 2, 3, 9, 4, 0 };
+        int firstY = screen.getHeight() / 3 * 2;
+        int fontHeight = fontRegularMetrics.getHeight();
+
+        for (int i = 0; i < labels.length; i++) {
+            int textWidth = fontRegularMetrics.stringWidth(labels[i]);
+            int left = screen.getWidth() / 2 - textWidth / 2;
+            int baseline = firstY + i * fontHeight * 3 / 2;
+            int top = baseline - fontRegularMetrics.getAscent();
+            int bottom = baseline + fontRegularMetrics.getDescent();
+
+            if (mouseX >= left && mouseX <= left + textWidth
+                    && mouseY >= top && mouseY <= bottom)
+                return codes[i];
+        }
+
+        return -1;
+    }
+
     public void drawRecordsPage(final Screen screen,
 			final RecordsService service, final int tab) {
 		backBufferGraphics.setColor(Color.GREEN);
