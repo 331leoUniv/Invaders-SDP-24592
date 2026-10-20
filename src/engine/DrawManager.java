@@ -1092,7 +1092,13 @@ public final class DrawManager {
 		drawCenteredRegularString(screen, achievement.getCondition(),
 				screen.getHeight() / 7 + fontRegularMetrics.getHeight());
 	}
-
+	public void drawAchievementResults(final Screen screen, final int score,
+                                       final int lives, final int enemies, final float accuracy,
+                                       final boolean isNewRecord, final char[] name, final int selected,
+                                       final List<Achievement> achievements, final boolean acceptsInput, final int failedStage) {
+        drawAchievementResults(screen, score, lives, enemies, accuracy,
+                isNewRecord, name, selected, achievements, acceptsInput, failedStage, false);
+    }
     public void drawAchievementResults(final Screen screen, final int score,
 			final int lives, final int enemies, final float accuracy,
 			final boolean isNewRecord, final char[] name, final int selected,
