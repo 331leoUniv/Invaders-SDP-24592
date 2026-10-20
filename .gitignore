@@ -174,3 +174,9 @@ log*
 # Local compile output and personal high scores
 /out/
 /scores
+
+.idea/
+*.iml
+out/
+log
+*.log
