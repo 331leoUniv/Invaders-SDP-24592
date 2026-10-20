@@ -334,6 +334,13 @@ public final class Core {
 				});
 	}
 
+	/** Creates the menu/controller's persistent custom-level selection for this window. */
+	public static CustomLevelSession createCustomLevelSession() {
+		if (frame == null)
+			throw new IllegalStateException("The game window must be initialized first");
+		return new CustomLevelSession(frame.getWidth(), frame.getHeight());
+	}
+
 	// Runner is separated so handoff and unlock isolation can be checked headlessly.
 	static GameState runCustomLevel(final LevelDefinition definition, final double multiplier,
 			final int width, final int height, final int fps, final Consumer<GameScreen> runner) {

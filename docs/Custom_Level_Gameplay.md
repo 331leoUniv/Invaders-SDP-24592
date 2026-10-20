@@ -38,10 +38,11 @@ The factory returns a screen only after whole-level compatibility validation.
 It leaves initialization and the run loop to the host. The legacy single-wave
 and `List<GameSettings>` campaign constructors continue to work.
 
-Import/JSON validation remains owned by 331leo. File selection, menu routing,
-error presentation, and calling this entry point remain UI integration work.
-A Java reader/exporter round trip must still be checked together. This API alone
-does not complete #16 or introduce a load button in the main menu.
+Import/JSON validation is implemented by 331leo in #29/#30, including verified
+reader/exporter round trips. `CustomLevelSession` now connects file IO, retained
+selection, and this gameplay entry point; see `Custom_Level_Session.md` for the
+menu team's API. File selection, menu routing, and error presentation remain UI
+integration work. These APIs do not introduce a load button or complete #16.
 
 ## Runtime compatibility checks
 
