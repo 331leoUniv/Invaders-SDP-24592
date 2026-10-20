@@ -15,9 +15,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
@@ -280,50 +283,51 @@ public final class FileManager {
 	public static final String DEFAULT_ASSETS_SAVE_PATH = ASSETS_FILENAME;
 	private static final String FORMAT_VERSION = "1";
 
-	private Path assetsSavePath = resolveStoragePath(ASSETS_FILENAME);
 
 	/**
-	 * Sets a custom save path for player assets (used for isolated testing).
+	 * Saves the provided player asset snapshot to the default save path.
 	 *
-	 * @param path custom destination path
-	 */
-	public void setAssetsSavePath(final Path path) {
-		if (path == null) {
-			throw new IllegalArgumentException("Save path cannot be null.");
-		}
-		this.assetsSavePath = path;
-	}
-
-	/**
-	 * Resets the asset save path back to the default production location.
-	 */
-	public void resetAssetsSavePath() {
-		this.assetsSavePath = resolveStoragePath(ASSETS_FILENAME);
-	}
-
-	public Path getAssetsSavePath() {
-		return this.assetsSavePath;
-	}
-
-	/**
-	 * Saves the player asset state to the configured save path.
-	 */
-	public void savePlayerAssets(final PlayerAssetsState state) throws IOException {
-		savePlayerAssets(state, this.assetsSavePath);
-	}
-
-	/**
-	 * Saves the player asset state using atomic replacement to preserve existing saves upon failure.
+	 * <p>This method does not grant rewards or modify in-memory assets.
+	 * It delegates saving to {@link #savePlayerAssets(PlayerAssetsState, Path)}.
 	 *
-	 * @param state      the player assets state to save
-	 * @param targetPath destination file path
+	 * @param state the player asset snapshot to save (must not be null)
+	 * @throws IllegalArgumentException if state is null
 	 * @throws IOException if saving fails
 	 */
+
+	public void savePlayerAssets(final PlayerAssetsState state) throws IOException {
+		savePlayerAssets(state, resolveStoragePath(ASSETS_FILENAME));
+	}
+
+
+	/**
+	 * Saves the provided player asset snapshot using atomic replacement.
+	 *
+	 * <p>Saved data includes the player's balance, permanently unlocked
+	 * content IDs, and owned item quantities. Active buffs and remaining
+	 * effect durations are not included.
+	 *
+	 * <p>This method only writes the provided snapshot. It does not
+	 * grant rewards or modify in-memory player assets.
+	 * If saving fails after settlement, already settled assets remain
+	 * unchanged in memory. Retrying a save does not grant rewards again.
+	 * To save the latest asset state, the caller must provide a new snapshot.
+	 *
+	 * <p>Data is first written to a temporary file and then replaces
+	 * the target atomically. If atomic replacement is unsupported,
+	 * saving fails rather than overwriting the existing file non-atomically.
+	 *
+	 * @param state the player asset snapshot to save (must not be null)
+	 * @param targetPath destination path, or null to use the default save path
+	 * @throws IllegalArgumentException if state is null
+	 * @throws IOException if saving fails
+	 */
+
 	public void savePlayerAssets(final PlayerAssetsState state, final Path targetPath) throws IOException {
 		if (state == null) {
 			throw new IllegalArgumentException("PlayerAssetsState cannot be null.");
 		}
-		Path target = (targetPath != null) ? targetPath : this.assetsSavePath;
+		Path target = (targetPath != null) ? targetPath : resolveStoragePath(ASSETS_FILENAME);
 
 		Properties properties = new Properties();
 		properties.setProperty("version", FORMAT_VERSION);
@@ -373,22 +377,89 @@ public final class FileManager {
 		}
 	}
 
+
 	/**
-	 * Loads the player asset state from the configured save path.
+	 * Loads the player asset state from the default save path.
+	 *
+	 * <p>If the save file does not exist, an empty default state is returned.
+	 * If the file exists but is corrupted or malformed, an IOException is thrown.
+	 *
+	 * @return the loaded PlayerAssetsState, or an empty default state if no save exists
+	 * @throws IOException if the save file is invalid or cannot be read
 	 */
+
 	public PlayerAssetsState loadPlayerAssets() throws IOException {
-		return loadPlayerAssets(this.assetsSavePath);
+		return loadPlayerAssets(resolveStoragePath(ASSETS_FILENAME));
 	}
+
+	/** Decodes form-encoded IDs, rejecting malformed UTF-8 instead of replacing it. */
+	private static String decodeAssetId(final String encodedId) throws CharacterCodingException {
+		StringBuilder decoded = new StringBuilder();
+		byte[] bytes = null;
+		int index = 0;
+		while (index < encodedId.length()) {
+			char current = encodedId.charAt(index);
+			if (current == '%') {
+				if (bytes == null) {
+					bytes = new byte[encodedId.length() / 3];
+				}
+				int count = 0;
+				while (index < encodedId.length() && encodedId.charAt(index) == '%') {
+					if (index + 2 >= encodedId.length()) {
+						throw new IllegalArgumentException("Incomplete percent escape in asset ID.");
+					}
+					int high = Character.digit(encodedId.charAt(index + 1), 16);
+					int low = Character.digit(encodedId.charAt(index + 2), 16);
+					if (high < 0 || low < 0) {
+						throw new IllegalArgumentException("Invalid percent escape in asset ID.");
+					}
+					int value = (high << 4) | low;
+					// Java 7's UTF-8 decoder also accepts encoded surrogate code points.
+					if (count > 0 && bytes[count - 1] == (byte) 0xED
+							&& value >= 0xA0 && value <= 0xBF) {
+						throw new MalformedInputException(2);
+					}
+					bytes[count++] = (byte) value;
+					index += 3;
+				}
+				decoded.append(StandardCharsets.UTF_8.newDecoder()
+						.onMalformedInput(CodingErrorAction.REPORT)
+						.onUnmappableCharacter(CodingErrorAction.REPORT)
+						.decode(ByteBuffer.wrap(bytes, 0, count)));
+			} else {
+				decoded.append(current == '+' ? ' ' : current);
+				index++;
+			}
+		}
+		return decoded.toString();
+	}
+
 
 	/**
 	 * Loads the player asset state from a specific path with strict validation.
 	 *
-	 * @param sourcePath file path to load from
-	 * @return the loaded PlayerAssetsState, or default empty state if file does not exist
-	 * @throws IOException if the file exists but is corrupted, empty, or malformed
+	 * <p>If sourcePath is null, the default save path is used.
+	 * When Files.exists() returns false, this method returns the default
+	 * state with zero balance, no unlocked content, and no owned items.
+	 * This may occur when the file is missing or its existence cannot be
+	 * determined, including certain file access errors.
+	 *
+	 * <p>Existing save files are validated for format version, required
+	 * properties, balance, asset identifiers, and item quantities.
+	 * When an existing save file is detected, empty, corrupted, or malformed
+	 * contents are rejected with an IOException.
+	 * However, failures to determine file existence may result in the
+	 * default state rather than an IOException.
+	 *
+	 * <p>This method only reads the saved data and does not modify the file.
+	 *
+	 * @param sourcePath file path to load from, or null to use the default save path
+	 * @return the loaded PlayerAssetsState, or an empty default state if Files.exists() returns false
+	 * @throws IOException if the save file is invalid or cannot be read
 	 */
+
 	public PlayerAssetsState loadPlayerAssets(final Path sourcePath) throws IOException {
-		Path target = (sourcePath != null) ? sourcePath : this.assetsSavePath;
+		Path target = (sourcePath != null) ? sourcePath : resolveStoragePath(ASSETS_FILENAME);
 
 		// Only a genuinely missing file produces the default state
 		if (!Files.exists(target)) {
@@ -442,8 +513,8 @@ public final class FileManager {
 				}
 				String decodedId;
 				try {
-					decodedId = URLDecoder.decode(token, StandardCharsets.UTF_8.name());
-				} catch (IllegalArgumentException e) {
+					decodedId = decodeAssetId(token);
+				} catch (IllegalArgumentException | CharacterCodingException e) {
 					throw new IOException("Malformed URL-encoded unlocked content ID: '" + token + "'", e);
 				}
 				if (decodedId.trim().isEmpty()) {
@@ -476,8 +547,8 @@ public final class FileManager {
 
 				String decodedId;
 				try {
-					decodedId = URLDecoder.decode(rawId, StandardCharsets.UTF_8.name());
-				} catch (IllegalArgumentException e) {
+					decodedId = decodeAssetId(rawId);
+				} catch (IllegalArgumentException | CharacterCodingException e) {
 					throw new IOException("Malformed URL-encoded item ID: '" + rawId + "' in entry '" + entry + "'", e);
 				}
 				if (decodedId.trim().isEmpty()) {

@@ -1,12 +1,16 @@
 package engine;
 
+import java.io.IOException;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.JOptionPane;
+
 import currency.PlayerAssets;
+import currency.PlayerAssetsState;
 import java.util.UUID;
 import records.RunSession;
 import records.RunRecord;
@@ -20,12 +24,15 @@ import screen.InfiniteGameScreen;
 import screen.ScoreScreen;
 import screen.Screen;
 import screen.TitleScreen;
+import entity.ShipType;
+import screen.ShipSelectionScreen;
 import screen.PlayerRecordsScreen;
 import campaign.CampaignStageData;
 import campaign.CampaignManager;
 import screen.SettingsScreen;
 import screen.ControlsSettingsScreen;
 import screen.GameplaySettingsScreen;
+import shop.ShopController;
 
 /**
  * Implements core game logic.
@@ -53,6 +60,8 @@ public final class Core {
 	private static Screen currentScreen;
 	/** Player assets shared across levels and new games in this session. */
 	private static PlayerAssets playerAssets;
+	/** Shop controller shared for this application session. */
+	private static ShopController shopController;
 	private static RecordsService recordsService;
 	/** Application logger. */
 	private static final Logger LOGGER = Logger.getLogger(Core.class
@@ -95,11 +104,21 @@ public final class Core {
 		int height = frame.getHeight();
 
 		playerAssets = new PlayerAssets();
+
+		if (!initializeShopWithRetry()) {
+			frame.dispose();
+			if (fileHandler != null) {
+				fileHandler.close();
+			}
+			return;
+		}
+
 		recordsService = new RecordsService(new java.io.File(System.getProperty("user.home"),
                 ".space-invaders/records-achievements.properties").toPath());
         registerRecordsShutdownHook(recordsService);
         if (recordsService.getSaveError() != null) LOGGER.warning(recordsService.getSaveError());
         if (recordsService.getLoadWarning() != null) LOGGER.warning(recordsService.getLoadWarning());
+
 		GameState gameState;
 
 		int returnCode = 1;
@@ -116,6 +135,21 @@ public final class Core {
 				LOGGER.info("Closing title screen.");
 				break;
 			case 2:
+				// Ship selection, before the first stage starts.
+				currentScreen = new ShipSelectionScreen(width, height, FPS);
+				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
+						+ " ship selection screen at " + FPS + " fps.");
+				frame.setScreen(currentScreen);
+				LOGGER.info("Closing ship selection screen.");
+
+				ShipType selectedShip = ((ShipSelectionScreen) currentScreen)
+						.getSelectedShip();
+				LOGGER.info("Selected ship: " + selectedShip.getName());
+
+				// The selected ship decides how many lives the run starts with.
+				gameState = new GameState(1, 0, selectedShip.getMaxLives(),
+						0, 0);
+
 				// Game & score.
 				RunSession runSession = new RunSession(UUID.randomUUID().toString());
                 recordsService.startRun(runSession.getRunId());
@@ -123,12 +157,14 @@ public final class Core {
 					// One extra live every few levels.
 					boolean bonusLife = gameState.getLevel()
 							% EXTRA_LIFE_FRECUENCY == 0
-							&& gameState.getLivesRemaining() < MAX_LIVES;
+							&& gameState.getLivesRemaining()
+									< selectedShip.getMaxLives();
 
 					currentScreen = new GameScreen(gameState,
 							applyDifficulty(CampaignStageData
 									.getStageSettings(gameState.getLevel())),
-							bonusLife, width, height, FPS, runSession);
+							bonusLife, width, height, FPS, selectedShip,
+							runSession);
 					LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
 							+ " game screen at " + FPS + " fps.");
 					frame.setScreen(currentScreen);
@@ -242,6 +278,42 @@ public final class Core {
 		System.exit(0);
 	}
 
+	/** Loads shared assets before creating the session's shop controller. */
+	static ShopController initializeShop(final PlayerAssets assets,
+			final FileManager files) throws IOException {
+		return initializeShop(assets, files, files.loadPlayerAssets());
+	}
+
+	static ShopController initializeShop(final PlayerAssets assets,
+			final FileManager files, final PlayerAssetsState savedAssets) throws IOException {
+		if (!assets.restore(savedAssets)) {
+			throw new IOException("Loaded assets could not be restored.");
+		}
+		return new ShopController(assets, files);
+	}
+
+	private static boolean initializeShopWithRetry() {
+		while (true) {
+			try {
+				shopController = initializeShop(playerAssets, getFileManager());
+				return true;
+			} catch (IOException exception) {
+				LOGGER.warning("Player assets could not be loaded: " + exception);
+			} catch (SecurityException exception) {
+				LOGGER.warning("Player assets access denied: " + exception);
+			}
+			int choice = JOptionPane.showOptionDialog(frame,
+					"Your saved progress could not be loaded.\n"
+					+ "Your save has not been changed. Retry or quit?",
+					"Unable to load progress", JOptionPane.DEFAULT_OPTION,
+					JOptionPane.WARNING_MESSAGE, null,
+					new String[] { "Retry", "Quit" }, "Retry");
+			if (choice != 0) {
+				return false;
+			}
+		}
+	}
+
 	private static GameSettings applyDifficulty(
 			final GameSettings stageSettings) {
 		return applyDifficulty(stageSettings, GameplayConfig.getMultiplier());
@@ -303,6 +375,19 @@ public final class Core {
 	 */
 	public static FileManager getFileManager() {
 		return FileManager.getInstance();
+	}
+
+	/**
+	 * Returns the initialized session controller without creating or reloading assets.
+	 *
+	 * @return The existing shop controller for this application session.
+	 * @throws IllegalStateException if startup has not initialized the shop controller
+	 */
+	public static ShopController getShopController() {
+		if (shopController == null) {
+			throw new IllegalStateException("Player assets have not been initialized.");
+		}
+		return shopController;
 	}
 
 	/**
