@@ -50,6 +50,12 @@ import java.util.IdentityHashMap;
 import java.util.UUID;
 import entity.item.Hyperfire;
 import entity.item.OrbitalAnnihilator;
+import entity.Grenade;
+import entity.GrenadeFragment;
+import entity.item.AnnihilatorItem;
+import entity.item.BuffHud;
+import entity.item.ClusterGrenadeItem;
+import entity.item.TwinCanon;
 
 /**
  * Implements the game screen, where the action happens.
@@ -83,6 +89,14 @@ public class GameScreen extends Screen {
 	private static final int[] BOSS_LEVELS = { 3, 5, 7 };
     /** Time the space key must be held to trigger the Annihilator. */
     private static final int ANNIHILATOR_HOLD_TIME = 1000;
+    /** Chance for a destroyed enemy ship to drop a Cluster Grenade item. */
+    private static final double GRENADE_DROP_CHANCE = 0.15;
+    /** Fixed altitude (Y) where a grenade explodes if it hits nothing. */
+    private static final int GRENADE_DETONATION_Y = 200;
+    /** Maximum number of Cluster Grenade items dropped in one level. */
+    private static final int MAX_GRENADE_DROPS_PER_LEVEL = 2;
+    /** Chance that a destroyed enemy drops the Orbital Annihilator. */
+    private static final double ANNIHILATOR_DROP_CHANCE = 0.05;
 
 	/** Time the defeated boss stays on screen as an explosion. */
 	private Cooldown bossExplosionCooldown;
@@ -96,6 +110,23 @@ public class GameScreen extends Screen {
     private final Random itemDropRandom = new Random();
     private boolean chameleonDroppedThisLevel = false;
     private boolean shieldDroppedThisLevel = false;
+    private boolean hyperfireDroppedThisLevel = false;
+    private boolean annihilatorDroppedThisLevel = false;
+
+    /** Grenades launched by the player and not exploded yet. */
+    private Set<Grenade> grenades;
+    /** Fragments of exploded grenades. */
+    private Set<GrenadeFragment> fragments;
+    /** Prevents launching several grenades while holding G. */
+    private boolean grenadeKeyPressed = false;
+    /** Number of Cluster Grenade items dropped in this level. */
+    private int grenadeDropsThisLevel = 0;
+    /** Ships destroyed when the level started, for the Twin Cannon spawn. */
+    private int shipsDestroyedAtStart;
+    /** Whether the Twin Cannon item already appeared in this level. */
+    private boolean twinCanonSpawned;
+    /** Twin Cannon item falling on screen, collected by shooting it. */
+    private TwinCanon twinCanonItem;
 
 	/** Player ship type selected before the stage started. */
 	private ShipType shipType;
@@ -366,7 +397,17 @@ public class GameScreen extends Screen {
 
         this.shieldDroppedThisLevel = false;
         this.chameleonDroppedThisLevel = false;
+        this.hyperfireDroppedThisLevel = false;
+        this.annihilatorDroppedThisLevel = false;
         this.hyperfireKeyPressed = false;
+
+        this.grenades = new HashSet<Grenade>();
+        this.fragments = new HashSet<GrenadeFragment>();
+        this.grenadeKeyPressed = false;
+        this.grenadeDropsThisLevel = 0;
+        this.shipsDestroyedAtStart = this.shipsDestroyed;
+        this.twinCanonSpawned = false;
+        this.twinCanonItem = null;
 
 		this.bonusEnemyManager = new BonusEnemyManager();
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
@@ -477,13 +518,28 @@ public class GameScreen extends Screen {
                     }
                 }
 
-                // Hyperfire test activation with the H key.
-				boolean hyperfireKeyDown = inputManager.isKeyDown(KeyEvent.VK_H);
-                if (hyperfireKeyDown && !this.hyperfireKeyPressed) {
-                    this.itemManager.getBuffManager().addBuff(
-							new Hyperfire(0, 0), this.ship);
+                // Hyperfire test activation with the H key, only with the
+                // debug keys enabled so normal play cannot get it for free.
+                if (DEBUG_KEYS) {
+                    boolean hyperfireKeyDown =
+                            inputManager.isKeyDown(KeyEvent.VK_H);
+                    if (hyperfireKeyDown && !this.hyperfireKeyPressed) {
+                        this.itemManager.getBuffManager().addBuff(
+                                new Hyperfire(0, 0), this.ship);
+                    }
+                    this.hyperfireKeyPressed = hyperfireKeyDown;
                 }
-                this.hyperfireKeyPressed = hyperfireKeyDown;
+
+                // Cluster Grenade launch with the G key. Ignored if G is
+                // also bound to movement or firing, so one press cannot do
+                // both and waste a grenade.
+                boolean grenadeKeyDown = !isGrenadeKeyBoundElsewhere()
+                        && inputManager.isKeyDown(KeyEvent.VK_G);
+                if (grenadeKeyDown && !this.grenadeKeyPressed) {
+                    this.ship.launchGrenade(this.grenades,
+                            GRENADE_DETONATION_Y);
+                }
+                this.grenadeKeyPressed = grenadeKeyDown;
 
                 // Orbital Annihilator charging mechanic.
                 if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
@@ -549,6 +605,9 @@ public class GameScreen extends Screen {
 
         this.ship.update();
 
+        if (this.inputDelay.checkFinished() && !this.levelFinished)
+            updateTwinCanonItem();
+
         if (this.inputDelay.checkFinished() && !this.levelFinished) {
             this.itemManager.update(this.ship);
 
@@ -561,6 +620,7 @@ public class GameScreen extends Screen {
         }
 
         manageCollisions();
+        manageGrenades();
         manageBallContact();
 
         if (this.annihilator.isFiring())
@@ -672,7 +732,18 @@ public class GameScreen extends Screen {
 			drawManager.drawEntity(bullet, bullet.getPositionX(),
 					bullet.getPositionY());
 
+        for (Grenade grenade : this.grenades)
+            drawManager.drawGrenade(grenade);
+        for (GrenadeFragment fragment : this.fragments)
+            drawManager.drawGrenadeFragment(fragment);
+
         this.itemManager.draw(this.drawManager);
+
+        if (this.twinCanonItem != null)
+            drawManager.drawEntity(this.twinCanonItem,
+                    this.twinCanonItem.getPositionX(),
+                    this.twinCanonItem.getPositionY());
+
         drawManager.drawFloatingScores(floatingScoreHud, this);
 
         // Interface.
@@ -680,10 +751,22 @@ public class GameScreen extends Screen {
 		drawManager.drawLives(this, this.playerStatus.getLives());
 		drawManager.drawLevel(this, this.level, CampaignStageData.getTotalStages());
 
-        if (this.level == OrbitalAnnihilator.REQUIRED_LEVEL)
+        // Item HUD: grenades left, active buffs and their time left.
+        drawManager.drawGrenadeCount(this, this.ship.getGrenadeCount());
+        drawManager.drawBuffs(this, BuffHud.buildLines(
+                this.itemManager.getBuffManager().getActiveBuffsRemainingTime(),
+                System.currentTimeMillis()));
+
+        // The Orbital Annihilator is shown only once it has been caught.
+        if (this.annihilator.isReady())
+            drawManager.drawAnnihilatorReady(this);
+        if (this.level == OrbitalAnnihilator.REQUIRED_LEVEL
+                && (this.annihilator.isReady()
+                        || this.annihilator.isCharging()
+                        || this.annihilator.isFiring()))
             drawManager.drawAnnihilatorGauge(
                     this,
-                    this.annihilator.getRechargeProgress()
+                    this.annihilator.getChargeProgress()
             );
 
         drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
@@ -766,6 +849,8 @@ public class GameScreen extends Screen {
                                 enemyShip.getPositionY()
                                         + enemyShip.getHeight() / 2);
                         tryDropChameleonHull(enemyShip);
+                        tryDropAnnihilator(enemyShip);
+                        tryDropGrenade(enemyShip);
                         recyclable.add(bullet);
 
                         // --- DROP DU BOUCLIER ---
@@ -797,6 +882,16 @@ public class GameScreen extends Screen {
 							bonusShip.getPositionX() + bonusShip.getWidth() / 2,
 							bonusShip.getPositionY() + bonusShip.getHeight() / 2);
 					tryDropChameleonHull(bonusShip);
+					tryDropHyperfire(bonusShip);
+					recyclable.add(bullet);
+				}
+				// Shooting the Twin Cannon item collects it.
+				if (this.twinCanonItem != null
+						&& !recyclable.contains(bullet)
+						&& checkCollision(bullet, this.twinCanonItem)) {
+					this.itemManager.getBuffManager().addBuff(
+							this.twinCanonItem, this.ship);
+					this.twinCanonItem = null;
 					recyclable.add(bullet);
 				}
 				// A bullet that already hit a ship cannot also hit the boss.
@@ -847,6 +942,7 @@ public class GameScreen extends Screen {
 			this.score += this.bonusEnemyManager.destroy();
             this.shipsDestroyed++;
 			tryDropChameleonHull(bonusShip);
+			tryDropHyperfire(bonusShip);
         }
 
         Set<Bullet> neutralized = new HashSet<Bullet>();
@@ -1185,6 +1281,175 @@ public class GameScreen extends Screen {
 			this.score += this.bonusEnemyManager.destroy();
             this.shipsDestroyed++;
 			tryDropChameleonHull(bonusShip);
+			tryDropHyperfire(bonusShip);
         }
+    }
+
+    /**
+     * Twin Cannon item: appears once in its level after enough kills, then
+     * falls and is lost if it leaves the screen.
+     */
+    private void updateTwinCanonItem() {
+        if (!this.twinCanonSpawned && TwinCanon.isUnlocked(this.level)
+                && this.shipsDestroyed - this.shipsDestroyedAtStart
+                        >= TwinCanon.SPAWN_KILLS) {
+            this.twinCanonSpawned = true;
+            this.twinCanonItem = new TwinCanon(
+                    30 + (int) (Math.random() * (this.width - 60)),
+                    SEPARATION_LINE_HEIGHT);
+        }
+
+        if (this.twinCanonItem != null) {
+            this.twinCanonItem.update();
+            if (this.twinCanonItem.getPositionY() > this.height)
+                this.twinCanonItem = null;
+        }
+    }
+
+    /**
+     * Checks whether the G key is also bound to movement or firing.
+     *
+     * @return True if G is used by another control.
+     */
+    private boolean isGrenadeKeyBoundElsewhere() {
+        return ControlsConfig.getKey(ControlsConfig.LEFT) == KeyEvent.VK_G
+                || ControlsConfig.getKey(ControlsConfig.RIGHT) == KeyEvent.VK_G
+                || ControlsConfig.getKey(ControlsConfig.FIRE) == KeyEvent.VK_G;
+    }
+
+    /**
+     * Each destroyed enemy ship has a chance to drop a Cluster Grenade item.
+     *
+     * @param enemyShip
+     *            Destroyed enemy ship.
+     */
+    private void tryDropGrenade(final EnemyShip enemyShip) {
+        if (!this.levelFinished
+                && this.grenadeDropsThisLevel < MAX_GRENADE_DROPS_PER_LEVEL
+                && Math.random() < GRENADE_DROP_CHANCE) {
+            this.grenadeDropsThisLevel++;
+            this.itemManager.spawnItem(new ClusterGrenadeItem(
+                    enemyShip.getPositionX(), enemyShip.getPositionY()));
+            this.logger.info("Grenade item dropped from enemy ship.");
+        }
+    }
+
+    /**
+     * On level 7, a destroyed enemy has a small chance to drop the Orbital
+     * Annihilator, at most once per level.
+     *
+     * @param enemyShip
+     *            Destroyed enemy ship.
+     */
+    private void tryDropAnnihilator(final EnemyShip enemyShip) {
+        if (!this.annihilatorDroppedThisLevel
+                && !this.levelFinished
+                && this.level == OrbitalAnnihilator.REQUIRED_LEVEL
+                && Math.random() < ANNIHILATOR_DROP_CHANCE) {
+            this.itemManager.spawnItem(new AnnihilatorItem(
+                    enemyShip.getPositionX(), enemyShip.getPositionY(),
+                    this.annihilator));
+            this.annihilatorDroppedThisLevel = true;
+            this.logger.info("Orbital Annihilator dropped from enemy ship.");
+        }
+    }
+
+    /**
+     * The red bonus ship drops Hyperfire once per level, whatever destroyed
+     * it (bullet, grenade fragment, Orbital Annihilator beam or Chameleon
+     * Hull contact).
+     *
+     * @param bonusShip
+     *            Destroyed bonus ship.
+     */
+    private void tryDropHyperfire(final EnemyShip bonusShip) {
+        if (!this.hyperfireDroppedThisLevel && !this.levelFinished
+                && bonusShip != null) {
+            this.itemManager.spawnItem(new Hyperfire(
+                    bonusShip.getPositionX(), bonusShip.getPositionY()));
+            this.hyperfireDroppedThisLevel = true;
+            this.logger.info("Hyperfire dropped from red UFO.");
+        }
+    }
+
+    /**
+     * Moves the grenades and their fragments. Once the stage has ended,
+     * they keep moving but no longer hit anything, so the score, kill count
+     * and defeat events cannot change after the end.
+     */
+    private void manageGrenades() {
+        boolean canHit = !this.levelFinished;
+
+        Set<Grenade> exploded = new HashSet<Grenade>();
+        for (Grenade grenade : this.grenades) {
+            grenade.update();
+
+            boolean impact = false;
+            if (canHit) {
+                for (EnemyShip enemyShip : this.enemyShipFormation)
+                    if (!enemyShip.isDestroyed()
+                            && checkCollision(grenade, enemyShip)) {
+                        impact = true;
+                        break;
+                    }
+                if (!impact && this.bonusEnemyManager.isActive()
+                        && checkCollision(grenade,
+                                this.bonusEnemyManager.getShip()))
+                    impact = true;
+            }
+
+            if (impact || grenade.hasReachedAltitude()) {
+                exploded.add(grenade);
+                this.fragments.addAll(GrenadeFragment.explode(
+                        grenade.getCenterX(), grenade.getCenterY()));
+            }
+        }
+        this.grenades.removeAll(exploded);
+
+        Set<GrenadeFragment> expired = new HashSet<GrenadeFragment>();
+        for (GrenadeFragment fragment : this.fragments) {
+            fragment.update();
+
+            boolean used = false;
+            if (canHit) {
+                for (EnemyShip enemyShip : this.enemyShipFormation)
+                    if (!enemyShip.isDestroyed()
+                            && checkCollision(fragment, enemyShip)) {
+                        this.score += enemyShip.getPointValue();
+                        floatingScoreHud.show(enemyShip);
+                        this.shipsDestroyed++;
+                        recordEnemyDefeat(enemyShip);
+                        this.enemyShipFormation.destroy(enemyShip);
+                        this.particleSystem.spawnEnemyExplosion(
+                                enemyShip.getPositionX()
+                                        + enemyShip.getWidth() / 2,
+                                enemyShip.getPositionY()
+                                        + enemyShip.getHeight() / 2);
+                        tryDropGrenade(enemyShip);
+                        tryDropChameleonHull(enemyShip);
+                        used = true;
+                        break;
+                    }
+
+                EnemyShip bonusShip = this.bonusEnemyManager.getShip();
+                if (!used && this.bonusEnemyManager.isActive()
+                        && checkCollision(fragment, bonusShip)) {
+                    recordEnemyDefeat(bonusShip);
+                    floatingScoreHud.show(bonusShip);
+                    this.score += this.bonusEnemyManager.destroy();
+                    this.shipsDestroyed++;
+                    this.particleSystem.spawnEnemyExplosion(
+                            bonusShip.getPositionX() + bonusShip.getWidth() / 2,
+                            bonusShip.getPositionY() + bonusShip.getHeight() / 2);
+                    tryDropChameleonHull(bonusShip);
+                    tryDropHyperfire(bonusShip);
+                    used = true;
+                }
+            }
+
+            if (used || fragment.isExpired())
+                expired.add(fragment);
+        }
+        this.fragments.removeAll(expired);
     }
 }
