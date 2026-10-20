@@ -15,6 +15,7 @@ import engine.Cooldown;
 import engine.Core;
 import engine.GameSettings;
 import engine.GameState;
+import engine.GameplayConfig;
 import engine.ControlsConfig;
 import engine.LevelGameplayAdapter;
 import level.LevelDefinition;
@@ -46,6 +47,7 @@ import records.Achievement;
 import event.EnemyDefeatedEvent;
 import event.GameplayEventListener;
 import event.GameplayEventPublisher;
+import event.LevelCompletedEvent;
 import java.util.Map;
 import java.util.IdentityHashMap;
 import java.util.UUID;
@@ -110,6 +112,8 @@ public class GameScreen extends Screen {
 	private int currentWave;
 	/** Current difficulty level number. */
 	private int level;
+	/** Difficulty selected when this stage was started.*/
+	private int difficulty;
 	/** Formation of enemy ships. */
 	private EnemyShipFormation enemyShipFormation;
 	/** Player's ship. */
@@ -343,6 +347,7 @@ public class GameScreen extends Screen {
 		this.gameSettings = this.waves.get(0);
 		this.bonusLife = bonusLife;
 		this.level = gameState.getLevel();
+		this.difficulty = GameplayConfig.getDifficulty();
 		this.score = gameState.getScore();
 		this.playerStatus = new PlayerStatus(
 				Math.min(gameState.getLivesRemaining(),
@@ -616,6 +621,7 @@ public class GameScreen extends Screen {
 					this.stageCleared = true;
 					this.screenFinishedCooldown.reset();
 					this.logger.info("Stage " + this.level + " cleared.");
+					publishLevelCompleted();
 					
 				//Whenever the player clears a level while the temporary difficulty adjustment is active,
 				//  it notifies the DifficultyAdjustWhilePlaying class that a level has been cleared.
@@ -627,6 +633,17 @@ public class GameScreen extends Screen {
 
 		if (this.levelFinished && this.runSession != null)
 			this.runSession.stopActiveSegment(System.nanoTime());
+	}
+
+	/**
+	* Publishes the completion of this campaign stage.
+	* Custom levels are not included until their identifiers are agreed.
+	*/
+	private void publishLevelCompleted() {
+		if (this.customWaves != null)
+			return;
+		this.recordsEvents.publish(
+			new LevelCompletedEvent(this.level, this.difficulty));
 	}
 
 	/**
