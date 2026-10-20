@@ -49,9 +49,9 @@ public class GameModeScreen extends Screen { // Implementation of the game mode 
                 if (this.selected == 2) {
                     this.returnCode = 1;
                 } else if (this.selected == 0) {
-                    this.returnCode = 8; 
+                    this.returnCode = 8;
                 } else if (this.selected == 1) {
-                    this.returnCode = 2; 
+                    this.returnCode = 2;
                 }
                 this.isRunning = false;
             }

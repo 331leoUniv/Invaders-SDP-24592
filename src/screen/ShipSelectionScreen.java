@@ -7,16 +7,16 @@ import engine.Core;
 import entity.ShipType;
 
 /**
- * Screen where the player selects a ship type before playing.
+ * Screen where the player selects a ship type in the Hangar.
  */
 public class ShipSelectionScreen extends Screen {
 
-    /** Milliseconds between changes in user selection. */
+    public static final int RETURN_TO_HANGAR_MENU = 1;
+    public static final int SHIP_SELECTED = 20;
+
     private static final int SELECTION_TIME = 200;
 
-    /** Time between changes in user selection. */
-    private Cooldown selectionCooldown;
-    /** Available ship types. */
+    private final Cooldown selectionCooldown;
     private final ShipType[] shipTypes = ShipType.values();
     /** Currently selected index. */
     private int selectedIndex = 0;
@@ -24,7 +24,6 @@ public class ShipSelectionScreen extends Screen {
     private boolean wasMousePressed = false;
 
     /**
-     * x
      * Constructor, establishes the properties of the screen.
      *
      * @param width  Screen width.
@@ -34,25 +33,20 @@ public class ShipSelectionScreen extends Screen {
     public ShipSelectionScreen(final int width, final int height, final int fps) {
         super(width, height, fps);
 
-        this.returnCode = 2;
+        this.returnCode = RETURN_TO_HANGAR_MENU;
         this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
         this.selectionCooldown.reset();
+        this.selectedIndex = 0;
     }
 
-    /**
-     * Starts the action.
-     *
-     * @return Next screen code.
-     */
+    @Override
     public final int run() {
         super.run();
         return this.returnCode;
     }
 
-    /**
-     * Updates the elements on screen and checks for events.
-     */
-    protected final void update() {
+    @Override
+    protected void update() {
         super.update();
 
         // Get the ship currently hovered by the mouse.
@@ -78,44 +72,45 @@ public class ShipSelectionScreen extends Screen {
                 && hoveredIndex != -1
                 && this.inputDelay.checkFinished()) {
             this.selectedIndex = hoveredIndex;
+            this.returnCode = SHIP_SELECTED;
             this.isRunning = false;
         }
 
         draw();
-        if (this.selectionCooldown.checkFinished()
-                && this.inputDelay.checkFinished()) {
-            if (inputManager.isKeyDown(KeyEvent.VK_UP)
-                    || inputManager.isKeyDown(KeyEvent.VK_W)) {
-                this.selectedIndex = (this.selectedIndex - 1 + this.shipTypes.length) % this.shipTypes.length;
-                this.selectionCooldown.reset();
-            }
-            if (inputManager.isKeyDown(KeyEvent.VK_DOWN)
-                    || inputManager.isKeyDown(KeyEvent.VK_S)) {
-                this.selectedIndex = (this.selectedIndex + 1) % this.shipTypes.length;
-                this.selectionCooldown.reset();
-            }
-            if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
-                this.isRunning = false;
-            }
+
+        if (!this.selectionCooldown.checkFinished()
+                || !this.inputDelay.checkFinished()) {
+            return;
+        }
+
+        if (this.inputManager.isKeyDown(KeyEvent.VK_UP)
+                || this.inputManager.isKeyDown(KeyEvent.VK_W)) {
+            this.selectedIndex =
+                    (this.selectedIndex - 1 + this.shipTypes.length)
+                            % this.shipTypes.length;
+            this.selectionCooldown.reset();
+        } else if (this.inputManager.isKeyDown(KeyEvent.VK_DOWN)
+                || this.inputManager.isKeyDown(KeyEvent.VK_S)) {
+            this.selectedIndex =
+                    (this.selectedIndex + 1) % this.shipTypes.length;
+            this.selectionCooldown.reset();
+        } else if (this.inputManager.isKeyDown(KeyEvent.VK_SPACE)
+                || this.inputManager.isKeyDown(KeyEvent.VK_ENTER)) {
+            this.returnCode = SHIP_SELECTED;
+            this.isRunning = false;
+        } else if (this.inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
+            this.returnCode = RETURN_TO_HANGAR_MENU;
+            this.isRunning = false;
         }
     }
 
-    /**
-     * Draws the elements associated with the screen.
-     */
     private void draw() {
-        drawManager.initDrawing(this);
-
-        drawManager.drawShipSelection(this, this.shipTypes, this.selectedIndex);
-
-        drawManager.completeDrawing(this);
+        this.drawManager.initDrawing(this);
+        this.drawManager.drawShipSelection(
+                this, this.shipTypes, this.selectedIndex);
+        this.drawManager.completeDrawing(this);
     }
 
-    /**
-     * Returns the selected ship type.
-     *
-     * @return Selected ship type.
-     */
     public final ShipType getSelectedShip() {
         return this.shipTypes[this.selectedIndex];
     }

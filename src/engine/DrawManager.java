@@ -1207,8 +1207,11 @@ public final class DrawManager {
     }
 
     public void drawMenu(final Screen screen, final int option) {
-        String[] labels = { "Play", "High scores", "Records & Achievements", "Settings", "Exit" };
-        int[] codes = { 2, 3, 9, 4, 0 };
+        String[] labels = {
+            "Play", "Shop", "Hangar", "High scores",
+            "Records & Achievements", "Settings", "Exit"
+        };
+        int[] codes = { 2, 10, 11, 3, 9, 4, 0 };
         int y = screen.getHeight() / 3 * 2;
         for (int i = 0; i < labels.length; i++) {
             backBufferGraphics.setColor(option == codes[i] ? Color.GREEN : Color.WHITE);
@@ -1222,9 +1225,10 @@ public final class DrawManager {
             return -1;
 
         String[] labels = {
-                "Play", "High scores", "Records & Achievements", "Settings", "Exit"
+                "Play", "Shop", "Hangar", "High scores",
+                "Records & Achievements", "Settings", "Exit"
         };
-        int[] codes = { 2, 3, 9, 4, 0 };
+        int[] codes = { 2, 10, 11, 3, 9, 4, 0 };
         int firstY = screen.getHeight() / 3 * 2;
         int fontHeight = fontRegularMetrics.getHeight();
 
@@ -1463,7 +1467,7 @@ public final class DrawManager {
     public void drawShipSelection(final Screen screen, final ShipType[] shipTypes,
             final int selectedIndex) {
         String titleString = "SELECT SHIP";
-        String instructionsString = "PRESS SPACE TO LAUNCH";
+        String instructionsString = "SPACE: SELECT   ESC: BACK";
 
         backBufferGraphics.setColor(Color.GREEN);
         drawCenteredRegularString(screen, titleString, screen.getHeight() / 6);
@@ -1524,6 +1528,29 @@ public final class DrawManager {
 
         return -1;
     }
+
+    public void drawHangarMenu(final Screen screen, final int selectedOption) {
+        String[] labels = { "Choose ship", "Choose color", "Back" };
+
+        backBufferGraphics.setColor(Color.GREEN);
+        drawCenteredBigString(screen, "Hangar", screen.getHeight() / 5);
+
+        int firstY = screen.getHeight() / 2;
+        int spacing = fontRegularMetrics.getHeight() * 3;
+        for (int i = 0; i < labels.length; i++) {
+            backBufferGraphics.setColor(
+                    i == selectedOption ? Color.GREEN : Color.WHITE);
+            drawCenteredRegularString(screen, labels[i], firstY + i * spacing);
+        }
+
+        backBufferGraphics.setColor(Color.GRAY);
+        drawCenteredRegularString(screen,
+                "Up/Down: select   Space/Enter: confirm",
+                screen.getHeight() - 50);
+        drawCenteredRegularString(screen, "Esc: main menu",
+                screen.getHeight() - 28);
+    }
+
     public void drawGameModeMenu(final Screen screen, final int option) {
         String[] labels = { "Endless Mode", "Campaign Mode", "Back" };
 
