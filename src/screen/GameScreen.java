@@ -756,26 +756,26 @@ public class GameScreen extends Screen {
 
 		// Interface.
 		drawManager.drawScore(this, this.score);
-		drawManager.drawLives(this, this.playerStatus.getLives());
+		drawManager.drawLives(this, this.playerStatus.getLives(),
+				this.playerStatus.getMaxLives());
 		drawManager.drawLevel(this, this.level, CampaignStageData.getTotalStages());
 
-        // Item HUD: grenades left, active buffs and their time left.
-        drawManager.drawGrenadeCount(this, this.ship.getGrenadeCount());
-        drawManager.drawBuffs(this, BuffHud.buildLines(
-                this.itemManager.getBuffManager().getActiveBuffsRemainingTime(),
-                System.currentTimeMillis()));
+		// Item HUD: grenades left, active buffs and their time left.
+		drawManager.drawGrenadeCount(this, this.ship.getGrenadeCount());
+		drawManager.drawBuffs(this, BuffHud.buildLines(
+				this.itemManager.getBuffManager().getActiveBuffsRemainingTime(),
+				System.currentTimeMillis()));
 
-        // The Orbital Annihilator is shown only once it has been caught.
-        if (this.annihilator.isReady())
-            drawManager.drawAnnihilatorReady(this);
-        if (this.level == OrbitalAnnihilator.REQUIRED_LEVEL
-                && (this.annihilator.isReady()
-                        || this.annihilator.isCharging()
-                        || this.annihilator.isFiring()))
-            drawManager.drawAnnihilatorGauge(
-                    this,
-                    this.annihilator.getChargeProgress()
-            );
+		// The Orbital Annihilator is shown only once it has been caught.
+		if (this.annihilator.isReady())
+			drawManager.drawAnnihilatorReady(this);
+		if (this.level == OrbitalAnnihilator.REQUIRED_LEVEL
+				&& (this.annihilator.isReady()
+						|| this.annihilator.isCharging()
+						|| this.annihilator.isFiring()))
+			drawManager.drawAnnihilatorGauge(
+					this,
+					this.annihilator.getChargeProgress());
 
 		drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
 
