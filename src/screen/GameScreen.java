@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Random;
 
+import campaign.CampaignStageData;
 import entity.item.ChameleonHull;
 import entity.item.ItemManager;
 import entity.item.ShieldItem;
@@ -37,6 +38,7 @@ import entity.PlayerStatus;
 import entity.Ship;
 import entity.ShipType;
 import audio.AudioManager;
+import hud.FloatingScoreHud;
 import records.RunSession;
 import records.RecordsService;
 import records.Achievement;
@@ -48,6 +50,12 @@ import java.util.IdentityHashMap;
 import java.util.UUID;
 import entity.item.Hyperfire;
 import entity.item.OrbitalAnnihilator;
+import entity.Grenade;
+import entity.GrenadeFragment;
+import entity.item.AnnihilatorItem;
+import entity.item.BuffHud;
+import entity.item.ClusterGrenadeItem;
+import entity.item.TwinCanon;
 
 /**
  * Implements the game screen, where the action happens.
@@ -69,12 +77,13 @@ public class GameScreen extends Screen {
 	 * unless the game is started with -Dinvaders.debugKeys=true, so a normal
 	 * play session on main never has them.
 	 */
-	private static final boolean DEBUG_KEYS =
-			Boolean.getBoolean("invaders.debugKeys");
+	private static final boolean DEBUG_KEYS = Boolean.getBoolean("invaders.debugKeys");
 	/** Height of the interface separation line. */
 	private static final int SEPARATION_LINE_HEIGHT = 40;
-	/** Damage dealt to the boss by one player shot (to confirm with the
-	 * weapon developer). */
+	/**
+	 * Damage dealt to the boss by one player shot (to confirm with the
+	 * weapon developer).
+	 */
 	private static final int BOSS_DAMAGE_PER_SHOT = 50;
 	/** Time the boss explosion stays on screen. */
 	private static final int BOSS_EXPLOSION_TIME = 500;
@@ -82,11 +91,21 @@ public class GameScreen extends Screen {
 	private static final int[] BOSS_LEVELS = { 3, 5, 7 };
 	/** Time the space key must be held to trigger the Annihilator. */
 	private static final int ANNIHILATOR_HOLD_TIME = 1000;
+	/** Chance for a destroyed enemy ship to drop a Cluster Grenade item. */
+	private static final double GRENADE_DROP_CHANCE = 0.15;
+	/** Fixed altitude (Y) where a grenade explodes if it hits nothing. */
+	private static final int GRENADE_DETONATION_Y = 200;
+	/** Maximum number of Cluster Grenade items dropped in one level. */
+	private static final int MAX_GRENADE_DROPS_PER_LEVEL = 2;
+	/** Chance that a destroyed enemy drops the Orbital Annihilator. */
+	private static final double ANNIHILATOR_DROP_CHANCE = 0.05;
 
 	/** Time the defeated boss stays on screen as an explosion. */
 	private Cooldown bossExplosionCooldown;
-	/** Boss of the level, its attacks, events and links to other systems.
-	 * The only source of truth for the boss. */
+	/**
+	 * Boss of the level, its attacks, events and links to other systems.
+	 * The only source of truth for the boss.
+	 */
 	private BossManager bossManager;
 	/** Set of all bullets fired by the boss. */
 	private Set<BossBullet> bossBullets;
@@ -95,6 +114,23 @@ public class GameScreen extends Screen {
 	private final Random itemDropRandom = new Random();
 	private boolean chameleonDroppedThisLevel = false;
 	private boolean shieldDroppedThisLevel = false;
+	private boolean hyperfireDroppedThisLevel = false;
+	private boolean annihilatorDroppedThisLevel = false;
+
+	/** Grenades launched by the player and not exploded yet. */
+	private Set<Grenade> grenades;
+	/** Fragments of exploded grenades. */
+	private Set<GrenadeFragment> fragments;
+	/** Prevents launching several grenades while holding G. */
+	private boolean grenadeKeyPressed = false;
+	/** Number of Cluster Grenade items dropped in this level. */
+	private int grenadeDropsThisLevel = 0;
+	/** Ships destroyed when the level started, for the Twin Cannon spawn. */
+	private int shipsDestroyedAtStart;
+	/** Whether the Twin Cannon item already appeared in this level. */
+	private boolean twinCanonSpawned;
+	/** Twin Cannon item falling on screen, collected by shooting it. */
+	private TwinCanon twinCanonItem;
 
 	/** Player ship type selected before the stage started. */
 	private ShipType shipType;
@@ -116,10 +152,11 @@ public class GameScreen extends Screen {
 	private Cooldown screenFinishedCooldown;
 	/** Set of all bullets fired by on screen ships. */
 	private Set<Bullet> bullets;
-		/** Explosion particles. */
+	/** Explosion particles. */
 	private ParticleSystem particleSystem = new ParticleSystem();
 	/** Current score. */
 	private int score;
+	private final FloatingScoreHud floatingScoreHud = new FloatingScoreHud();
 	/** Player lives left. */
 	private PlayerStatus playerStatus;
 	/** State of the debug shield key on the previous frame. */
@@ -143,35 +180,35 @@ public class GameScreen extends Screen {
 	/** Last countdown number that played a sound. */
 	private int lastCountdown = -1;
 	private RunSession runSession;
-    private RecordsService recordsService;
-    private Achievement visibleAchievement;
-    private long achievementNoticeUntil;
-    private final GameplayEventPublisher recordsEvents = new GameplayEventPublisher();
-    private final Map<EnemyShip,String> defeatIds = new IdentityHashMap<EnemyShip,String>();
+	private RecordsService recordsService;
+	private Achievement visibleAchievement;
+	private long achievementNoticeUntil;
+	private final GameplayEventPublisher recordsEvents = new GameplayEventPublisher();
+	private final Map<EnemyShip, String> defeatIds = new IdentityHashMap<EnemyShip, String>();
 	/** Prevents repeated activation while holding H. */
 	private boolean hyperfireKeyPressed = false;
-    /** Flag to track if the urgent low-health BGM is currently playing. */
-    private boolean isLowHealthBGM = false;
+	/** Flag to track if the urgent low-health BGM is currently playing. */
+	private boolean isLowHealthBGM = false;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
 	 *
 	 * @param gameState
-	 *            Current game state.
+	 *                     Current game state.
 	 * @param gameSettings
-	 *            Current game settings.
+	 *                     Current game settings.
 	 * @param bonusLife
-	 *            Checks if a bonus life is awarded this level.
+	 *                     Checks if a bonus life is awarded this level.
 	 * @param width
-	 *            Screen width.
+	 *                     Screen width.
 	 * @param height
-	 *            Screen height.
+	 *                     Screen height.
 	 * @param fps
-	 *            Frames per second, frame rate at which the game is run.
+	 *                     Frames per second, frame rate at which the game is run.
 	 */
 	public GameScreen(final GameState gameState,
-					  final GameSettings gameSettings, final boolean bonusLife,
-					  final int width, final int height, final int fps) {
+			final GameSettings gameSettings, final boolean bonusLife,
+			final int width, final int height, final int fps) {
 		this(gameState, Collections.singletonList(gameSettings), bonusLife,
 				width, height, fps, ShipType.STANDARD);
 	}
@@ -180,24 +217,24 @@ public class GameScreen extends Screen {
 	 * Constructor for a stage played with a selected player ship.
 	 *
 	 * @param gameState
-	 *            Current game state.
+	 *                     Current game state.
 	 * @param gameSettings
-	 *            Current game settings.
+	 *                     Current game settings.
 	 * @param bonusLife
-	 *            Checks if a bonus life is awarded this level.
+	 *                     Checks if a bonus life is awarded this level.
 	 * @param width
-	 *            Screen width.
+	 *                     Screen width.
 	 * @param height
-	 *            Screen height.
+	 *                     Screen height.
 	 * @param fps
-	 *            Frames per second, frame rate at which the game is run.
+	 *                     Frames per second, frame rate at which the game is run.
 	 * @param shipType
-	 *            Selected player ship type.
+	 *                     Selected player ship type.
 	 */
 	public GameScreen(final GameState gameState,
-					  final GameSettings gameSettings, final boolean bonusLife,
-					  final int width, final int height, final int fps,
-					  final ShipType shipType) {
+			final GameSettings gameSettings, final boolean bonusLife,
+			final int width, final int height, final int fps,
+			final ShipType shipType) {
 		this(gameState, Collections.singletonList(gameSettings), bonusLife,
 				width, height, fps, shipType);
 	}
@@ -206,21 +243,21 @@ public class GameScreen extends Screen {
 	 * Constructor for a stage with one or more waves.
 	 *
 	 * @param gameState
-	 * 			Current game state.
+	 *                  Current game state.
 	 * @param waves
-	 * 			Settings of each wave, in play order.
+	 *                  Settings of each wave, in play order.
 	 * @param bonusLife
-	 * 			Checks if a bonus life is awarded this level.
+	 *                  Checks if a bonus life is awarded this level.
 	 * @param width
-	 * 			Screen width.
+	 *                  Screen width.
 	 * @param height
-	 * 			Screen height.
+	 *                  Screen height.
 	 * @param fps
-	 * 			Frames per second, frame rate at which the game is run.
+	 *                  Frames per second, frame rate at which the game is run.
 	 */
 	public GameScreen(final GameState gameState,
-					  final List<GameSettings> waves, final boolean bonusLife,
-					  final int width, final int height, final int fps) {
+			final List<GameSettings> waves, final boolean bonusLife,
+			final int width, final int height, final int fps) {
 		this(gameState, waves, bonusLife, width, height, fps,
 				ShipType.STANDARD, null);
 	}
@@ -230,24 +267,24 @@ public class GameScreen extends Screen {
 	 * player ship.
 	 *
 	 * @param gameState
-	 * 			Current game state.
+	 *                  Current game state.
 	 * @param waves
-	 * 			Settings of each wave, in play order.
+	 *                  Settings of each wave, in play order.
 	 * @param bonusLife
-	 * 			Checks if a bonus life is awarded this level.
+	 *                  Checks if a bonus life is awarded this level.
 	 * @param width
-	 * 			Screen width.
+	 *                  Screen width.
 	 * @param height
-	 * 			Screen height.
+	 *                  Screen height.
 	 * @param fps
-	 * 			Frames per second, frame rate at which the game is run.
+	 *                  Frames per second, frame rate at which the game is run.
 	 * @param shipType
-	 * 			Selected player ship type.
+	 *                  Selected player ship type.
 	 */
 	public GameScreen(final GameState gameState,
-					  final List<GameSettings> waves, final boolean bonusLife,
-					  final int width, final int height, final int fps,
-					  final ShipType shipType) {
+			final List<GameSettings> waves, final boolean bonusLife,
+			final int width, final int height, final int fps,
+			final ShipType shipType) {
 		this(gameState, waves, bonusLife, width, height, fps, shipType, null);
 	}
 
@@ -255,12 +292,12 @@ public class GameScreen extends Screen {
 	 * Constructor for a single-wave stage that records its run.
 	 *
 	 * @param runSession
-	 * 			Session the run is recorded under, or null for no records.
+	 *                   Session the run is recorded under, or null for no records.
 	 */
 	public GameScreen(final GameState gameState,
-					  final GameSettings gameSettings, final boolean bonusLife,
-					  final int width, final int height, final int fps,
-					  final RunSession runSession) {
+			final GameSettings gameSettings, final boolean bonusLife,
+			final int width, final int height, final int fps,
+			final RunSession runSession) {
 		this(gameState, Collections.singletonList(gameSettings), bonusLife,
 				width, height, fps, ShipType.STANDARD, runSession);
 	}
@@ -269,12 +306,12 @@ public class GameScreen extends Screen {
 	 * Constructor for a multi-wave stage that records its run.
 	 *
 	 * @param runSession
-	 * 			Session the run is recorded under, or null for no records.
+	 *                   Session the run is recorded under, or null for no records.
 	 */
 	public GameScreen(final GameState gameState,
-					  final List<GameSettings> waves, final boolean bonusLife,
-					  final int width, final int height, final int fps,
-					  final RunSession runSession) {
+			final List<GameSettings> waves, final boolean bonusLife,
+			final int width, final int height, final int fps,
+			final RunSession runSession) {
 		this(gameState, waves, bonusLife, width, height, fps,
 				ShipType.STANDARD, runSession);
 	}
@@ -284,9 +321,9 @@ public class GameScreen extends Screen {
 	 * recorded under a run session.
 	 */
 	public GameScreen(final GameState gameState,
-					  final GameSettings gameSettings, final boolean bonusLife,
-					  final int width, final int height, final int fps,
-					  final ShipType shipType, final RunSession runSession) {
+			final GameSettings gameSettings, final boolean bonusLife,
+			final int width, final int height, final int fps,
+			final ShipType shipType, final RunSession runSession) {
 		this(gameState, Collections.singletonList(gameSettings), bonusLife,
 				width, height, fps, shipType, runSession);
 	}
@@ -297,38 +334,38 @@ public class GameScreen extends Screen {
 	 * reaches this one.
 	 *
 	 * @param gameState
-	 * 			Current game state.
+	 *                   Current game state.
 	 * @param waves
-	 * 			Settings of each wave, in play order.
+	 *                   Settings of each wave, in play order.
 	 * @param bonusLife
-	 * 			Checks if a bonus life is awarded this level.
+	 *                   Checks if a bonus life is awarded this level.
 	 * @param width
-	 * 			Screen width.
+	 *                   Screen width.
 	 * @param height
-	 * 			Screen height.
+	 *                   Screen height.
 	 * @param fps
-	 * 			Frames per second, frame rate at which the game is run.
+	 *                   Frames per second, frame rate at which the game is run.
 	 * @param shipType
-	 * 			Selected player ship type.
+	 *                   Selected player ship type.
 	 * @param runSession
-	 * 			Session the run is recorded under, or null for no records.
+	 *                   Session the run is recorded under, or null for no records.
 	 */
 	public GameScreen(final GameState gameState,
-					  final List<GameSettings> waves, final boolean bonusLife,
-					  final int width, final int height, final int fps,
-					  final ShipType shipType, final RunSession runSession) {
+			final List<GameSettings> waves, final boolean bonusLife,
+			final int width, final int height, final int fps,
+			final ShipType shipType, final RunSession runSession) {
 		super(width, height, fps);
 
 		this.runSession = runSession;
 		this.recordsService = Core.getRecordsService();
 		this.recordsEvents.subscribe(EnemyDefeatedEvent.class,
 				new GameplayEventListener<EnemyDefeatedEvent>() {
-			public void onEvent(final EnemyDefeatedEvent event) {
-				if (recordsService != null)
-					recordsService.enemyDefeated(event.getRunId(),
-							event.getEventId());
-			}
-		});
+					public void onEvent(final EnemyDefeatedEvent event) {
+						if (recordsService != null)
+							recordsService.enemyDefeated(event.getRunId(),
+									event.getEventId());
+					}
+				});
 
 		if (shipType == null)
 			throw new IllegalArgumentException("Ship type cannot be null.");
@@ -358,13 +395,23 @@ public class GameScreen extends Screen {
 
 		enemyShipFormation = new EnemyShipFormation(this.gameSettings);
 		enemyShipFormation.attach(this);
-		this.ship = new Ship(this.width / 2, this.height - 30,
-				this.shipType);
+		this.ship = new Ship(this.width / 2, this.height - 30, this.shipType);
+		this.ship.setBaseColor(ShipCustomization.getColor());
 		this.itemManager = new ItemManager(this.height);
 
 		this.shieldDroppedThisLevel = false;
 		this.chameleonDroppedThisLevel = false;
+		this.hyperfireDroppedThisLevel = false;
+		this.annihilatorDroppedThisLevel = false;
 		this.hyperfireKeyPressed = false;
+
+        this.grenades = new HashSet<Grenade>();
+        this.fragments = new HashSet<GrenadeFragment>();
+        this.grenadeKeyPressed = false;
+        this.grenadeDropsThisLevel = 0;
+        this.shipsDestroyedAtStart = this.shipsDestroyed;
+        this.twinCanonSpawned = false;
+        this.twinCanonItem = null;
 
 		this.bonusEnemyManager = new BonusEnemyManager();
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
@@ -402,13 +449,13 @@ public class GameScreen extends Screen {
 			AudioManager.playSFX("audio/sfx/bonus_life.wav");
 		}
 
-        if (this.playerStatus.getLives() == 1) {
-            AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
-            this.isLowHealthBGM = true;
-        } else {
-            AudioManager.playBGM("audio/bgm/music_game.wav");
-            this.isLowHealthBGM = false;
-        }
+		if (this.playerStatus.getLives() == 1) {
+			AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+			this.isLowHealthBGM = true;
+		} else {
+			AudioManager.playBGM("audio/bgm/music_game.wav");
+			this.isLowHealthBGM = false;
+		}
 	}
 
 	/**
@@ -417,8 +464,12 @@ public class GameScreen extends Screen {
 	 * @return Next screen code.
 	 */
 	public final int run() {
-        try { super.run(); }
-        finally { if (this.runSession != null) this.runSession.stopActiveSegment(System.nanoTime()); }
+		try {
+			super.run();
+		} finally {
+			if (this.runSession != null)
+				this.runSession.stopActiveSegment(System.nanoTime());
+		}
 
 		// Life bonus is only awarded when the stage was cleared.
 		if (this.stageCleared)
@@ -434,23 +485,24 @@ public class GameScreen extends Screen {
 	 */
 	protected final void update() {
 		super.update();
-        if (this.recordsService != null) {
-            long now = System.currentTimeMillis();
-            if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
-                this.visibleAchievement = this.recordsService.pollNotification();
-                this.achievementNoticeUntil = this.visibleAchievement == null ? 0 : now + 3000;
-            }
-        }
+		if (this.recordsService != null) {
+			long now = System.currentTimeMillis();
+			if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
+				this.visibleAchievement = this.recordsService.pollNotification();
+				this.achievementNoticeUntil = this.visibleAchievement == null ? 0 : now + 3000;
+			}
+		}
 
 		// Outside the input-delay check: a shield that runs out has to be
 		// announced even while the level is finishing.
 		this.playerStatus.update();
 
-        if (this.inputDelay.checkFinished() && !this.levelFinished) {
-            if (this.runSession != null) this.runSession.startActiveSegment(System.nanoTime());
-            if (this.runSession != null && this.recordsService != null)
-                this.recordsService.activeDuration(this.runSession.getRunId(),
-                        this.runSession.getActiveDurationMillis(System.nanoTime()));
+		if (this.inputDelay.checkFinished() && !this.levelFinished) {
+			if (this.runSession != null)
+				this.runSession.startActiveSegment(System.nanoTime());
+			if (this.runSession != null && this.recordsService != null)
+				this.recordsService.activeDuration(this.runSession.getRunId(),
+						this.runSession.getActiveDurationMillis(System.nanoTime()));
 
 			if (!this.ship.isDestroyed()) {
 				boolean moveRight = inputManager.isKeyDown(
@@ -484,13 +536,28 @@ public class GameScreen extends Screen {
 					}
 				}
 
-				// Hyperfire test activation with the H key.
-				boolean hyperfireKeyDown = inputManager.isKeyDown(KeyEvent.VK_H);
-				if (hyperfireKeyDown && !this.hyperfireKeyPressed) {
-					this.itemManager.getBuffManager().addBuff(
-							new Hyperfire(0, 0), this.ship);
-				}
-				this.hyperfireKeyPressed = hyperfireKeyDown;
+                // Hyperfire test activation with the H key, only with the
+                // debug keys enabled so normal play cannot get it for free.
+                if (DEBUG_KEYS) {
+                    boolean hyperfireKeyDown =
+                            inputManager.isKeyDown(KeyEvent.VK_H);
+                    if (hyperfireKeyDown && !this.hyperfireKeyPressed) {
+                        this.itemManager.getBuffManager().addBuff(
+                                new Hyperfire(0, 0), this.ship);
+                    }
+                    this.hyperfireKeyPressed = hyperfireKeyDown;
+                }
+
+                // Cluster Grenade launch with the G key. Ignored if G is
+                // also bound to movement or firing, so one press cannot do
+                // both and waste a grenade.
+                boolean grenadeKeyDown = !isGrenadeKeyBoundElsewhere()
+                        && inputManager.isKeyDown(KeyEvent.VK_G);
+                if (grenadeKeyDown && !this.grenadeKeyPressed) {
+                    this.ship.launchGrenade(this.grenades,
+                            GRENADE_DETONATION_Y);
+                }
+                this.grenadeKeyPressed = grenadeKeyDown;
 
 				// Orbital Annihilator charging mechanic.
 				if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
@@ -556,8 +623,11 @@ public class GameScreen extends Screen {
 
 		this.ship.update();
 
-		if (this.inputDelay.checkFinished() && !this.levelFinished) {
-			this.itemManager.update(this.ship);
+        if (this.inputDelay.checkFinished() && !this.levelFinished)
+            updateTwinCanonItem();
+
+        if (this.inputDelay.checkFinished() && !this.levelFinished) {
+            this.itemManager.update(this.ship);
 
 			if (!this.ship.isDestroyed()) {
 				this.itemManager.checkCollisions(this.ship);
@@ -567,14 +637,15 @@ public class GameScreen extends Screen {
 			clampBallPositionY();
 		}
 
-		manageCollisions();
-		manageBallContact();
+        manageCollisions();
+        manageGrenades();
+        manageBallContact();
 
 		if (this.annihilator.isFiring())
 			manageAnnihilatorBeam();
 
 		cleanBullets();
-		this.particleSystem.update(); 
+		this.particleSystem.update();
 		draw();
 
 		if (!this.levelFinished) {
@@ -596,8 +667,8 @@ public class GameScreen extends Screen {
 			}
 		}
 
-        if (this.levelFinished && this.runSession != null)
-            this.runSession.stopActiveSegment(System.nanoTime());
+		if (this.levelFinished && this.runSession != null)
+			this.runSession.stopActiveSegment(System.nanoTime());
 
 		if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
 			this.isRunning = false;
@@ -607,10 +678,11 @@ public class GameScreen extends Screen {
 	 * Copies the wave list after checking that it can be played.
 	 *
 	 * @param waves
-	 *            Settings of each wave, in play order.
+	 *              Settings of each wave, in play order.
 	 * @return A copy of the wave list.
 	 * @throws IllegalArgumentException
-	 *             If the list is null or empty, or contains a null wave.
+	 *                                  If the list is null or empty, or contains a
+	 *                                  null wave.
 	 */
 	static List<GameSettings> copyWaves(final List<GameSettings> waves) {
 		if (waves == null || waves.isEmpty())
@@ -650,8 +722,7 @@ public class GameScreen extends Screen {
 					OrbitalAnnihilator.BEAM_WIDTH,
 					SEPARATION_LINE_HEIGHT,
 					this.annihilator.isFiring(),
-					this.annihilator.getChargeProgress()
-			);
+					this.annihilator.getChargeProgress());
 
 		drawManager.drawEntity(this.ship, this.ship.getPositionX(),
 				this.ship.getPositionY());
@@ -680,17 +751,42 @@ public class GameScreen extends Screen {
 			drawManager.drawEntity(bullet, bullet.getPositionX(),
 					bullet.getPositionY());
 
-		this.itemManager.draw(this.drawManager);
+        for (Grenade grenade : this.grenades)
+            drawManager.drawGrenade(grenade);
+        for (GrenadeFragment fragment : this.fragments)
+            drawManager.drawGrenadeFragment(fragment);
+
+        this.itemManager.draw(this.drawManager);
+
+        if (this.twinCanonItem != null)
+            drawManager.drawEntity(this.twinCanonItem,
+                    this.twinCanonItem.getPositionX(),
+                    this.twinCanonItem.getPositionY());
+
+        drawManager.drawFloatingScores(floatingScoreHud, this);
 
 		// Interface.
 		drawManager.drawScore(this, this.score);
-		drawManager.drawLives(this, this.playerStatus.getLives());
+		drawManager.drawLives(this, this.playerStatus.getLives(),
+				this.playerStatus.getMaxLives());
+		drawManager.drawLevel(this, this.level, CampaignStageData.getTotalStages());
 
-		if (this.level == OrbitalAnnihilator.REQUIRED_LEVEL)
+		// Item HUD: grenades left, active buffs and their time left.
+		drawManager.drawGrenadeCount(this, this.ship.getGrenadeCount());
+		drawManager.drawBuffs(this, BuffHud.buildLines(
+				this.itemManager.getBuffManager().getActiveBuffsRemainingTime(),
+				System.currentTimeMillis()));
+
+		// The Orbital Annihilator is shown only once it has been caught.
+		if (this.annihilator.isReady())
+			drawManager.drawAnnihilatorReady(this);
+		if (this.level == OrbitalAnnihilator.REQUIRED_LEVEL
+				&& (this.annihilator.isReady()
+						|| this.annihilator.isCharging()
+						|| this.annihilator.isFiring()))
 			drawManager.drawAnnihilatorGauge(
 					this,
-					this.annihilator.getRechargeProgress()
-			);
+					this.annihilator.getChargeProgress());
 
 		drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
 
@@ -698,7 +794,8 @@ public class GameScreen extends Screen {
 		if (!this.inputDelay.checkFinished()) {
 			int countdown = (int) ((INPUT_DELAY
 					- (System.currentTimeMillis()
-					- this.gameStartTime)) / 1000);
+							- this.gameStartTime))
+					/ 1000);
 			playCountdownSound(countdown);
 			drawManager.drawCountDown(this, this.level, countdown,
 					this.bonusLife);
@@ -707,10 +804,10 @@ public class GameScreen extends Screen {
 			drawManager.drawHorizontalLine(this, this.height / 2 + this.height
 					/ 12);
 		}
-		drawManager.drawParticles(this.particleSystem); 
+		drawManager.drawParticles(this.particleSystem);
 
-        if (this.visibleAchievement != null)
-            drawManager.drawAchievementNotice(this, this.visibleAchievement);
+		if (this.visibleAchievement != null)
+			drawManager.drawAchievementNotice(this, this.visibleAchievement);
 		drawManager.completeDrawing(this);
 	}
 
@@ -750,7 +847,8 @@ public class GameScreen extends Screen {
 	 * sounds for regular and bonus enemies.
 	 */
 	private void manageCollisions() {
-        if (this.levelFinished) return;
+		if (this.levelFinished)
+			return;
 		Set<Bullet> recyclable = new HashSet<Bullet>();
 		for (Bullet bullet : this.bullets)
 			if (bullet.isEnemyBullet()) {
@@ -763,14 +861,19 @@ public class GameScreen extends Screen {
 					if (!enemyShip.isDestroyed()
 							&& checkCollision(bullet, enemyShip)) {
 						this.score += enemyShip.getPointValue();
+						floatingScoreHud.show(enemyShip);
 						this.shipsDestroyed++;
 						recordEnemyDefeat(enemyShip);
 						this.enemyShipFormation.destroy(enemyShip);
 						AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
 						this.particleSystem.spawnEnemyExplosion(
-								enemyShip.getPositionX() + enemyShip.getWidth() / 2,
-								enemyShip.getPositionY() + enemyShip.getHeight() / 2);
+								enemyShip.getPositionX()
+										+ enemyShip.getWidth() / 2,
+								enemyShip.getPositionY()
+										+ enemyShip.getHeight() / 2);
 						tryDropChameleonHull(enemyShip);
+						tryDropAnnihilator(enemyShip);
+						tryDropGrenade(enemyShip);
 						recyclable.add(bullet);
 
 						// --- DROP DU BOUCLIER ---
@@ -781,9 +884,7 @@ public class GameScreen extends Screen {
 								this.itemManager.spawnItem(
 										new ShieldItem(
 												enemyShip.getPositionX(),
-												enemyShip.getPositionY()
-										)
-								);
+												enemyShip.getPositionY()));
 								this.shieldDroppedThisLevel = true;
 								this.logger.info("Shield item dropped from enemy ship at ("
 										+ enemyShip.getPositionX() + ", "
@@ -795,12 +896,23 @@ public class GameScreen extends Screen {
 				if (this.bonusEnemyManager.isActive()
 						&& checkCollision(bullet, bonusShip)) {
 					recordEnemyDefeat(bonusShip);
+					floatingScoreHud.show(bonusShip);
 					this.score += this.bonusEnemyManager.destroy();
 					this.shipsDestroyed++;
 					this.particleSystem.spawnEnemyExplosion(
 							bonusShip.getPositionX() + bonusShip.getWidth() / 2,
 							bonusShip.getPositionY() + bonusShip.getHeight() / 2);
 					tryDropChameleonHull(bonusShip);
+					tryDropHyperfire(bonusShip);
+					recyclable.add(bullet);
+				}
+				// Shooting the Twin Cannon item collects it.
+				if (this.twinCanonItem != null
+						&& !recyclable.contains(bullet)
+						&& checkCollision(bullet, this.twinCanonItem)) {
+					this.itemManager.getBuffManager().addBuff(
+							this.twinCanonItem, this.ship);
+					this.twinCanonItem = null;
 					recyclable.add(bullet);
 				}
 				// A bullet that already hit a ship cannot also hit the boss.
@@ -830,11 +942,13 @@ public class GameScreen extends Screen {
 	 * corridor and neutralizes enemy projectiles inside it.
 	 */
 	private void manageAnnihilatorBeam() {
-        if (this.levelFinished) return;
+		if (this.levelFinished)
+			return;
 		for (EnemyShip enemyShip : this.enemyShipFormation)
 			if (!enemyShip.isDestroyed()
 					&& OrbitalAnnihilator.hits(this.ship, enemyShip)) {
 				this.score += enemyShip.getPointValue();
+				floatingScoreHud.show(enemyShip);
 				this.shipsDestroyed++;
 				recordEnemyDefeat(enemyShip);
 
@@ -846,9 +960,11 @@ public class GameScreen extends Screen {
 		if (this.bonusEnemyManager.isActive()
 				&& OrbitalAnnihilator.hits(this.ship, bonusShip)) {
 			recordEnemyDefeat(bonusShip);
+			floatingScoreHud.show(bonusShip);
 			this.score += this.bonusEnemyManager.destroy();
 			this.shipsDestroyed++;
 			tryDropChameleonHull(bonusShip);
+			tryDropHyperfire(bonusShip);
 		}
 
 		Set<Bullet> neutralized = new HashSet<Bullet>();
@@ -867,16 +983,18 @@ public class GameScreen extends Screen {
 	 * method, so that the protections and the effects of a hit cannot differ
 	 * between an enemy bullet and a boss bullet.
 	 *
-	 * <p>The order matters. A protection returns before any life is taken,
+	 * <p>
+	 * The order matters. A protection returns before any life is taken,
 	 * and the ship is destroyed only once the damage was actually accepted,
 	 * which also stops several bullets in the same frame from each costing a
 	 * life: the first accepted hit starts the destruction cooldown and the
-	 * rest are turned away by {@link Ship#isDestroyed()}.</p>
+	 * rest are turned away by {@link Ship#isDestroyed()}.
+	 * </p>
 	 *
 	 * @param damage
-	 *            Amount of damage the source deals.
+	 *                   Amount of damage the source deals.
 	 * @param logMessage
-	 *            Description of the source, for the log line.
+	 *                   Description of the source, for the log line.
 	 * @return Whether a life was lost.
 	 */
 	// The damage path is accessible to tests in the screen package.
@@ -922,9 +1040,9 @@ public class GameScreen extends Screen {
 	 * Checks if two entities are colliding.
 	 *
 	 * @param a
-	 *            First entity, the bullet.
+	 *          First entity, the bullet.
 	 * @param b
-	 *            Second entity, the ship.
+	 *          Second entity, the ship.
 	 * @return Result of the collision test.
 	 */
 	private boolean checkCollision(final Entity a, final Entity b) {
@@ -954,7 +1072,7 @@ public class GameScreen extends Screen {
 	 * explosion starts.
 	 *
 	 * @param damage
-	 *            Amount of health to remove.
+	 *               Amount of health to remove.
 	 */
 	private void damageBoss(final int damage) {
 		Boss boss = this.bossManager.getBoss();
@@ -1004,8 +1122,7 @@ public class GameScreen extends Screen {
 	 * @return True when no boss is holding the stage open.
 	 */
 	private boolean isBossCleared() {
-		return this.bossManager.getStatus().getBattleState()
-				!= BossStatus.BattleState.IN_BATTLE
+		return this.bossManager.getStatus().getBattleState() != BossStatus.BattleState.IN_BATTLE
 				&& getBossOnScreen() == null;
 	}
 
@@ -1013,7 +1130,7 @@ public class GameScreen extends Screen {
 	 * Checks if a boss appears in the given stage.
 	 *
 	 * @param level
-	 *            Stage number, starting at 1.
+	 *              Stage number, starting at 1.
 	 * @return True if the stage is a boss stage.
 	 */
 	private static boolean isBossLevel(final int level) {
@@ -1052,7 +1169,7 @@ public class GameScreen extends Screen {
 	 * Plays the countdown sound once each time the countdown number changes.
 	 *
 	 * @param countdown
-	 *            Number currently shown in the countdown.
+	 *                  Number currently shown in the countdown.
 	 */
 	private void playCountdownSound(final int countdown) {
 		if (countdown == this.lastCountdown)
@@ -1064,24 +1181,32 @@ public class GameScreen extends Screen {
 			AudioManager.playSFX("audio/sfx/countdown_beep.wav");
 	}
 
-    private void recordEnemyDefeat(final EnemyShip enemy) {
-        if (this.runSession == null) return;
-        String id = this.defeatIds.get(enemy);
-        if (id == null) { id=UUID.randomUUID().toString(); this.defeatIds.put(enemy,id); }
-        this.recordsEvents.publish(new EnemyDefeatedEvent(this.runSession.getRunId(),id));
-    }
+	private void recordEnemyDefeat(final EnemyShip enemy) {
+		if (this.runSession == null)
+			return;
+		String id = this.defeatIds.get(enemy);
+		if (id == null) {
+			id = UUID.randomUUID().toString();
+			this.defeatIds.put(enemy, id);
+		}
+		this.recordsEvents.publish(new EnemyDefeatedEvent(this.runSession.getRunId(), id));
+	}
 
-    /**
-     * Gives other systems the shared gameplay event bus. Player status events
-     * are published here too, so a listener can subscribe with
-     * {@code subscribe(PlayerStatusEvent.class, listener)} and read the type
-     * from {@link entity.PlayerStatusEvent#getType()}.
-     *
-     * @return Shared gameplay event publisher.
-     */
-    public GameplayEventPublisher getGameplayEvents() { return this.recordsEvents; }
+	/**
+	 * Gives other systems the shared gameplay event bus. Player status events
+	 * are published here too, so a listener can subscribe with
+	 * {@code subscribe(PlayerStatusEvent.class, listener)} and read the type
+	 * from {@link entity.PlayerStatusEvent#getType()}.
+	 *
+	 * @return Shared gameplay event publisher.
+	 */
+	public GameplayEventPublisher getGameplayEvents() {
+		return this.recordsEvents;
+	}
 
-    public String getActiveRunId() { return this.runSession == null ? null : this.runSession.getRunId(); }
+	public String getActiveRunId() {
+		return this.runSession == null ? null : this.runSession.getRunId();
+	}
 
 	/** Keep the extra movement inside the existing playfield borders. */
 	private void clampShipPosition() {
@@ -1093,11 +1218,11 @@ public class GameScreen extends Screen {
 	 * Keeps a ship position inside the playfield borders.
 	 *
 	 * @param positionX
-	 *            Position to clamp, on the X axis.
+	 *                    Position to clamp, on the X axis.
 	 * @param shipWidth
-	 *            Width of the ship being moved.
+	 *                    Width of the ship being moved.
 	 * @param screenWidth
-	 *            Width of the playfield.
+	 *                    Width of the playfield.
 	 * @return Clamped position on the X axis.
 	 */
 	static int clampShipPositionX(final int positionX, final int shipWidth,
@@ -1118,9 +1243,7 @@ public class GameScreen extends Screen {
 			this.itemManager.spawnItem(
 					new ChameleonHull(
 							enemy.getPositionX(),
-							enemy.getPositionY()
-					)
-			);
+							enemy.getPositionY()));
 			this.chameleonDroppedThisLevel = true;
 		}
 	}
@@ -1154,9 +1277,7 @@ public class GameScreen extends Screen {
 			this.ship.setPositionY(
 					Math.max(
 							minimumY,
-							Math.min(maximumY, this.ship.getPositionY())
-					)
-			);
+							Math.min(maximumY, this.ship.getPositionY())));
 		}
 	}
 
@@ -1172,6 +1293,7 @@ public class GameScreen extends Screen {
 		for (EnemyShip enemy : this.enemyShipFormation) {
 			if (!enemy.isDestroyed() && checkCollision(this.ship, enemy)) {
 				this.score += enemy.getPointValue();
+				floatingScoreHud.show(enemy);
 				this.shipsDestroyed++;
 				recordEnemyDefeat(enemy);
 
@@ -1184,9 +1306,179 @@ public class GameScreen extends Screen {
 		if (this.bonusEnemyManager.isActive()
 				&& checkCollision(this.ship, bonusShip)) {
 			recordEnemyDefeat(bonusShip);
+			floatingScoreHud.show(bonusShip);
 			this.score += this.bonusEnemyManager.destroy();
 			this.shipsDestroyed++;
 			tryDropChameleonHull(bonusShip);
-		}
-	}
+			tryDropHyperfire(bonusShip);
+        }
+    }
+
+    /**
+     * Twin Cannon item: appears once in its level after enough kills, then
+     * falls and is lost if it leaves the screen.
+     */
+    private void updateTwinCanonItem() {
+        if (!this.twinCanonSpawned && TwinCanon.isUnlocked(this.level)
+                && this.shipsDestroyed - this.shipsDestroyedAtStart
+                        >= TwinCanon.SPAWN_KILLS) {
+            this.twinCanonSpawned = true;
+            this.twinCanonItem = new TwinCanon(
+                    30 + (int) (Math.random() * (this.width - 60)),
+                    SEPARATION_LINE_HEIGHT);
+        }
+
+        if (this.twinCanonItem != null) {
+            this.twinCanonItem.update();
+            if (this.twinCanonItem.getPositionY() > this.height)
+                this.twinCanonItem = null;
+        }
+    }
+
+    /**
+     * Checks whether the G key is also bound to movement or firing.
+     *
+     * @return True if G is used by another control.
+     */
+    private boolean isGrenadeKeyBoundElsewhere() {
+        return ControlsConfig.getKey(ControlsConfig.LEFT) == KeyEvent.VK_G
+                || ControlsConfig.getKey(ControlsConfig.RIGHT) == KeyEvent.VK_G
+                || ControlsConfig.getKey(ControlsConfig.FIRE) == KeyEvent.VK_G;
+    }
+
+    /**
+     * Each destroyed enemy ship has a chance to drop a Cluster Grenade item.
+     *
+     * @param enemyShip
+     *            Destroyed enemy ship.
+     */
+    private void tryDropGrenade(final EnemyShip enemyShip) {
+        if (!this.levelFinished
+                && this.grenadeDropsThisLevel < MAX_GRENADE_DROPS_PER_LEVEL
+                && Math.random() < GRENADE_DROP_CHANCE) {
+            this.grenadeDropsThisLevel++;
+            this.itemManager.spawnItem(new ClusterGrenadeItem(
+                    enemyShip.getPositionX(), enemyShip.getPositionY()));
+            this.logger.info("Grenade item dropped from enemy ship.");
+        }
+    }
+
+    /**
+     * On level 7, a destroyed enemy has a small chance to drop the Orbital
+     * Annihilator, at most once per level.
+     *
+     * @param enemyShip
+     *            Destroyed enemy ship.
+     */
+    private void tryDropAnnihilator(final EnemyShip enemyShip) {
+        if (!this.annihilatorDroppedThisLevel
+                && !this.levelFinished
+                && this.level == OrbitalAnnihilator.REQUIRED_LEVEL
+                && Math.random() < ANNIHILATOR_DROP_CHANCE) {
+            this.itemManager.spawnItem(new AnnihilatorItem(
+                    enemyShip.getPositionX(), enemyShip.getPositionY(),
+                    this.annihilator));
+            this.annihilatorDroppedThisLevel = true;
+            this.logger.info("Orbital Annihilator dropped from enemy ship.");
+        }
+    }
+
+    /**
+     * The red bonus ship drops Hyperfire once per level, whatever destroyed
+     * it (bullet, grenade fragment, Orbital Annihilator beam or Chameleon
+     * Hull contact).
+     *
+     * @param bonusShip
+     *            Destroyed bonus ship.
+     */
+    private void tryDropHyperfire(final EnemyShip bonusShip) {
+        if (!this.hyperfireDroppedThisLevel && !this.levelFinished
+                && bonusShip != null) {
+            this.itemManager.spawnItem(new Hyperfire(
+                    bonusShip.getPositionX(), bonusShip.getPositionY()));
+            this.hyperfireDroppedThisLevel = true;
+            this.logger.info("Hyperfire dropped from red UFO.");
+        }
+    }
+
+    /**
+     * Moves the grenades and their fragments. Once the stage has ended,
+     * they keep moving but no longer hit anything, so the score, kill count
+     * and defeat events cannot change after the end.
+     */
+    private void manageGrenades() {
+        boolean canHit = !this.levelFinished;
+
+        Set<Grenade> exploded = new HashSet<Grenade>();
+        for (Grenade grenade : this.grenades) {
+            grenade.update();
+
+            boolean impact = false;
+            if (canHit) {
+                for (EnemyShip enemyShip : this.enemyShipFormation)
+                    if (!enemyShip.isDestroyed()
+                            && checkCollision(grenade, enemyShip)) {
+                        impact = true;
+                        break;
+                    }
+                if (!impact && this.bonusEnemyManager.isActive()
+                        && checkCollision(grenade,
+                                this.bonusEnemyManager.getShip()))
+                    impact = true;
+            }
+
+            if (impact || grenade.hasReachedAltitude()) {
+                exploded.add(grenade);
+                this.fragments.addAll(GrenadeFragment.explode(
+                        grenade.getCenterX(), grenade.getCenterY()));
+            }
+        }
+        this.grenades.removeAll(exploded);
+
+        Set<GrenadeFragment> expired = new HashSet<GrenadeFragment>();
+        for (GrenadeFragment fragment : this.fragments) {
+            fragment.update();
+
+            boolean used = false;
+            if (canHit) {
+                for (EnemyShip enemyShip : this.enemyShipFormation)
+                    if (!enemyShip.isDestroyed()
+                            && checkCollision(fragment, enemyShip)) {
+                        this.score += enemyShip.getPointValue();
+                        floatingScoreHud.show(enemyShip);
+                        this.shipsDestroyed++;
+                        recordEnemyDefeat(enemyShip);
+                        this.enemyShipFormation.destroy(enemyShip);
+                        this.particleSystem.spawnEnemyExplosion(
+                                enemyShip.getPositionX()
+                                        + enemyShip.getWidth() / 2,
+                                enemyShip.getPositionY()
+                                        + enemyShip.getHeight() / 2);
+                        tryDropGrenade(enemyShip);
+                        tryDropChameleonHull(enemyShip);
+                        used = true;
+                        break;
+                    }
+
+                EnemyShip bonusShip = this.bonusEnemyManager.getShip();
+                if (!used && this.bonusEnemyManager.isActive()
+                        && checkCollision(fragment, bonusShip)) {
+                    recordEnemyDefeat(bonusShip);
+                    floatingScoreHud.show(bonusShip);
+                    this.score += this.bonusEnemyManager.destroy();
+                    this.shipsDestroyed++;
+                    this.particleSystem.spawnEnemyExplosion(
+                            bonusShip.getPositionX() + bonusShip.getWidth() / 2,
+                            bonusShip.getPositionY() + bonusShip.getHeight() / 2);
+                    tryDropChameleonHull(bonusShip);
+                    tryDropHyperfire(bonusShip);
+                    used = true;
+                }
+            }
+
+            if (used || fragment.isExpired())
+                expired.add(fragment);
+        }
+        this.fragments.removeAll(expired);
+    }
 }
