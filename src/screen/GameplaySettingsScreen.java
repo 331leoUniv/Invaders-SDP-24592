@@ -91,7 +91,7 @@ public class GameplaySettingsScreen extends Screen {
      */
     private void confirmDifficulty() {
         GameplayConfig.setDifficulty(selectedOption);
-        AudioManager.playSFX("audio/sfx/menu_select.wav");
+        AudioManager.playSFX("audio/sfx/menu_back.wav");
         returnCode = 4;
         isRunning = false;
     }
