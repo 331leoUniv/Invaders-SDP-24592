@@ -52,6 +52,30 @@ public enum Icon {
 			".##..##.",
 			"..####.."),
 
+	/** Shop: a shopping bag. */
+	SHOP("WG", new Color[] { GameColors.ICON_UI, GameColors.ICON_COIN },
+			"...WWW...",
+			"..W...W..",
+			"..W...W..",
+			"GGGGGGGGG",
+			"GGGGGGGGG",
+			"GGGG.GGGG",
+			"GGG...GGG",
+			"GGGG.GGGG",
+			"GGGGGGGGG"),
+
+	/** Hangar: a hangar with a ship parked inside. */
+	HANGAR("WB", new Color[] { GameColors.ICON_UI, GameColors.POWERUP_SHIELD },
+			"...WWWWW...",
+			"..WWWWWWW..",
+			".WWWWWWWWW.",
+			"WWWWWWWWWWW",
+			"W.........W",
+			"W....B....W",
+			"W...BBB...W",
+			"W..BBBBB..W",
+			"W.........W"),
+
 	/** Pause function. */
 	PAUSE(GameColors.ICON_UI,
 			"##...##",

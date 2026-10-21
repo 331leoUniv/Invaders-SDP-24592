@@ -1598,11 +1598,9 @@ public final class DrawManager {
             "Records & Achievements", "Settings", "Exit"
         };
         int[] codes = { 2, 10, 11, 3, 9, 4, 0 };
-        // null = pas d'icône disponible (remplacez par Icon.SHOP / Icon.HANGAR
-        // si vous les créez dans vfx.Icon).
         Icon[] icons = {
-            Icon.PLAY, null, null, Icon.HIGH_SCORES,
-            Icon.RECORDS, Icon.SETTINGS, Icon.EXIT
+                Icon.PLAY, Icon.SHOP, Icon.HANGAR, Icon.HIGH_SCORES,
+                Icon.RECORDS, Icon.SETTINGS, Icon.EXIT
         };
         int spacing = fontRegularMetrics.getHeight() * 3 / 2;
         int firstY = screen.getHeight() / 2 + fontRegularMetrics.getHeight() * 2;
