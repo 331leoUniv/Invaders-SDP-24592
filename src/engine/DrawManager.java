@@ -316,8 +316,11 @@ public final class DrawManager {
      */
     public void drawLives(final Screen screen, final int lives) {
         Ship dummyShip = new Ship(0, 0);
-        for (int i = 0; i < lives; i++)
-            drawEntity(dummyShip, 20 + 35 * i, 10);
+        drawEntity(dummyShip, 20, 10);
+
+        backBufferGraphics.setFont(fontRegular);
+        backBufferGraphics.setColor(Color.WHITE);
+        backBufferGraphics.drawString("x" + lives, 52, 25);
     }
 
     /**
