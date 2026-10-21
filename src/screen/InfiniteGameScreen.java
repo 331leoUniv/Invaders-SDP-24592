@@ -78,6 +78,8 @@ public class InfiniteGameScreen extends Screen {
 	private int score;
 	/** Player lives left. */
 	private int lives;
+	/** Lives the player started with. */
+	private final int maxLives;
 	/** Total bullets shot by the player. */
 	private int bulletsShot;
 	/** Total ships destroyed by the player. */
@@ -130,6 +132,7 @@ public class InfiniteGameScreen extends Screen {
 
 		this.score = gameState.getScore();
 		this.lives = gameState.getLivesRemaining();
+		this.maxLives = this.lives;
 		this.bulletsShot = gameState.getBulletsShot();
 		this.shipsDestroyed = gameState.getShipsDestroyed();
 	}
@@ -327,7 +330,7 @@ public class InfiniteGameScreen extends Screen {
 
 		// Interface.
 		drawManager.drawScore(this, this.score);
-		drawManager.drawLives(this, this.lives);
+		drawManager.drawLives(this, this.lives, this.maxLives);
 		drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
 
         if (this.visibleAchievement != null)
