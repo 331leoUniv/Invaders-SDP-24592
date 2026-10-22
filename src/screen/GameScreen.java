@@ -97,6 +97,8 @@ public class GameScreen extends Screen {
     private boolean chameleonDroppedThisLevel = false;
     private boolean shieldDroppedThisLevel = false;
 
+	private boolean bossMusicTriggered = false;
+
 	/** Player ship type selected before the stage started. */
 	private ShipType shipType;
     /** Current game difficulty settings. */
@@ -367,6 +369,10 @@ public class GameScreen extends Screen {
         this.shieldDroppedThisLevel = false;
         this.chameleonDroppedThisLevel = false;
         this.hyperfireKeyPressed = false;
+		this.bossMusicTriggered = false;
+
+		this.bonusEnemyManager = new BonusEnemyManager();
+		// ... le reste de la méthode initi
 
 		this.bonusEnemyManager = new BonusEnemyManager();
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
@@ -536,6 +542,12 @@ public class GameScreen extends Screen {
 						this.ship.getPositionX() + this.ship.getWidth() / 2,
 						this.ship.getPositionY(), this.bossBullets);
             }
+
+			if (isBossLevel(this.level) && this.enemyShipFormation.isEmpty()
+					&& getBossOnScreen() != null && !this.bossMusicTriggered) {
+				AudioManager.playBGM("audio/bgm/music_boss.wav");
+				this.bossMusicTriggered = true;
+			}
 
 			if (!this.ship.isDestroyed() && !this.annihilator.isCharging())
 				this.bulletsShot += this.ship.updateBurst(this.bullets);
