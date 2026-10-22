@@ -970,6 +970,7 @@ public class GameScreen extends Screen {
 			return;
 		boss.takeDamage(damage);
 		this.bossManager.sync();
+		AudioManager.playSFX("audio/sfx/boss_hit.wav");
 		if (boss.isDefeated())
 			this.bossExplosionCooldown.reset();
 	}
