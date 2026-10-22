@@ -63,6 +63,9 @@ public class InfiniteGameScreen extends Screen {
 	private Cooldown screenFinishedCooldown;
 	private int score;
 	private int lives;
+	/** Lives the player started with. */
+	private final int maxLives;
+	/** Total bullets shot by the player. */
 	private int bulletsShot;
 	private int shipsDestroyed;
 	private boolean gameOver;
@@ -97,6 +100,7 @@ public class InfiniteGameScreen extends Screen {
 
 		this.score = gameState.getScore();
 		this.lives = gameState.getLivesRemaining();
+		this.maxLives = this.lives;
 		this.bulletsShot = gameState.getBulletsShot();
 		this.shipsDestroyed = gameState.getShipsDestroyed();
 	}
@@ -269,7 +273,7 @@ public class InfiniteGameScreen extends Screen {
 					bullet.getPositionY());
 
 		drawManager.drawScore(this, this.score);
-		drawManager.drawLives(this, this.lives);
+		drawManager.drawLives(this, this.lives, this.maxLives);
 		drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
 
 		if (this.visibleAchievement != null)

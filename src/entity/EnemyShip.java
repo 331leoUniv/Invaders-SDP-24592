@@ -4,6 +4,7 @@ import java.awt.Color;
 
 import engine.Cooldown;
 import engine.Core;
+import engine.GameColors;
 import engine.DrawManager.SpriteType;
 
 /**
@@ -46,17 +47,16 @@ public class EnemyShip extends Entity {
 	 */
 	public EnemyShip(final int positionX, final int positionY,
 			final SpriteType spriteType) {
-		this(positionX, positionY, spriteType, 1);
+     this(positionX, positionY, spriteType, 1);
 	}
 
 	/** Creates an enemy with explicit positive initial health. */
 	public EnemyShip(final int positionX, final int positionY,
 			final SpriteType spriteType, final int health) {
-		super(positionX, positionY, 12 * 2, 8 * 2, Color.WHITE);
+		super(positionX, positionY, 12 * 2, 8 * 2, colorFor(spriteType));
 		if (health <= 0)
 			throw new IllegalArgumentException("health must be positive");
 		this.health = health;
-
 		this.spriteType = spriteType;
 		this.animationCooldown = Core.getCooldown(500);
 		this.isDestroyed = false;
@@ -85,11 +85,25 @@ public class EnemyShip extends Entity {
 	 * known starting properties.
 	 */
 	public EnemyShip() {
-		super(-32, 60, 16 * 2, 7 * 2, Color.RED);
-
+		 // super(-32, 60, 16 * 2, 7 * 2, Color.RED);
+		super(-32, 60, 16 * 2, 7 * 2, GameColors.ENEMY_SPECIAL);
 		this.spriteType = SpriteType.EnemyShipSpecial;
 		this.isDestroyed = false;
 		this.pointValue = BONUS_TYPE_POINTS;
+
+	}
+
+	private static Color colorFor(final SpriteType spriteType) {
+		switch (spriteType) {
+			case EnemyShipB1:
+			case EnemyShipB2:
+				return GameColors.ENEMY_B;
+			case EnemyShipC1:
+			case EnemyShipC2:
+				return GameColors.ENEMY_C;
+			default:
+				return GameColors.ENEMY_A;
+		}
 	}
 
 	/**
