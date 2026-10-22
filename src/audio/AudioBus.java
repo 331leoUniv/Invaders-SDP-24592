@@ -177,9 +177,18 @@ public class AudioBus {
 
     /** Holds a shared PCM resource and the byte position of one playback. */
     private static class AudioPlayback {
+        /** Shared source samples, read without modifying the cached resource. */
         private AudioResource resource;
+        /** Byte offset of the current stereo frame, or the data size at the end. */
         private int position = 0;
 
+        /**
+         * Creates playback at the beginning of a resource in the mixer format.
+         *
+         * @param resource the shared, non-empty PCM resource
+         * @throws IllegalArgumentException if the format or frame alignment is invalid
+         * @throws NullPointerException if the resource is null
+         */
         public AudioPlayback(AudioResource resource) {
             if (!AudioMixer.FORMAT.matches(resource.getFormat()))
                 throw new IllegalArgumentException("Unexpected audio format: " + resource.getFormat());
@@ -190,6 +199,11 @@ public class AudioBus {
             this.resource = resource;
         }
 
+        /**
+         * Reads the current left sample without advancing playback or applying gain.
+         *
+         * @return the signed 16-bit sample value, or zero after playback ends
+         */
         public double getLeftSample() {
             if (position >= resource.size())
                 return 0.0;
@@ -197,6 +211,11 @@ public class AudioBus {
             return (short) ((resource.getData(position) & 0xff) | (resource.getData(position + 1) << 8));
         }
 
+        /**
+         * Reads the current right sample without advancing playback or applying gain.
+         *
+         * @return the signed 16-bit sample value, or zero after playback ends
+         */
         public double getRightSample() {
             if (position >= resource.size())
                 return 0.0;
@@ -204,6 +223,12 @@ public class AudioBus {
             return (short) ((resource.getData(position + 2) & 0xff) | (resource.getData(position + 3) << 8));
         }
 
+        /**
+         * Advances one stereo frame, wrapping to the beginning when looping.
+         * Non-looping playback stays at the end once all frames are consumed.
+         *
+         * @param loop true to restart playback when it reaches the end
+         */
         public void advance(boolean loop) {
             if (position < resource.size())
                 position += AudioMixer.FORMAT.getFrameSize();
@@ -212,6 +237,11 @@ public class AudioBus {
             }
         }
 
+        /**
+         * Returns whether playback has consumed all frames without wrapping.
+         *
+         * @return true if the playback position is at the end of the resource
+         */
         public boolean isFinished() {
             return position == resource.size();
         }

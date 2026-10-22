@@ -7,6 +7,7 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -43,25 +44,31 @@ public class AudioMixer implements Runnable {
     /** Output line receiving mixed PCM chunks. */
     private final SourceDataLine line;
 
+    /** Optional callback invoked on the worker after an error and output cleanup. */
+    private final MixerErrorListener unexpectedStopListener;
+
     /**
      * Opens the output line and immediately starts a daemon mixing worker.
      *
+     * @param listener callback for worker errors after cleanup, or null to disable notification
      * @throws LineUnavailableException if the output line cannot be opened
      * @throws IllegalArgumentException if no line supports {@link #FORMAT}
      */
-    public AudioMixer() throws LineUnavailableException {
+    public AudioMixer(MixerErrorListener listener) throws LineUnavailableException {
         logger = Core.getLogger();
+        unexpectedStopListener = listener;
 
         line = AudioSystem.getSourceDataLine(FORMAT);
-        line.open(FORMAT, BUFFER_FRAMES * FORMAT.getFrameSize());
-        line.start();
-
-        alive = true;
         try {
+            line.open(FORMAT, BUFFER_FRAMES * FORMAT.getFrameSize());
+            line.start();
+
+            alive = true;
             Thread worker = new Thread(this);
             worker.setDaemon(true);
             worker.start();
         } catch (Exception e) {
+            closeLine();
             alive = false;
             throw e;
         }
@@ -70,9 +77,11 @@ public class AudioMixer implements Runnable {
     /**
      * Runs the output loop, handling partial writes and logging failures.
      * Invoked by the constructor's worker; callers must not start another loop.
+     * Closes the output line before notifying the error listener.
      */
     @Override
     public void run() {
+        Exception failure = null;
         try {
             byte[] chunk = new byte[CHUNK_FRAMES * FORMAT.getFrameSize()];
             while (isAlive() && line.isOpen()) {
@@ -86,8 +95,36 @@ public class AudioMixer implements Runnable {
             }
         } catch (Exception e) {
             logger.severe("Audio mixer stopped due to an unexpected error: " + e);
+            failure = e;
         } finally {
-            shutdown();
+            try {
+                closeLine();
+            } finally {
+                shutdown();
+            }
+        }
+        if (failure != null && unexpectedStopListener != null)
+            unexpectedStopListener.onError(failure);
+    }
+
+    /** Releases the output device even if stopping or flushing fails. */
+    private void closeLine() {
+        try {
+            line.stop();
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to stop audio output line.", e);
+        }
+
+        try {
+            line.flush();
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to flush audio output line.", e);
+        }
+
+        try {
+            line.close();
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to close audio output line.", e);
         }
     }
 
@@ -183,5 +220,16 @@ public class AudioMixer implements Runnable {
      */
     public synchronized void shutdown() {
         alive = false;
+    }
+
+    /** Receives worker exceptions after the mixer has released its output line. */
+    public interface MixerErrorListener {
+        /**
+         * Handles an unexpected mixer failure on the terminating worker thread.
+         * Normal shutdown does not invoke this callback.
+         *
+         * @param e the exception that interrupted audio output
+         */
+        void onError(Exception e);
     }
 }
