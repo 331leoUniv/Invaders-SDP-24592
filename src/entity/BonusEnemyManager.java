@@ -2,6 +2,7 @@ package entity;
 
 import java.util.logging.Logger;
 
+import audio.AudioManager;
 import engine.Cooldown;
 import engine.Core;
 
@@ -55,6 +56,7 @@ public class BonusEnemyManager {
 		}
 		if (this.bonusShip == null && this.spawnCooldown.checkFinished()) {
 			this.bonusShip = new EnemyShip();
+			AudioManager.playSFX("audio/sfx/bonus_appear.wav");
 			this.spawnCooldown.reset();
 			this.logger.info("A special ship appears");
 		}
@@ -73,6 +75,7 @@ public class BonusEnemyManager {
 	public final int destroy() {
 		if (!isActive())
 			return 0;
+		AudioManager.playSFX("audio/sfx/bonus_explosion.wav");
 		this.bonusShip.destroy();
 		this.explosionCooldown.reset();
 		return this.bonusShip.getPointValue();

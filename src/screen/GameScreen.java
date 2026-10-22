@@ -59,7 +59,8 @@ import entity.item.TwinCanon;
 
 /**
  * Implements the game screen, where the action happens.
- *
+ * Plays sound effects for gameplay events.
+ * 
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
  *
  */
@@ -444,6 +445,10 @@ public class GameScreen extends Screen {
 		this.inputDelay = Core.getCooldown(INPUT_DELAY);
 		this.inputDelay.reset();
 
+		if (this.bonusLife) {
+			AudioManager.playSFX("audio/sfx/bonus_life.wav");
+		}
+
 		if (this.playerStatus.getLives() == 1) {
 			AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
 			this.isLowHealthBGM = true;
@@ -475,7 +480,8 @@ public class GameScreen extends Screen {
 	}
 
 	/**
-	 * Updates the elements on screen and checks for events.
+	 * Updates the elements on screen, checks for events, and plays the bonus
+	 * enemy appearance sound.
 	 */
 	protected final void update() {
 		super.update();
@@ -522,7 +528,11 @@ public class GameScreen extends Screen {
 				if (inputManager.isKeyDown(
 						ControlsConfig.getKey(ControlsConfig.FIRE))) {
 					if (!this.annihilator.isCharging()) {
-						this.bulletsShot += this.ship.shoot(this.bullets);
+						int fired = this.ship.shoot(this.bullets);
+						this.bulletsShot += fired;
+						if (fired > 0) {
+							AudioManager.playSFX("audio/sfx/player_shoot.wav");
+						}
 					}
 				}
 
@@ -650,6 +660,7 @@ public class GameScreen extends Screen {
 				} else {
 					this.levelFinished = true;
 					this.stageCleared = true;
+					AudioManager.playSFX("audio/sfx/level_clear.wav");
 					this.screenFinishedCooldown.reset();
 					this.logger.info("Stage " + this.level + " cleared.");
 				}
@@ -832,7 +843,8 @@ public class GameScreen extends Screen {
 	}
 
 	/**
-	 * Manages collisions between bullets and ships.
+	 * Manages collisions between bullets and ships and plays destruction
+	 * sounds for regular and bonus enemies.
 	 */
 	private void manageCollisions() {
 		if (this.levelFinished)
@@ -853,6 +865,7 @@ public class GameScreen extends Screen {
 						this.shipsDestroyed++;
 						recordEnemyDefeat(enemyShip);
 						this.enemyShipFormation.destroy(enemyShip);
+						AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
 						this.particleSystem.spawnEnemyExplosion(
 								enemyShip.getPositionX()
 										+ enemyShip.getWidth() / 2,
@@ -994,6 +1007,7 @@ public class GameScreen extends Screen {
 			return false;
 		if (this.ship.isShieldActive()) {
 			this.logger.info("Shot absorbed by Energy Shield.");
+			AudioManager.playSFX("audio/sfx/item_shield_block.wav");
 			// The Energy Shield belongs to Ship, so PlayerStatus cannot see
 			// this hit by itself. Announce it anyway, or a listener would
 			// hear a blocked hit only when the timed shield was the one that
@@ -1005,6 +1019,7 @@ public class GameScreen extends Screen {
 		// the hit lands at all; the effects below must not run otherwise.
 		if (!this.playerStatus.takeDamage(damage))
 			return false;
+		AudioManager.playSFX("audio/sfx/player_hit.wav");
 
 		this.ship.destroy();
 		this.ship.triggerDamageFeedback();

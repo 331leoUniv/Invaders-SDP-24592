@@ -12,6 +12,7 @@ import engine.Cooldown;
 import engine.Core;
 import engine.DrawManager;
 import engine.GameSettings;
+import audio.AudioManager;
 
 /**
  * Groups enemy ships into a formation that moves together.
@@ -546,6 +547,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 		if (player == null) {
 			bullets.add(BulletPool.getBullet(enemyX, enemyY, BULLET_SPEED,
 					Bullet.Owner.ENEMY));
+			AudioManager.playSFX("audio/sfx/enemy_shoot.wav");
 			return;
 		}
 
@@ -567,6 +569,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 		// explicitly rather than inferred from the speed.
 		bullets.add(BulletPool.getBullet(enemyX, enemyY, speedY, speedX,
 				Bullet.Owner.ENEMY));
+		AudioManager.playSFX("audio/sfx/enemy_shoot.wav");
 	}
 
 	/**
