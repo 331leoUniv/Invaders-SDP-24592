@@ -170,7 +170,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	public EnemyShipFormation(final GameSettings gameSettings, final int level) {
         // Select the movement pattern according to the current level.
         MovementPattern[] patterns = MovementPattern.values();
-        this.movementPattern = patterns[Math.floorMod(level - 1, patterns.length)];
+        this.movementPattern = patterns[floorMod(level - 1, patterns.length)];
 		this.drawManager = Core.getDrawManager();
 		this.logger = Core.getLogger();
 		this.enemyShips = new ArrayList<List<EnemyShip>>();
@@ -276,7 +276,19 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 				+ (int) Math.round(amplitude * Math.sin(this.wavePhase));
 		nextY = Math.max(minY, Math.min(nextY, maxY));
 
-		return new int[] { nextX - this.positionX, nextY - this.positionY };
+		// cleanUp() re-anchors positionY to the topmost surviving ship, so a
+		// cleared row leaves the formation far from its curve. Without a
+		// limit the next frame drags every ship back in one move, which the
+		// player sees as a jump. The diagonal pattern already moves at most
+		// one step towards its target; the wave does the same here.
+		int step = scaledStep(WAVE_X_SPEED);
+		int movementY = nextY - this.positionY;
+		if (movementY > step)
+			movementY = step;
+		else if (movementY < -step)
+			movementY = -step;
+
+		return new int[] { nextX - this.positionX, movementY };
 	}
 
 
@@ -314,6 +326,21 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
         int scaled = baseStep * REFERENCE_SPEED
                 / Math.max(1, this.movementSpeed);
         return Math.max(1, Math.min(MAX_STEP, scaled));
+    }
+
+    /**
+     * The remainder of a division, never negative, for any sign of the
+     * value. Java 7 has no Math.floorMod and the README asks for Java 7, so
+     * the identity is written out rather than called.
+     *
+     * @param value
+     *            Value to divide.
+     * @param modulus
+     *            Positive divisor.
+     * @return Remainder in the range zero to modulus - 1.
+     */
+    private static int floorMod(final int value, final int modulus) {
+        return (value % modulus + modulus) % modulus;
     }
 
     /**
@@ -513,7 +540,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 						Math.max(1, positionX - SIDE_MARGIN));
 			else
 				movementY = Math.min(scaledStep(Y_SPEED), DESCENT_DISTANCE
-						- Math.floorMod(positionY, DESCENT_DISTANCE));
+						- floorMod(positionY, DESCENT_DISTANCE));
 			}
 
 			positionX += movementX;
