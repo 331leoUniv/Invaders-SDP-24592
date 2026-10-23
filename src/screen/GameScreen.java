@@ -940,130 +940,133 @@ this.particleSystem.update();
 		return false;
 	}
 
-/** Consumes a colliding hazard, applying only the existing slow effect. */
-	private void manageFallingObstacleCollisions() {
-		if (!this.inputDelay.checkFinished() || this.levelFinished)
-			return;
+    /** Consumes a colliding hazard, applying only the existing slow effect. */
+    private void manageFallingObstacleCollisions() {
+        if (!this.inputDelay.checkFinished() || this.levelFinished)
+            return;
 
-		for (Iterator<FallingObstacle> iterator =
-				this.fallingObstacles.iterator(); iterator.hasNext();) {
-			FallingObstacle obstacle = iterator.next();
-			if (checkCollision(obstacle, this.ship)) {
-				// Remove first so a single obstacle can trigger only one collision.
-				iterator.remove();
-				this.fallingObstacleCooldown.reset();
-				if (!this.ship.isInvulnerable() && !this.ship.isShieldActive())
-					this.playerStatus.applySlow(this.ship);
-			}
-		}
-	}
+        for (Iterator<FallingObstacle> iterator =
+             this.fallingObstacles.iterator(); iterator.hasNext();) {
+            FallingObstacle obstacle = iterator.next();
+            if (checkCollision(obstacle, this.ship)) {
+                // Remove first so a single obstacle can trigger only one collision.
+                iterator.remove();
+                this.fallingObstacleCooldown.reset();
+                if (!this.ship.isInvulnerable() && !this.ship.isShieldActive())
+                    this.playerStatus.applySlow(this.ship);
+            }
+        }
+    }
 
-	/** Clears an existing slow as soon as the Energy Shield item is active. */
-	private void clearSlowIfEnergyShieldActive() {
-		if (this.ship.isShieldActive())
-			this.playerStatus.clearSlowDebuff();
-	}
+    /** Clears an existing slow as soon as the Energy Shield item is active. */
+    private void clearSlowIfEnergyShieldActive() {
+        if (this.ship.isShieldActive())
+            this.playerStatus.clearSlowDebuff();
+    }
 
-	/**
-	 * Manages collisions between bullets and ships.
-	 */
-	private void manageCollisions() {
-		if (this.levelFinished)
-			return;
-		Set<Bullet> recyclable = new HashSet<Bullet>();
-		for (Bullet bullet : this.bullets) {
-			if (bullet.isEnemyBullet()) {
-				if (checkCollision(bullet, this.ship) && !this.levelFinished) {
-					recyclable.add(bullet);
-					damagePlayer(1, "Hit on player ship");
-				}
-			} else {
-				for (EnemyShip enemyShip : this.enemyShipFormation) {
-					if (!enemyShip.isDestroyed()
-							&& checkCollision(bullet, enemyShip)) {
-						recyclable.add(bullet);
-						// Reduce HP first; if the enemy is not destroyed yet, stop here.
-						if (!this.enemyShipFormation.hit(enemyShip))
-							break;
+    /**
+     * Manages collisions between bullets and ships.
+     */
+    private void manageCollisions() {
+        if (this.levelFinished)
+            return;
+        Set<Bullet> recyclable = new HashSet<Bullet>();
+        for (Bullet bullet : this.bullets) {
+            if (bullet.isEnemyBullet()) {
+                if (checkCollision(bullet, this.ship) && !this.levelFinished) {
+                    recyclable.add(bullet);
+                    damagePlayer(1, "Hit on player ship");
+                }
+            } else {
+                for (EnemyShip enemyShip : this.enemyShipFormation) {
+                    if (!enemyShip.isDestroyed()
+                            && checkCollision(bullet, enemyShip)) {
+                        recyclable.add(bullet);
+                        if (!this.enemyShipFormation.hit(enemyShip))
+                            break;
 
-						this.score += enemyShip.getPointValue();
-						floatingScoreHud.show(enemyShip);
-						this.shipsDestroyed++;
-						recordEnemyDefeat(enemyShip);
-						this.particleSystem.spawnEnemyExplosion(
-								enemyShip.getPositionX()
-										+ enemyShip.getWidth() / 2,
-								enemyShip.getPositionY()
-										+ enemyShip.getHeight() / 2);
-						tryDropChameleonHull(enemyShip);
-						tryDropAnnihilator(enemyShip);
-						tryDropGrenade(enemyShip);
+                        this.score += enemyShip.getPointValue();
+                        floatingScoreHud.show(enemyShip);
+                        this.shipsDestroyed++;
+                        recordEnemyDefeat(enemyShip);
+                        this.particleSystem.spawnEnemyExplosion(
+                                enemyShip.getPositionX()
+                                        + enemyShip.getWidth() / 2,
+                                enemyShip.getPositionY()
+                                        + enemyShip.getHeight() / 2);
+                        tryDropChameleonHull(enemyShip);
+                        tryDropAnnihilator(enemyShip);
+                        tryDropGrenade(enemyShip);
 
-						// --- SHIELD ITEM DROP ---
-						// Only a ship that can hold the shield is offered it.
-						if (!this.shieldDroppedThisLevel
-								&& this.shipType.isShieldCapable()) {
-							boolean shouldDrop = (Math.random() < 0.15)
-									|| (this.enemyShipFormation.isEmpty());
-							if (shouldDrop) {
-								this.itemManager.spawnItem(
-										new ShieldItem(
-												enemyShip.getPositionX(),
-												enemyShip.getPositionY()
-										)
-								);
-								this.shieldDroppedThisLevel = true;
-								this.logger.info("Shield item dropped from enemy ship at ("
-										+ enemyShip.getPositionX() + ", "
-										+ enemyShip.getPositionY() + ").");
-							}
-						}
-						break;
-					}
-				}
-				EnemyShip bonusShip = this.bonusEnemyManager.getShip();
-				if (!recyclable.contains(bullet) && this.bonusEnemyManager.isActive()
-						&& checkCollision(bullet, bonusShip)) {
-					recordEnemyDefeat(bonusShip);
-			floatingScoreHud.show(bonusShip);
-					this.score += this.bonusEnemyManager.destroy();
+                        // --- SHIELD ITEM DROP ---
+                        if (!this.shieldDroppedThisLevel
+                                && this.shipType.isShieldCapable()) {
+                            boolean shouldDrop = (Math.random() < 0.15)
+                                    || (this.enemyShipFormation.isEmpty());
+                            if (shouldDrop) {
+                                this.itemManager.spawnItem(
+                                        new ShieldItem(
+                                                enemyShip.getPositionX(),
+                                                enemyShip.getPositionY()
+                                        )
+                                );
+                                this.shieldDroppedThisLevel = true;
+                                this.logger.info("Shield item dropped from enemy ship at ("
+                                        + enemyShip.getPositionX() + ", "
+                                        + enemyShip.getPositionY() + ").");
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                EnemyShip bonusShip = this.bonusEnemyManager.getShip();
+                if (!recyclable.contains(bullet) && this.bonusEnemyManager.isActive()
+                        && checkCollision(bullet, bonusShip)) {
+                    recordEnemyDefeat(bonusShip);
+                    floatingScoreHud.show(bonusShip);
+                    this.score += this.bonusEnemyManager.destroy();
                     this.shipsDestroyed++;
                     this.particleSystem.spawnEnemyExplosion(
-							bonusShip.getPositionX() + bonusShip.getWidth() / 2,
-							bonusShip.getPositionY() + bonusShip.getHeight() / 2);
-					tryDropChameleonHull(bonusShip);
-					tryDropHyperfire(bonusShip);
-					recyclable.add(bullet);
-				}
-				// Shooting the Twin Cannon item collects it.
-				if (this.twinCanonItem != null
-						&& !recyclable.contains(bullet)
-						&& checkCollision(bullet, this.twinCanonItem)) {
-					this.itemManager.getBuffManager().addBuff(
-							this.twinCanonItem, this.ship);
-					this.twinCanonItem = null;
-					recyclable.add(bullet);
-				}
-				// A bullet that already hit a ship cannot also hit the boss.
-				Boss boss = getBossOnScreen();
-				if (boss != null && !boss.isDefeated()
-						&& !recyclable.contains(bullet)
-						&& checkCollision(bullet, boss)) {
-					damageBoss(getBossDamagePerBullet());
+                            bonusShip.getPositionX() + bonusShip.getWidth() / 2,
+                            bonusShip.getPositionY() + bonusShip.getHeight() / 2);
+                    tryDropChameleonHull(bonusShip);
+                    tryDropHyperfire(bonusShip);
+                    recyclable.add(bullet);
+                }
+
+                // Shooting the Twin Cannon item collects it.
+                if (this.twinCanonItem != null
+                        && !recyclable.contains(bullet)
+                        && checkCollision(bullet, this.twinCanonItem)) {
+                    this.itemManager.getBuffManager().addBuff(
+                            this.twinCanonItem, this.ship);
+                    this.twinCanonItem = null;
+                    recyclable.add(bullet);
+                }
+
+                // A bullet that already hit a ship cannot also hit the boss.
+                Boss boss = getBossOnScreen();
+                if (boss != null && !boss.isDefeated()
+                        && !recyclable.contains(bullet)
+                        && checkCollision(bullet, boss)) {
+                    damageBoss(getBossDamagePerBullet());
                     recyclable.add(bullet);
                 }
             }
+        }
         this.bullets.removeAll(recyclable);
         BulletPool.recycle(recyclable);
 
-		Set<BossBullet> hitBossBullets = new HashSet<BossBullet>();
-		for (BossBullet bossBullet : this.bossBullets)
-			if (checkCollision(bossBullet, this.ship) && !this.levelFinished) {
-				hitBossBullets.add(bossBullet);
-				damagePlayer(bossBullet.getDamage(),
-						"Hit on player ship by the boss");
-			}
-		this.bossBullets.removeAll(hitBossBullets);
+        Set<BossBullet> hitBossBullets = new HashSet<BossBullet>();
+        for (BossBullet bossBullet : this.bossBullets) {
+            if (checkCollision(bossBullet, this.ship) && !this.levelFinished) {
+                hitBossBullets.add(bossBullet);
+                damagePlayer(bossBullet.getDamage(),
+                        "Hit on player ship by the boss");
+            }
+        }
+        this.bossBullets.removeAll(hitBossBullets);
     }
 
     /**
@@ -1071,36 +1074,40 @@ this.particleSystem.update();
      * corridor and neutralizes enemy projectiles inside it.
      */
     private void manageAnnihilatorBeam() {
-        if (this.levelFinished) return;
-        for (EnemyShip enemyShip : this.enemyShipFormation)
+        if (this.levelFinished)
+            return;
+        for (EnemyShip enemyShip : this.enemyShipFormation) {
             if (!enemyShip.isDestroyed()
                     && OrbitalAnnihilator.hits(this.ship, enemyShip)) {
                 this.score += enemyShip.getPointValue();
                 floatingScoreHud.show(enemyShip);
                 this.shipsDestroyed++;
-				recordEnemyDefeat(enemyShip);
+                recordEnemyDefeat(enemyShip);
 
                 this.enemyShipFormation.destroy(enemyShip);
                 tryDropChameleonHull(enemyShip);
             }
+        }
 
-		EnemyShip bonusShip = this.bonusEnemyManager.getShip();
-		if (this.bonusEnemyManager.isActive()
-				&& OrbitalAnnihilator.hits(this.ship, bonusShip)) {
-			recordEnemyDefeat(bonusShip);
-			floatingScoreHud.show(bonusShip);
-			this.score += this.bonusEnemyManager.destroy();
+        EnemyShip bonusShip = this.bonusEnemyManager.getShip();
+        if (this.bonusEnemyManager.isActive()
+                && OrbitalAnnihilator.hits(this.ship, bonusShip)) {
+            recordEnemyDefeat(bonusShip);
+            floatingScoreHud.show(bonusShip);
+            this.score += this.bonusEnemyManager.destroy();
             this.shipsDestroyed++;
-			tryDropChameleonHull(bonusShip);
-			tryDropHyperfire(bonusShip);
+            tryDropChameleonHull(bonusShip);
+            tryDropHyperfire(bonusShip);
         }
 
         Set<Bullet> neutralized = new HashSet<Bullet>();
 
-        for (Bullet bullet : this.bullets)
-			if (bullet.isEnemyBullet()
-                    && OrbitalAnnihilator.hits(this.ship, bullet))
+        for (Bullet bullet : this.bullets) {
+            if (bullet.isEnemyBullet()
+                    && OrbitalAnnihilator.hits(this.ship, bullet)) {
                 neutralized.add(bullet);
+            }
+        }
 
         this.bullets.removeAll(neutralized);
         BulletPool.recycle(neutralized);
