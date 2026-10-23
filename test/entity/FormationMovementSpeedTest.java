@@ -188,5 +188,3 @@ public final class FormationMovementSpeedTest {
         return field.getInt(target);
     }
 }
-
-

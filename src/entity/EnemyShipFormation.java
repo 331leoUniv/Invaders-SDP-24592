@@ -15,9 +15,9 @@ import engine.GameSettings;
 
 /**
  * Groups enemy ships into a formation that moves together.
- * 
+ *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
 public class EnemyShipFormation implements Iterable<EnemyShip> {
 
@@ -149,11 +149,12 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 		DOWN
 	};
 
-
     /**
      * Constructor compatible with existing callers.
      *
      * @param gameSettings Current game settings.
+     * @throws IllegalArgumentException If the initial position is outside the
+     *         left/top bounds or is not aligned to the descent distance.
      */
     public EnemyShipFormation(final GameSettings gameSettings) {
         this(gameSettings, 1);
@@ -421,7 +422,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 
 	/**
 	 * Associates the formation to a given screen.
-	 * 
+	 *
 	 * @param newScreen
 	 *            Screen to attach.
 	 * @throws IllegalArgumentException If the formation exceeds the screen's
@@ -457,7 +458,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 					shootingVariance);
 			this.shootingCooldown.reset();
 		}
-		
+
 		cleanUp();
 
 		int movementX = 0;
@@ -596,7 +597,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 
 		int leftMostPoint = 0;
 		int rightMostPoint = 0;
-		
+
 		for (List<EnemyShip> column : this.enemyShips) {
 			if (!column.isEmpty()) {
 				if (leftMostPoint == 0)
@@ -614,7 +615,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 
 	/**
 	 * Shoots a bullet downwards.
-	 * 
+	 *
 	 * @param bullets
 	 *            Bullets set to add the bullet being shot.
 	 */
@@ -679,7 +680,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 
 	/**
 	 * Destroys a ship.
-	 * 
+	 *
 	 * @param destroyedShip
 	 *            Ship to be destroyed.
 	 */
@@ -778,7 +779,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 
 	/**
 	 * Gets the ship on a given column that will be in charge of shooting.
-	 * 
+	 *
 	 * @param column
 	 *            Column to search.
 	 * @return New shooter ship.
@@ -797,7 +798,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 
 	/**
 	 * Returns an iterator over the ships in the formation.
-	 * 
+	 *
 	 * @return Iterator over the enemy ships.
 	 */
 	@Override
@@ -813,7 +814,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 
 	/**
 	 * Checks if there are any ships remaining.
-	 * 
+	 *
 	 * @return True when all ships have been destroyed.
 	 */
 	public final boolean isEmpty() {
