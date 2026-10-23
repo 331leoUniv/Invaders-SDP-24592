@@ -60,6 +60,9 @@ public class ShopScreen extends Screen {
         selectedAction = 0;
         lastResult = null;
         inputDelay.reset();
+
+        AudioManager.playBGM("audio/bgm/music_shop.wav");
+
         // Consume held state on entry, including a confirm key from the Main Menu.
         processInput(false);
     }
