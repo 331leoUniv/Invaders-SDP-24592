@@ -695,7 +695,6 @@ public class GameScreen extends Screen {
         if (this.levelFinished && this.runSession != null)
             this.runSession.stopActiveSegment(System.nanoTime());
     }
-	}
 
 	/**
 	 * Copies the wave list after checking that it can be played.
