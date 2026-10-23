@@ -123,7 +123,9 @@ public final class DrawManager {
         /** Hyperfire falling power-up. */
         Hyperfire,
         /** Destroyed enemy ship. */
-        Explosion
+        Explosion,
+        /** Falling hazard. */
+        FallingObstacle
     };
 
     /**
@@ -149,6 +151,7 @@ public final class DrawManager {
             spriteMap.put(SpriteType.EnemyShipC2, new boolean[12][8]);
             spriteMap.put(SpriteType.EnemyShipSpecial, new boolean[16][7]);
             spriteMap.put(SpriteType.Explosion, new boolean[13][7]);
+            spriteMap.put(SpriteType.FallingObstacle, new boolean[13][7]);
 
             fileManager.loadSprite(spriteMap);
             logger.info("Finished loading the sprites.");
