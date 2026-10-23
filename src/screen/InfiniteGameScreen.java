@@ -406,6 +406,7 @@ public class InfiniteGameScreen extends Screen {
 					this.score += enemy.getPointValue();
 					this.shipsDestroyed++;
                     recordEnemyDefeat(enemy);
+                    AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
 					this.particleSystem.spawnEnemyExplosion(
 							enemy.getPositionX() + enemy.getWidth() / 2,
 							enemy.getPositionY() + enemy.getHeight() / 2);
