@@ -18,9 +18,9 @@ import engine.GameSettings;
 
 /**
  * Groups enemy ships into a formation that moves together.
- * 
+ *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
 public class EnemyShipFormation implements Iterable<EnemyShip> {
 
@@ -464,7 +464,7 @@ private int getBulletSpeed() {
 
 	/**
 	 * Associates the formation to a given screen.
-	 * 
+	 *
 	 * @param newScreen
 	 *            Screen to attach.
 	 * @throws IllegalArgumentException If the formation exceeds the screen's
@@ -500,7 +500,7 @@ private int getBulletSpeed() {
 					shootingVariance);
 			this.shootingCooldown.reset();
 		}
-		
+
 		// Keep updating a defeated formation so its explosions can be removed
 		// while the screen is still waiting for a boss to be defeated.
 		if (this.initialShipCount == 0)
@@ -650,7 +650,7 @@ private int getBulletSpeed() {
 
 	/**
 	 * Shoots a bullet downwards.
-	 * 
+	 *
 	 * @param bullets
 	 *            Bullets set to add the bullet being shot.
 	 */
@@ -688,8 +688,8 @@ private int getBulletSpeed() {
 		int enemyY = shooter.getPositionY();
 
 		if (player == null) {
-			
-			
+
+
 
 			bullets.add(BulletPool.getBullet(enemyX, enemyY, getBulletSpeed(),
 					Bullet.Owner.ENEMY));
@@ -718,7 +718,7 @@ private int getBulletSpeed() {
 
 	/**
 	 * Destroys a ship.
-	 * 
+	 *
 	 * @param destroyedShip
 	 *            Ship to be destroyed.
 	 */
@@ -875,7 +875,7 @@ private int getBulletSpeed() {
 
 	/**
 	 * Gets the ship on a given column that will be in charge of shooting.
-	 * 
+	 *
 	 * @param column
 	 *            Column to search.
 	 * @return New shooter ship.
@@ -894,7 +894,7 @@ private int getBulletSpeed() {
 
 	/**
 	 * Returns an iterator over the ships in the formation.
-	 * 
+	 *
 	 * @return Iterator over the enemy ships.
 	 */
 	@Override
@@ -910,7 +910,7 @@ private int getBulletSpeed() {
 
 	/**
 	 * Checks if there are any ships remaining.
-	 * 
+	 *
 	 * @return True when all ships have been destroyed.
 	 */
 	public final boolean isEmpty() {

@@ -7,11 +7,11 @@ package engine;
  *  1) The player clears 3 levels while the difficulty is lowered
  *  2) Lives recovered to 2 or more
  *
- * 
+ *
  */
 public class DifficultyAdjustWhilePlaying {
 
-   
+
 
     private static final DifficultyAdjustWhilePlaying INSTANCE =
             new DifficultyAdjustWhilePlaying();
@@ -57,7 +57,7 @@ public class DifficultyAdjustWhilePlaying {
         }
         clearedLevelsWhileActive++;
         if (clearedLevelsWhileActive >= 3) {
-           
+
             ClearedEnoughLevels = true; // the difficulty adjustment is disabled when the player has cleared 3 levels while the difficulty is lowered
 
             clearedLevelsWhileActive = 0;
@@ -72,5 +72,5 @@ public class DifficultyAdjustWhilePlaying {
             return baseSpeed;
     }
 
-    
+
 }

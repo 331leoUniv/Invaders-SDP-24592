@@ -51,8 +51,8 @@ public class InfiniteGameScreen extends Screen {
 	private static final int ENEMY_BULLET_SPEED = 4;
 	private static final double ENEMY_FIRE_CHANCE = 0.003;
 
-	private int getEnemyBulletSpeed() { 
-		return (int) DifficultyAdjustWhilePlaying.getInstance().adjustEnemyBulletSpeed(ENEMY_BULLET_SPEED); 
+	private int getEnemyBulletSpeed() {
+		return (int) DifficultyAdjustWhilePlaying.getInstance().adjustEnemyBulletSpeed(ENEMY_BULLET_SPEED);
 	}
 
 	private Ship ship;
@@ -142,7 +142,7 @@ public class InfiniteGameScreen extends Screen {
 			}
 		}
 
-		
+
 		//update the current lives remaining to the DifficultyAdjustWhilePlaying class
 		DifficultyAdjustWhilePlaying.getInstance().update(this.lives);
 
