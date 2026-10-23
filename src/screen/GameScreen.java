@@ -1036,6 +1036,7 @@ public class GameScreen extends Screen {
      */
     private void manageAnnihilatorBeam() {
         if (this.levelFinished) return;
+        boolean enemyDestroyed = false;
         for (EnemyShip enemyShip : this.enemyShipFormation)
             if (!enemyShip.isDestroyed()
                     && OrbitalAnnihilator.hits(this.ship, enemyShip)) {
@@ -1045,8 +1046,13 @@ public class GameScreen extends Screen {
 				recordEnemyDefeat(enemyShip);
 
                 this.enemyShipFormation.destroy(enemyShip);
+                enemyDestroyed = true;
                 tryDropChameleonHull(enemyShip);
             }
+
+        if (enemyDestroyed) {
+            AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
+        }
 
 		EnemyShip bonusShip = this.bonusEnemyManager.getShip();
 		if (this.bonusEnemyManager.isActive()
