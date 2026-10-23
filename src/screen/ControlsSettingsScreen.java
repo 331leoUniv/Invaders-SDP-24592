@@ -91,6 +91,7 @@ public class ControlsSettingsScreen extends Screen {
         } else if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
             confirmSelectedOption();
         } else if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
+            AudioManager.playSFX("audio/sfx/menu_back.wav");
             this.returnCode = 4;
             this.isRunning = false;
         }
@@ -131,6 +132,7 @@ public class ControlsSettingsScreen extends Screen {
      */
     private void confirmSelectedOption() {
         if (this.selectedOption == BACK_OPTION) {
+            AudioManager.playSFX("audio/sfx/menu_back.wav");
             this.returnCode = 4;
             this.isRunning = false;
         } else {
@@ -153,6 +155,7 @@ public class ControlsSettingsScreen extends Screen {
         this.selectionCooldown.reset();
 
         if (keyCode == KeyEvent.VK_ESCAPE) {
+            AudioManager.playSFX("audio/sfx/menu_back.wav");
             return;
         }
         if (isKeyAssignedToAnotherAction(keyCode)) {
