@@ -27,12 +27,12 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	private static final double PROPORTION_C = 0.2;
 	/** Proportion of B-type ships. */
 	private static final double PROPORTION_B = 0.4;
-	/** Lateral speed of the formation. */
-	private static final int X_SPEED = 8;
-	/** Downwards speed of the formation. */
-	private static final int Y_SPEED = 4;
+	/** Lateral step of the classic pattern, on the opening stage. */
+	private static final int X_SPEED = 2;
+	/** Downwards step of the classic pattern, on the opening stage. */
+	private static final int Y_SPEED = 2;
 	/** Speed of the bullets shot by the members. */
-	private static final int BULLET_SPEED = 4;
+	private static final int BULLET_SPEED = 3;
 	/** Proportion of differences between shooting times. */
 	private static final double SHOOTING_VARIANCE = .2;
 	/** Margin on the sides of the screen. */
@@ -43,12 +43,15 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	private static final int DESCENT_DISTANCE = 20;
 	/** Minimum speed allowed. */
 	private static final int MINIMUM_SPEED = 10;
-	/** Horizontal speed of the wave movement. */
-	private static final int WAVE_X_SPEED = 6;
+	/** Horizontal step of the wave movement, on the opening stage. */
+	private static final int WAVE_X_SPEED = 2;
 	/** Maximum vertical amplitude of the wave. */
 	private static final int WAVE_AMPLITUDE = 25;
-	/** Frequency of the vertical oscillation. */
-	private static final double WAVE_FREQUENCY = 0.15;
+	/**
+	 * Phase the vertical oscillation advances per pixel travelled sideways,
+	 * so its shape does not depend on how long the step is.
+	 */
+	private static final double WAVE_PHASE_PER_PIXEL = 0.025;
 
 	/** DrawManager instance. */
 	private DrawManager drawManager;
@@ -65,15 +68,34 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
     }
 
 	/** Current movement pattern. */
-    private MovementPattern movementPattern = MovementPattern.DIAGONAL_BOUNCE;
+    private MovementPattern movementPattern = MovementPattern.CLASSIC;
 	/** Horizontal direction of the wave: 1 = right, -1 = left. */
 	private int waveDirection = 1;
 	/** Current phase of the wave. */
-	private double wavePhase = 0;
+	private double wavePhase = -Math.PI / 2;
 	/** Reference vertical position the wave oscillates around. */
 	private int waveBaseY;
     /** Horizontal and vertical speed of the diagonal movement. */
     private static final int DIAGONAL_SPEED = 4;
+    /**
+     * Frames between steps, for every movement pattern. It stays at this
+     * value on every stage and however many enemies are left, so the path
+     * reads as a line rather than a jump; the step length is what carries
+     * the speed instead.
+     */
+    private static final int STEP_INTERVAL = 2;
+    /**
+     * Largest step of any pattern. Without it a nearly cleared formation
+     * would jump far enough in one step to read as a teleport.
+     */
+    private static final int MAX_STEP = 16;
+    /**
+     * The movementSpeed a full formation has on the opening stage, which is
+     * the pace the patterns were tuned at. The step is anchored to it so
+     * that stage one keeps its base step, while a harder stage or a
+     * thinned-out formation still changes it.
+     */
+    private static final int REFERENCE_SPEED = 70;
     /** Current segment of the diamond loop (0 to 3). */
     private int diagonalPhase = 0;
     /** Initial vertical position of the diamond loop. */
@@ -127,15 +149,29 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 		DOWN
 	};
 
-	/**
-	 * Constructor, sets the initial conditions.
-	 *
-	 * @param gameSettings
-	 *            Current game settings.
-	 * @throws IllegalArgumentException If the initial position is outside the
-	 *            left/top bounds or is not aligned to the descent distance.
-	 */
-	public EnemyShipFormation(final GameSettings gameSettings) {
+    /**
+     * Constructor compatible with existing callers.
+     *
+     * @param gameSettings Current game settings.
+     * @throws IllegalArgumentException If the initial position is outside the
+     *         left/top bounds or is not aligned to the descent distance.
+     */
+    public EnemyShipFormation(final GameSettings gameSettings) {
+        this(gameSettings, 1);
+    }
+
+    /**
+     * Creates an enemy formation with a movement pattern based on the level.
+     *
+     * @param gameSettings Current game settings.
+     * @param level Current game level.
+     * @throws IllegalArgumentException If the initial position is outside the
+     *         left/top bounds or is not aligned to the descent distance.
+     */
+	public EnemyShipFormation(final GameSettings gameSettings, final int level) {
+        // Select the movement pattern according to the current level.
+        MovementPattern[] patterns = MovementPattern.values();
+        this.movementPattern = patterns[floorMod(level - 1, patterns.length)];
 		this.drawManager = Core.getDrawManager();
 		this.logger = Core.getLogger();
 		this.enemyShips = new ArrayList<List<EnemyShip>>();
@@ -220,7 +256,8 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 		int minY = this.waveBaseY;
 		int maxY = screen.getHeight() - BOTTOM_MARGIN - this.height;
 
-		int nextX = this.positionX + WAVE_X_SPEED * this.waveDirection;
+		int nextX = this.positionX
+				+ scaledStep(WAVE_X_SPEED) * this.waveDirection;
 		if (nextX >= maxX) {
 			nextX = maxX;
 			this.waveDirection = -1;
@@ -229,7 +266,8 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 			this.waveDirection = 1;
 		}
 
-		this.wavePhase += WAVE_FREQUENCY;
+		this.wavePhase += WAVE_PHASE_PER_PIXEL
+				* Math.abs(nextX - this.positionX);
 
 		int amplitude = Math.min(WAVE_AMPLITUDE,
 				Math.max(0, (maxY - minY) / 2));
@@ -239,9 +277,72 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 				+ (int) Math.round(amplitude * Math.sin(this.wavePhase));
 		nextY = Math.max(minY, Math.min(nextY, maxY));
 
-		return new int[] { nextX - this.positionX, nextY - this.positionY };
+		// cleanUp() re-anchors positionY to the topmost surviving ship, so a
+		// cleared row leaves the formation far from its curve. Without a
+		// limit the next frame drags every ship back in one move, which the
+		// player sees as a jump. The diagonal pattern already moves at most
+		// one step towards its target; the wave does the same here.
+		int step = scaledStep(WAVE_X_SPEED);
+		int movementY = nextY - this.positionY;
+		if (movementY > step)
+			movementY = step;
+		else if (movementY < -step)
+			movementY = -step;
+
+		return new int[] { nextX - this.positionX, movementY };
 	}
 
+
+    /**
+     * Distance the diagonal pattern covers in one step. The interval between
+     * steps stays at {@link #STEP_INTERVAL} frames so the path stays
+     * smooth, so the step itself is what carries the speed: it grows as
+     * movementSpeed falls, which is how the stage setting and the speed-up
+     * as enemies are defeated reach this pattern. The fixed step it used
+     * before ignored both.
+     *
+     * <p>Anchored so that a full formation on the opening stage keeps the
+     * step of {@link #DIAGONAL_SPEED} it has today, and capped so a nearly
+     * cleared formation does not jump across the screen.</p>
+     *
+     * @return Step length in pixels.
+     */
+    private int diagonalStep() {
+        return scaledStep(DIAGONAL_SPEED);
+    }
+
+    /**
+     * Scales a step by the formation's current pace. Every pattern moves
+     * every {@link #STEP_INTERVAL} frames so it stays smooth, and the step
+     * is what carries the stage setting and the speed-up as enemies are
+     * defeated: it is {@code baseStep} for a full formation on the opening
+     * stage, longer when the stage is harder or the formation is thinner,
+     * and capped by {@link #MAX_STEP}.
+     *
+     * @param baseStep
+     *            Step, in pixels, of a full formation on the opening stage.
+     * @return Step length in pixels.
+     */
+    private int scaledStep(final int baseStep) {
+        int scaled = baseStep * REFERENCE_SPEED
+                / Math.max(1, this.movementSpeed);
+        return Math.max(1, Math.min(MAX_STEP, scaled));
+    }
+
+    /**
+     * The remainder of a division, never negative, for any sign of the
+     * value. Java 7 has no Math.floorMod and the README asks for Java 7, so
+     * the identity is written out rather than called.
+     *
+     * @param value
+     *            Value to divide.
+     * @param modulus
+     *            Positive divisor.
+     * @return Remainder in the range zero to modulus - 1.
+     */
+    private static int floorMod(final int value, final int modulus) {
+        return (value % modulus + modulus) % modulus;
+    }
 
     /**
      * Moves the formation along a diamond-shaped loop.
@@ -250,6 +351,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
      * @return Movement on the X and Y axes.
      */
     private int[] moveDiagonalBounce() {
+        final int step = diagonalStep();
         int minX = SIDE_MARGIN;
         int maxX = screen.getWidth() - SIDE_MARGIN - this.width;
         int minY = Math.max(0, this.diagonalBaseY);
@@ -293,7 +395,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
         int movementX;
         int movementY;
 
-        if (distance <= DIAGONAL_SPEED) {
+        if (distance <= step) {
             movementX = dx;
             movementY = dy;
 
@@ -301,9 +403,9 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
             this.diagonalPhase = (this.diagonalPhase + 1) % 4;
         } else {
             movementX = (int) Math.round(
-                    dx / distance * DIAGONAL_SPEED);
+                    dx / distance * step);
             movementY = (int) Math.round(
-                    dy / distance * DIAGONAL_SPEED);
+                    dy / distance * step);
         }
 
         // Keep the formation inside the screen.
@@ -369,12 +471,13 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 
         movementInterval++;
 
-        int movementDelay = this.movementSpeed;
-
-// Update diagonal movement more frequently for smooth animation.
-        if (this.movementPattern == MovementPattern.DIAGONAL_BOUNCE) {
-            movementDelay = 2;
-        }
+        // Every pattern steps at the same short interval, which keeps the
+        // movement smooth. movementSpeed is not thrown away with the long
+        // delay it used to set: scaledStep() reads it and lengthens the
+        // step instead, so the stage setting and the speed-up as enemies
+        // are defeated reach each pattern through the distance covered per
+        // step rather than through the pause between steps.
+        final int movementDelay = STEP_INTERVAL;
 
         if (movementInterval >= movementDelay) {
             movementInterval = 0;
@@ -427,12 +530,18 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 					}
 			}
 
+			// The step is cut short rather than overshooting a side or a
+			// descent altitude, so the formation lands exactly on them.
 			if (currentDirection == Direction.RIGHT)
-				movementX = X_SPEED;
+				movementX = Math.min(scaledStep(X_SPEED), Math.max(1,
+						screen.getWidth() - SIDE_MARGIN
+								- (positionX + this.width)));
 			else if (currentDirection == Direction.LEFT)
-				movementX = -X_SPEED;
+				movementX = -Math.min(scaledStep(X_SPEED),
+						Math.max(1, positionX - SIDE_MARGIN));
 			else
-				movementY = Y_SPEED;
+				movementY = Math.min(scaledStep(Y_SPEED), DESCENT_DISTANCE
+						- floorMod(positionY, DESCENT_DISTANCE));
 			}
 
 			positionX += movementX;
