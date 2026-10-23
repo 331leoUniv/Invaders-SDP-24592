@@ -46,7 +46,15 @@ sourceSets {
     }
     test {
         java.srcDirs = ['test']
-        resources.srcDirs = []
+        resources.srcDirs = ['test']
+        resources.include 'level/fixtures/*.json'
+    }
+}
+
+tasks.named('processTestResources') {
+    from('examples/levels') {
+        include '*.json'
+        into 'examples/levels'
     }
 }
 
@@ -126,9 +134,11 @@ def smokeTestClasses = [
     'screen.GameScreenMovementTest',
     'screen.GameScreenWavesTest',
     'screen.InfiniteGameScreenControlsTest',
+    'screen.LevelCompletedEventTest',
     'screen.PlayerDamagePathTest',
     'screen.ShipCustomizationAppliedTest',
     'screen.ShipShieldRestrictionTest',
+    'screen.StageFailureTest',
     'vfx.IconTest'
 ]
 
