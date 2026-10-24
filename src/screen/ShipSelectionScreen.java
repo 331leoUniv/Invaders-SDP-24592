@@ -5,6 +5,7 @@ import java.awt.event.KeyEvent;
 import engine.Cooldown;
 import engine.Core;
 import entity.ShipType;
+import audio.AudioManager;
 
 /**
  * Screen where the player selects a ship type in the Hangar.
@@ -89,18 +90,22 @@ public class ShipSelectionScreen extends Screen {
                     (this.selectedIndex - 1 + this.shipTypes.length)
                             % this.shipTypes.length;
             this.selectionCooldown.reset();
+            AudioManager.playSFX("audio/sfx/menu_move.wav");
         } else if (this.inputManager.isKeyDown(KeyEvent.VK_DOWN)
                 || this.inputManager.isKeyDown(KeyEvent.VK_S)) {
             this.selectedIndex =
                     (this.selectedIndex + 1) % this.shipTypes.length;
             this.selectionCooldown.reset();
+            AudioManager.playSFX("audio/sfx/menu_move.wav");
         } else if (this.inputManager.isKeyDown(KeyEvent.VK_SPACE)
                 || this.inputManager.isKeyDown(KeyEvent.VK_ENTER)) {
             this.returnCode = SHIP_SELECTED;
             this.isRunning = false;
+            AudioManager.playSFX("audio/sfx/menu_select.wav");
         } else if (this.inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
             this.returnCode = RETURN_TO_HANGAR_MENU;
             this.isRunning = false;
+            AudioManager.playSFX("audio/sfx/menu_back.wav");
         }
     }
 
