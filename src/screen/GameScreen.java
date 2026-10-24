@@ -459,9 +459,6 @@ public class GameScreen extends Screen {
         this.hyperfireKeyPressed = false;
 		this.bossMusicTriggered = false;
 
-		this.bonusEnemyManager = new BonusEnemyManager();
-		// ... le reste de la méthode initi
-
         this.grenades = new HashSet<Grenade>();
         this.fragments = new HashSet<GrenadeFragment>();
         this.grenadeKeyPressed = false;
