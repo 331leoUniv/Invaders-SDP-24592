@@ -75,6 +75,7 @@ public class ShopScreen extends Screen {
 
     @Override
     protected void update() {
+        super.update();
         processInput(inputDelay.checkFinished());
         draw();
     }
