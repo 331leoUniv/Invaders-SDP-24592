@@ -166,7 +166,7 @@ pip-log.txt
 ## Custom
 #############
 
-log*
+/log.*
 *.ttf
 !res/font.ttf
 .checkstyle
@@ -174,3 +174,15 @@ log*
 # Local compile output and personal high scores
 /out/
 /scores
+/player_assets.properties
+/player_assets.properties.*
+
+# Gradle
+/.gradle/
+/build/
+
+.idea/
+*.iml
+out/
+log
+*.log
