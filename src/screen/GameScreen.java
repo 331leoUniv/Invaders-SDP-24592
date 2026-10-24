@@ -8,8 +8,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.Random;
-
 import campaign.CampaignStageData;
+import engine.DifficultyAdjustWhilePlaying;
 import entity.item.ChameleonHull;
 import entity.item.ItemManager;
 import entity.item.ShieldItem;
@@ -17,7 +17,11 @@ import engine.Cooldown;
 import engine.Core;
 import engine.GameSettings;
 import engine.GameState;
+import engine.GameplayConfig;
 import engine.ControlsConfig;
+import engine.LevelGameplayAdapter;
+import level.LevelDefinition;
+import level.WaveDefinition;
 import entity.Bullet;
 import boss.BossEvent;
 import boss.BossEventListener;
@@ -49,6 +53,7 @@ import records.Achievement;
 import event.EnemyDefeatedEvent;
 import event.GameplayEventListener;
 import event.GameplayEventPublisher;
+import event.LevelCompletedEvent;
 import java.util.Map;
 import java.util.IdentityHashMap;
 import java.util.UUID;
@@ -63,6 +68,7 @@ import entity.item.TwinCanon;
 
 /**
  * Implements the game screen, where the action happens.
+ * Plays sound effects for gameplay events.
  *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
  *
@@ -153,10 +159,14 @@ public class GameScreen extends Screen {
     private GameSettings gameSettings;
 	/** Settings of every wave in this stage, in play order. */
 	private List<GameSettings> waves;
+	/** Original custom grids; null for the unchanged official campaign path. */
+	private List<WaveDefinition> customWaves;
 	/** Index of the wave currently being played. */
 	private int currentWave;
     /** Current difficulty level number. */
     private int level;
+    /** Difficulty selected when this stage was started. */
+    private int difficulty;
     /** Formation of enemy ships. */
     private EnemyShipFormation enemyShipFormation;
     /** Player's ship. */
@@ -391,6 +401,7 @@ public class GameScreen extends Screen {
 		this.gameSettings = this.waves.get(0);
         this.bonusLife = bonusLife;
         this.level = gameState.getLevel();
+        this.difficulty = GameplayConfig.getDifficulty();
         this.score = gameState.getScore();
 		this.playerStatus = new PlayerStatus(
 				Math.min(gameState.getLivesRemaining(),
@@ -403,23 +414,39 @@ public class GameScreen extends Screen {
         this.shipsDestroyed = gameState.getShipsDestroyed();
     }
 
-    /**
-     * Initializes basic screen properties, and adds necessary elements.
-     */
-    public final void initialize() {
-        super.initialize();
+/** Validates every wave before allocating a screen or changing active gameplay. */
+	public static GameScreen forCustomLevel(final GameState state,
+			final LevelDefinition definition, final double difficultyMultiplier,
+			final int width, final int height, final int fps) {
+		List<GameSettings> settings = LevelGameplayAdapter.prepare(
+				definition, width, height, difficultyMultiplier);
+		GameScreen screen = new GameScreen(state, settings, false, width, height, fps);
+		screen.customWaves = definition.getWaves();
+		return screen;
+	}
 
+	private EnemyShipFormation createFormation() {
+		EnemyShipFormation formation = this.customWaves == null
+				? new EnemyShipFormation(this.gameSettings, this.level)
+				: new EnemyShipFormation(this.gameSettings, this.level, this.customWaves.get(this.currentWave));
+		formation.attach(this);
+		return formation;
+	}
 
-        enemyShipFormation = new EnemyShipFormation(this.gameSettings, this.level);
-		enemyShipFormation.attach(this);
+	/**
+	 * Initializes basic screen properties, and adds necessary elements.
+	 */
+	public final void initialize() {
+		super.initialize();
 
-
+		enemyShipFormation = createFormation();
 
 		this.ship = new Ship(this.width / 2, this.height - 30,
 				this.shipType);
 		// The hangar colour has to go through setBaseColor: the ship resets
 		// its colour to the base one every frame once the damage flash is
 		// over, so a plain setColour is wiped back to the default green.
+		this.ship.setBaseColor(ShipCustomization.getColor());
 		this.ship.setBaseColor(ShipCustomization.getColor());
         this.itemManager = new ItemManager(this.height);
 
@@ -484,14 +511,18 @@ public class GameScreen extends Screen {
         this.inputDelay = Core.getCooldown(INPUT_DELAY);
         this.inputDelay.reset();
 
-        if (this.playerStatus.getLives() == 1) {
-            AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
-            this.isLowHealthBGM = true;
-        } else {
-            AudioManager.playBGM("audio/bgm/music_game.wav");
-            this.isLowHealthBGM = false;
-        }
-    }
+		if (this.bonusLife) {
+			AudioManager.playSFX("audio/sfx/bonus_life.wav");
+		}
+
+		if (this.playerStatus.getLives() == 1) {
+			AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+			this.isLowHealthBGM = true;
+		} else {
+			AudioManager.playBGM("audio/bgm/music_game.wav");
+			this.isLowHealthBGM = false;
+		}
+	}
 
     /**
      * Starts the action.
@@ -510,22 +541,25 @@ public class GameScreen extends Screen {
         return this.returnCode;
     }
 
-    /**
-     * Updates the elements on screen and checks for events.
-     */
-    protected final void update() {
-        super.update();
-        if (this.recordsService != null) {
-            long now = System.currentTimeMillis();
-            if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
-                this.visibleAchievement = this.recordsService.pollNotification();
-                this.achievementNoticeUntil = this.visibleAchievement == null ? 0 : now + 3000;
-            }
-        }
+	/**
+	 * Updates the elements on screen, checks for events, and plays the bonus
+	 * enemy appearance sound.
+	 */
+	protected final void update() {
+		super.update();
+		if (this.recordsService != null) {
+			long now = System.currentTimeMillis();
+			if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
+				this.visibleAchievement = this.recordsService.pollNotification();
+				this.achievementNoticeUntil = this.visibleAchievement == null ? 0 : now + 3000;
+			}
+		}
 
 		// Outside the input-delay check: a shield that runs out has to be
 		// announced even while the level is finishing.
 		this.playerStatus.update();
+		// Sends the current number of lives remaining to the DifficultyAdjustWhilePlaying class
+		DifficultyAdjustWhilePlaying.getInstance().update(this.playerStatus.getLives());
 		// Reconcile shields active outside the item-collision path.
 		clearSlowIfEnergyShieldActive();
 
@@ -555,13 +589,17 @@ public class GameScreen extends Screen {
                     clampShipPosition();
                 }
 
-                // Normal shooting using configured controls.
-                if (inputManager.isKeyDown(
-                        ControlsConfig.getKey(ControlsConfig.FIRE))) {
-                    if (!this.annihilator.isCharging()) {
-						this.bulletsShot += this.ship.shoot(this.bullets);
-                    }
-                }
+				// Normal shooting using configured controls.
+				if (inputManager.isKeyDown(
+						ControlsConfig.getKey(ControlsConfig.FIRE))) {
+					if (!this.annihilator.isCharging()) {
+						int fired = this.ship.shoot(this.bullets);
+						this.bulletsShot += fired;
+						if (fired > 0) {
+							AudioManager.playSFX("audio/sfx/player_shoot.wav");
+						}
+					}
+				}
 
                 // Hyperfire test activation with the H key, only with the
                 // debug keys enabled so normal play cannot get it for free.
@@ -682,30 +720,51 @@ public class GameScreen extends Screen {
         this.particleSystem.update();
         draw();
 
-        if (!this.levelFinished) {
-			if (!this.playerStatus.isAlive()) {
-                this.levelFinished = true;
-                this.stageCleared = false;
-                this.screenFinishedCooldown.reset();
-                this.logger.info("Stage " + this.level + " failed.");
-			} else if (this.enemyShipFormation.isEmpty() && isBossCleared()) {
-				if (this.currentWave < this.waves.size() - 1) {
-					startNextWave();
-				} else {
-                this.levelFinished = true;
-                this.stageCleared = true;
-                this.screenFinishedCooldown.reset();
-                this.logger.info("Stage " + this.level + " cleared.");
-            }
-        }
-		}
-
-        if (this.levelFinished && this.runSession != null)
-            this.runSession.stopActiveSegment(System.nanoTime());
+        advanceStageIfReady();
 
         if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
             this.isRunning = false;
     }
+
+    /** Progression shared by official and custom stages. */
+    void advanceStageIfReady() {
+        if (!this.levelFinished) {
+            if (!this.playerStatus.isAlive()) {
+                this.levelFinished = true;
+                this.stageCleared = false;
+                this.screenFinishedCooldown.reset();
+                this.logger.info("Stage " + this.level + " failed.");
+            } else if (this.enemyShipFormation.isEmpty() && isBossCleared()) {
+                if (this.currentWave < this.waves.size() - 1) {
+                    startNextWave();
+                } else {
+                    this.levelFinished = true;
+                    this.stageCleared = true;
+                    AudioManager.playSFX("audio/sfx/level_clear.wav");
+                    this.screenFinishedCooldown.reset();
+                    this.logger.info("Stage " + this.level + " cleared.");
+                    publishLevelCompleted();
+
+                    // Notify the difficulty adjustment system when a level is cleared.
+                    DifficultyAdjustWhilePlaying.getInstance().onLevelCleared();
+                }
+            }
+        }
+
+        if (this.levelFinished && this.runSession != null)
+            this.runSession.stopActiveSegment(System.nanoTime());
+    }
+
+	/**
+	 * Publishes the completion of this campaign stage.
+	 * Custom levels are not included until their identifiers are agreed.
+	 */
+	private void publishLevelCompleted() {
+		if (this.customWaves != null)
+			return;
+		this.recordsEvents.publish(
+				new LevelCompletedEvent(this.level, this.difficulty));
+	}
 
     /**
 	 * Copies the wave list after checking that it can be played.
@@ -738,8 +797,7 @@ public class GameScreen extends Screen {
 				(this.currentWave + 1) + " cleared.");
 		this.currentWave++;
 		this.gameSettings = this.waves.get(this.currentWave);
-        this.enemyShipFormation = new EnemyShipFormation(this.gameSettings, this.level);
-		this.enemyShipFormation.attach(this);
+		this.enemyShipFormation = createFormation();
 		this.logger.info("Stage " + this.level + " wave " + (this.currentWave + 1) +
 				" of " + this.waves.size() + " started.");
 	}
@@ -910,51 +968,56 @@ public class GameScreen extends Screen {
 		return false;
 	}
 
-	/** Consumes a colliding hazard, applying only the existing slow effect. */
-	private void manageFallingObstacleCollisions() {
-		if (!this.inputDelay.checkFinished() || this.levelFinished)
-			return;
+    /** Consumes a colliding hazard, applying only the existing slow effect. */
+    private void manageFallingObstacleCollisions() {
+        if (!this.inputDelay.checkFinished() || this.levelFinished)
+            return;
 
-		for (Iterator<FallingObstacle> iterator =
-				this.fallingObstacles.iterator(); iterator.hasNext();) {
-			FallingObstacle obstacle = iterator.next();
-			if (checkCollision(obstacle, this.ship)) {
-				// Remove first so a single obstacle can trigger only one collision.
-				iterator.remove();
-				this.fallingObstacleCooldown.reset();
-				if (!this.ship.isInvulnerable() && !this.ship.isShieldActive())
-					this.playerStatus.applySlow(this.ship);
-			}
-		}
-	}
+        for (Iterator<FallingObstacle> iterator =
+             this.fallingObstacles.iterator(); iterator.hasNext();) {
+            FallingObstacle obstacle = iterator.next();
+            if (checkCollision(obstacle, this.ship)) {
+                // Remove first so a single obstacle can trigger only one collision.
+                iterator.remove();
+                this.fallingObstacleCooldown.reset();
+                if (!this.ship.isInvulnerable() && !this.ship.isShieldActive())
+                    this.playerStatus.applySlow(this.ship);
+            }
+        }
+    }
 
-	/** Clears an existing slow as soon as the Energy Shield item is active. */
-	private void clearSlowIfEnergyShieldActive() {
-		if (this.ship.isShieldActive())
-			this.playerStatus.clearSlowDebuff();
-	}
+    /** Clears an existing slow as soon as the Energy Shield item is active. */
+    private void clearSlowIfEnergyShieldActive() {
+        if (this.ship.isShieldActive())
+            this.playerStatus.clearSlowDebuff();
+    }
 
     /**
      * Manages collisions between bullets and ships.
      */
     private void manageCollisions() {
-        if (this.levelFinished) return;
+        if (this.levelFinished)
+            return;
         Set<Bullet> recyclable = new HashSet<Bullet>();
-        for (Bullet bullet : this.bullets)
-			if (bullet.isEnemyBullet()) {
+        for (Bullet bullet : this.bullets) {
+            if (bullet.isEnemyBullet()) {
                 if (checkCollision(bullet, this.ship) && !this.levelFinished) {
                     recyclable.add(bullet);
-					damagePlayer(1, "Hit on player ship");
+                    damagePlayer(1, "Hit on player ship");
                 }
             } else {
-                for (EnemyShip enemyShip : this.enemyShipFormation)
+                for (EnemyShip enemyShip : this.enemyShipFormation) {
                     if (!enemyShip.isDestroyed()
                             && checkCollision(bullet, enemyShip)) {
+                        recyclable.add(bullet);
+                        if (!this.enemyShipFormation.hit(enemyShip))
+                            break;
+
+                        AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
                         this.score += enemyShip.getPointValue();
                         floatingScoreHud.show(enemyShip);
                         this.shipsDestroyed++;
-						recordEnemyDefeat(enemyShip);
-                        this.enemyShipFormation.destroy(enemyShip);
+                        recordEnemyDefeat(enemyShip);
                         this.particleSystem.spawnEnemyExplosion(
                                 enemyShip.getPositionX()
                                         + enemyShip.getWidth() / 2,
@@ -963,71 +1026,76 @@ public class GameScreen extends Screen {
                         tryDropChameleonHull(enemyShip);
                         tryDropAnnihilator(enemyShip);
                         tryDropGrenade(enemyShip);
-                        recyclable.add(bullet);
 
-                        // --- DROP DU BOUCLIER ---
-                        // Only a ship that can hold the shield is offered it.
+                        // --- SHIELD ITEM DROP ---
                         if (!this.shieldDroppedThisLevel
                                 && this.shipType.isShieldCapable()) {
                             boolean shouldDrop = (Math.random() < 0.15)
                                     || (this.enemyShipFormation.isEmpty());
                             if (shouldDrop) {
                                 this.itemManager.spawnItem(
-										new ShieldItem(
+                                        new ShieldItem(
                                                 enemyShip.getPositionX(),
                                                 enemyShip.getPositionY()
                                         )
                                 );
                                 this.shieldDroppedThisLevel = true;
-								this.logger.info("Shield item dropped from enemy ship at ("
-                                                + enemyShip.getPositionX() + ", "
-										+ enemyShip.getPositionY() + ").");
+                                this.logger.info("Shield item dropped from enemy ship at ("
+                                        + enemyShip.getPositionX() + ", "
+                                        + enemyShip.getPositionY() + ").");
                             }
                         }
+                        break;
                     }
-				EnemyShip bonusShip = this.bonusEnemyManager.getShip();
-				if (this.bonusEnemyManager.isActive()
-						&& checkCollision(bullet, bonusShip)) {
-					recordEnemyDefeat(bonusShip);
-			floatingScoreHud.show(bonusShip);
-					this.score += this.bonusEnemyManager.destroy();
+                }
+
+                EnemyShip bonusShip = this.bonusEnemyManager.getShip();
+                if (!recyclable.contains(bullet) && this.bonusEnemyManager.isActive()
+                        && checkCollision(bullet, bonusShip)) {
+                    recordEnemyDefeat(bonusShip);
+                    floatingScoreHud.show(bonusShip);
+                    this.score += this.bonusEnemyManager.destroy();
                     this.shipsDestroyed++;
                     this.particleSystem.spawnEnemyExplosion(
-							bonusShip.getPositionX() + bonusShip.getWidth() / 2,
-							bonusShip.getPositionY() + bonusShip.getHeight() / 2);
-					tryDropChameleonHull(bonusShip);
-					tryDropHyperfire(bonusShip);
-					recyclable.add(bullet);
-				}
-				// Shooting the Twin Cannon item collects it.
-				if (this.twinCanonItem != null
-						&& !recyclable.contains(bullet)
-						&& checkCollision(bullet, this.twinCanonItem)) {
-					this.itemManager.getBuffManager().addBuff(
-							this.twinCanonItem, this.ship);
-					this.twinCanonItem = null;
-					recyclable.add(bullet);
-				}
-				// A bullet that already hit a ship cannot also hit the boss.
-				Boss boss = getBossOnScreen();
-				if (boss != null && !boss.isDefeated()
-						&& !recyclable.contains(bullet)
-						&& checkCollision(bullet, boss)) {
-					damageBoss(getBossDamagePerBullet());
+                            bonusShip.getPositionX() + bonusShip.getWidth() / 2,
+                            bonusShip.getPositionY() + bonusShip.getHeight() / 2);
+                    tryDropChameleonHull(bonusShip);
+                    tryDropHyperfire(bonusShip);
+                    recyclable.add(bullet);
+                }
+
+                // Shooting the Twin Cannon item collects it.
+                if (this.twinCanonItem != null
+                        && !recyclable.contains(bullet)
+                        && checkCollision(bullet, this.twinCanonItem)) {
+                    this.itemManager.getBuffManager().addBuff(
+                            this.twinCanonItem, this.ship);
+                    this.twinCanonItem = null;
+                    recyclable.add(bullet);
+                }
+
+                // A bullet that already hit a ship cannot also hit the boss.
+                Boss boss = getBossOnScreen();
+                if (boss != null && !boss.isDefeated()
+                        && !recyclable.contains(bullet)
+                        && checkCollision(bullet, boss)) {
+                    damageBoss(getBossDamagePerBullet());
                     recyclable.add(bullet);
                 }
             }
+        }
         this.bullets.removeAll(recyclable);
         BulletPool.recycle(recyclable);
 
-		Set<BossBullet> hitBossBullets = new HashSet<BossBullet>();
-		for (BossBullet bossBullet : this.bossBullets)
-			if (checkCollision(bossBullet, this.ship) && !this.levelFinished) {
-				hitBossBullets.add(bossBullet);
-				damagePlayer(bossBullet.getDamage(),
-						"Hit on player ship by the boss");
-			}
-		this.bossBullets.removeAll(hitBossBullets);
+        Set<BossBullet> hitBossBullets = new HashSet<BossBullet>();
+        for (BossBullet bossBullet : this.bossBullets) {
+            if (checkCollision(bossBullet, this.ship) && !this.levelFinished) {
+                hitBossBullets.add(bossBullet);
+                damagePlayer(bossBullet.getDamage(),
+                        "Hit on player ship by the boss");
+            }
+        }
+        this.bossBullets.removeAll(hitBossBullets);
     }
 
     /**
@@ -1037,18 +1105,19 @@ public class GameScreen extends Screen {
     private void manageAnnihilatorBeam() {
         if (this.levelFinished) return;
         boolean enemyDestroyed = false;
-        for (EnemyShip enemyShip : this.enemyShipFormation)
+        for (EnemyShip enemyShip : this.enemyShipFormation) {
             if (!enemyShip.isDestroyed()
                     && OrbitalAnnihilator.hits(this.ship, enemyShip)) {
                 this.score += enemyShip.getPointValue();
                 floatingScoreHud.show(enemyShip);
                 this.shipsDestroyed++;
-				recordEnemyDefeat(enemyShip);
+                recordEnemyDefeat(enemyShip);
 
                 this.enemyShipFormation.destroy(enemyShip);
                 enemyDestroyed = true;
                 tryDropChameleonHull(enemyShip);
             }
+        }
 
         if (enemyDestroyed) {
             AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
@@ -1061,16 +1130,18 @@ public class GameScreen extends Screen {
 			floatingScoreHud.show(bonusShip);
 			this.score += this.bonusEnemyManager.destroy();
             this.shipsDestroyed++;
-			tryDropChameleonHull(bonusShip);
-			tryDropHyperfire(bonusShip);
+            tryDropChameleonHull(bonusShip);
+            tryDropHyperfire(bonusShip);
         }
 
         Set<Bullet> neutralized = new HashSet<Bullet>();
 
-        for (Bullet bullet : this.bullets)
-			if (bullet.isEnemyBullet()
-                    && OrbitalAnnihilator.hits(this.ship, bullet))
+        for (Bullet bullet : this.bullets) {
+            if (bullet.isEnemyBullet()
+                    && OrbitalAnnihilator.hits(this.ship, bullet)) {
                 neutralized.add(bullet);
+            }
+        }
 
         this.bullets.removeAll(neutralized);
         BulletPool.recycle(neutralized);
@@ -1105,6 +1176,7 @@ public class GameScreen extends Screen {
 			return false;
 		if (this.ship.isShieldActive()) {
 			this.logger.info("Shot absorbed by Energy Shield.");
+			AudioManager.playSFX("audio/sfx/item_shield_block.wav");
 			// The Energy Shield belongs to Ship, so PlayerStatus cannot see
 			// this hit by itself. Announce it anyway, or a listener would
 			// hear a blocked hit only when the timed shield was the one that
@@ -1116,6 +1188,7 @@ public class GameScreen extends Screen {
 		// the hit lands at all; the effects below must not run otherwise.
 		if (!this.playerStatus.takeDamage(damage))
 			return false;
+		AudioManager.playSFX("audio/sfx/player_hit.wav");
 
 		this.ship.destroy();
 		this.ship.triggerDamageFeedback();
@@ -1604,6 +1677,7 @@ public class GameScreen extends Screen {
                 exploded.add(grenade);
                 this.fragments.addAll(GrenadeFragment.explode(
                         grenade.getCenterX(), grenade.getCenterY()));
+				AudioManager.playSFX("audio/sfx/item_grenade_explode.wav");
             }
         }
         this.grenades.removeAll(exploded);
