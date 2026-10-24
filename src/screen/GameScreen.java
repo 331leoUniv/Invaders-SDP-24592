@@ -682,8 +682,7 @@ public class GameScreen extends Screen {
 						this.ship.getPositionY(), this.bossBullets);
             }
 
-			if (isBossLevel(this.level) && this.enemyShipFormation.isEmpty()
-					&& getBossOnScreen() != null && !this.bossMusicTriggered) {
+			if (isBossLevel(this.level) && getBossOnScreen() != null && !this.bossMusicTriggered) {
 				AudioManager.playBGM("audio/bgm/music_boss.wav");
 				this.bossMusicTriggered = true;
 			}
