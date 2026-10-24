@@ -2,14 +2,17 @@ package engine;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 
 /**
  * Manages keyboard input for the provided screen.
- * 
+ *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
-public final class InputManager implements KeyListener {
+public final class InputManager implements KeyListener, MouseListener, MouseMotionListener {
 
 	/** Number of recognised keys. */
 	private static final int NUM_KEYS = 256;
@@ -20,6 +23,13 @@ public final class InputManager implements KeyListener {
 	/** Singleton instance of the class. */
 	private static InputManager instance;
 
+	/** Mouse position relative to the window content. */
+	private volatile int mouseX = -1;
+	private volatile int mouseY = -1;
+
+	/** Left mouse button state. */
+	private volatile boolean mousePressed = false;
+
 	/**
 	 * Private constructor.
 	 */
@@ -29,7 +39,7 @@ public final class InputManager implements KeyListener {
 
 	/**
 	 * Returns shared instance of InputManager.
-	 * 
+	 *
 	 * @return Shared instance of InputManager.
 	 */
 	protected static InputManager getInstance() {
@@ -40,9 +50,9 @@ public final class InputManager implements KeyListener {
 
 	/**
 	 * Returns true if the provided key is currently pressed.
-	 * 
+	 *
 	 * @param keyCode
-	 *            Key number to check.
+	 *                Key number to check.
 	 * @return Key state.
 	 */
 	public boolean isKeyDown(final int keyCode) {
@@ -61,7 +71,7 @@ public final class InputManager implements KeyListener {
 
 	/**
 	 * Changes the state of the key to pressed.
-	 * 
+	 *
 	 * @param key
 	 *            Key pressed.
 	 */
@@ -77,7 +87,7 @@ public final class InputManager implements KeyListener {
 
 	/**
 	 * Changes the state of the key to not pressed.
-	 * 
+	 *
 	 * @param key
 	 *            Key released.
 	 */
@@ -89,12 +99,66 @@ public final class InputManager implements KeyListener {
 
 	/**
 	 * Does nothing.
-	 * 
+	 *
 	 * @param key
 	 *            Key typed.
 	 */
 	@Override
 	public void keyTyped(final KeyEvent key) {
 
+	}
+
+	public int getMouseX() {
+		return mouseX;
+	}
+
+	public int getMouseY() {
+		return mouseY;
+	}
+
+	public boolean isMousePressed() {
+		return mousePressed;
+	}
+
+	@Override
+	public void mousePressed(MouseEvent e) {
+		if (e.getButton() == MouseEvent.BUTTON1) {
+			mousePressed = true;
+		}
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent e) {
+		if (e.getButton() == MouseEvent.BUTTON1) {
+			mousePressed = false;
+		}
+	}
+
+	@Override
+	public void mouseMoved(MouseEvent e) {
+		mouseX = e.getX();
+		mouseY = e.getY();
+	}
+
+	@Override
+	public void mouseDragged(MouseEvent e) {
+		mouseX = e.getX();
+		mouseY = e.getY();
+	}
+
+	@Override
+	public void mouseExited(MouseEvent e) {
+		mouseX = -1;
+		mouseY = -1;
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent e) {
+		mouseX = e.getX();
+		mouseY = e.getY();
+	}
+
+	@Override
+	public void mouseClicked(MouseEvent e) {
 	}
 }

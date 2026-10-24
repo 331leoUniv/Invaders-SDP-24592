@@ -21,6 +21,10 @@ public class ControlsSettingsScreen extends Screen {
     private boolean waitingForKey;
     private boolean waitingForKeyRelease;
     private int capturedKeyCode;
+    /** Option under the mouse on the last frame, -1 if none. */
+    private int lastHoveredOption = -1;
+    /** Starts true so a click held from the previous screen is ignored. */
+    private boolean wasMousePressed = true;
 
     public ControlsSettingsScreen(final int width, final int height,
             final int fps) {
@@ -44,6 +48,15 @@ public class ControlsSettingsScreen extends Screen {
     protected void update() {
         super.update();
         draw();
+
+        boolean mousePressed = inputManager.isMousePressed();
+        boolean newMouseClick = mousePressed && !this.wasMousePressed;
+        this.wasMousePressed = mousePressed;
+
+        // The mouse is ignored while a new key is being chosen.
+        if (!this.waitingForKey && handleMouse(newMouseClick)) {
+            return;
+        }
 
         if (this.waitingForKey) {
             captureKey();
@@ -76,15 +89,9 @@ public class ControlsSettingsScreen extends Screen {
             this.selectionCooldown.reset();
             AudioManager.playSFX("audio/sfx/menu_move.wav");
         } else if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
-            if (this.selectedOption == BACK_OPTION) {
-                this.returnCode = 4;
-                this.isRunning = false;
-            } else {
-                inputManager.clearLastPressedKey();
-                this.waitingForKey = true;
-            }
-            this.selectionCooldown.reset();
+            confirmSelectedOption();
         } else if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
+            AudioManager.playSFX("audio/sfx/menu_back.wav");
             this.returnCode = 4;
             this.isRunning = false;
         }
@@ -101,6 +108,51 @@ public class ControlsSettingsScreen extends Screen {
         return !this.waitingForKey;
     }
 
+    /**
+     * Selects the option under the mouse and confirms it on a click.
+     *
+     * @param newMouseClick
+     *            If the mouse button was pressed on this frame.
+     * @return True if the click confirmed an option.
+     */
+    private boolean handleMouse(final boolean newMouseClick) {
+        int hoveredOption = drawManager.getControlsSettingsOptionAt(this,
+                this.selectedOption, this.waitingForKey,
+                inputManager.getMouseX(), inputManager.getMouseY());
+
+        // Select an option when the mouse moves onto it.
+        if (hoveredOption != this.lastHoveredOption) {
+            this.lastHoveredOption = hoveredOption;
+            if (hoveredOption != -1 && hoveredOption != this.selectedOption) {
+                this.selectedOption = hoveredOption;
+                AudioManager.playSFX("audio/sfx/menu_move.wav");
+            }
+        }
+
+        if (newMouseClick && hoveredOption != -1
+                && this.inputDelay.checkFinished()) {
+            this.selectedOption = hoveredOption;
+            confirmSelectedOption();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Goes back on the Back option, or waits for a new key on the others.
+     */
+    private void confirmSelectedOption() {
+        if (this.selectedOption == BACK_OPTION) {
+            AudioManager.playSFX("audio/sfx/menu_back.wav");
+            this.returnCode = 4;
+            this.isRunning = false;
+        } else {
+            inputManager.clearLastPressedKey();
+            this.waitingForKey = true;
+        }
+        this.selectionCooldown.reset();
+    }
+
     private void captureKey() {
         int keyCode = inputManager.consumeLastPressedKey();
 
@@ -114,6 +166,7 @@ public class ControlsSettingsScreen extends Screen {
         this.selectionCooldown.reset();
 
         if (keyCode == KeyEvent.VK_ESCAPE) {
+            AudioManager.playSFX("audio/sfx/menu_back.wav");
             return;
         }
         if (isKeyAssignedToAnotherAction(keyCode)) {

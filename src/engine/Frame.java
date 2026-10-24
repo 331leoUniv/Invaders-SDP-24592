@@ -8,9 +8,9 @@ import screen.Screen;
 
 /**
  * Implements a frame to show screens on.
- * 
+ *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
 @SuppressWarnings("serial")
 public class Frame extends JFrame {
@@ -24,11 +24,11 @@ public class Frame extends JFrame {
 
 	/**
 	 * Initializes the new frame.
-	 * 
+	 *
 	 * @param width
-	 *            Frame width.
+	 *               Frame width.
 	 * @param height
-	 *            Frame height.
+	 *               Frame height.
 	 */
 	public Frame(final int width, final int height) {
 		setSize(width, height);
@@ -44,13 +44,15 @@ public class Frame extends JFrame {
 		setTitle("Invaders");
 
 		addKeyListener(Core.getInputManager());
+		getContentPane().addMouseListener(Core.getInputManager());
+		getContentPane().addMouseMotionListener(Core.getInputManager());
 	}
 
 	/**
 	 * Sets current screen.
-	 * 
+	 *
 	 * @param screen
-	 *            Screen to show.
+	 *               Screen to show.
 	 * @return Return code of the finished screen.
 	 */
 	public final int setScreen(final Screen screen) {
@@ -61,7 +63,7 @@ public class Frame extends JFrame {
 
 	/**
 	 * Getter for frame width.
-	 * 
+	 *
 	 * @return Frame width.
 	 */
 	public final int getWidth() {
@@ -70,7 +72,7 @@ public class Frame extends JFrame {
 
 	/**
 	 * Getter for frame height.
-	 * 
+	 *
 	 * @return Frame height.
 	 */
 

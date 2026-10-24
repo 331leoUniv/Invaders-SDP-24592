@@ -16,12 +16,12 @@ import engine.Starfield;
 
 /**
  * Implements a generic screen.
- * 
+ *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
 public class Screen {
-	
+
 	/** Milliseconds until the screen accepts user input. */
 	private static final int INPUT_DELAY = 1000;
 
@@ -56,7 +56,7 @@ public class Screen {
 
 	/**
 	 * Constructor, establishes the properties of the screen.
-	 * 
+	 *
 	 * @param width
 	 *            Screen width.
 	 * @param height
@@ -87,7 +87,7 @@ public class Screen {
 
 	/**
 	 * Activates the screen.
-	 * 
+	 *
 	 * @return Next screen code.
 	 */
 	public int run() {
@@ -152,7 +152,7 @@ public class Screen {
 
 	/**
 	 * Getter for screen width.
-	 * 
+	 *
 	 * @return Screen width.
 	 */
 	public final int getWidth() {
@@ -161,7 +161,7 @@ public class Screen {
 
 	/**
 	 * Getter for screen height.
-	 * 
+	 *
 	 * @return Screen height.
 	 */
 	public final int getHeight() {
