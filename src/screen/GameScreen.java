@@ -1608,6 +1608,7 @@ public class GameScreen extends Screen {
         }
         this.grenades.removeAll(exploded);
 
+        boolean enemyDestroyed = false;
         Set<GrenadeFragment> expired = new HashSet<GrenadeFragment>();
         for (GrenadeFragment fragment : this.fragments) {
             fragment.update();
@@ -1622,6 +1623,7 @@ public class GameScreen extends Screen {
                         this.shipsDestroyed++;
                         recordEnemyDefeat(enemyShip);
                         this.enemyShipFormation.destroy(enemyShip);
+                        enemyDestroyed = true;
                         this.particleSystem.spawnEnemyExplosion(
                                 enemyShip.getPositionX()
                                         + enemyShip.getWidth() / 2,
@@ -1653,5 +1655,9 @@ public class GameScreen extends Screen {
                 expired.add(fragment);
         }
         this.fragments.removeAll(expired);
+
+        if (enemyDestroyed) {
+            AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
+        }
     }
 }
