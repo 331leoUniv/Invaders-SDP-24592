@@ -1187,8 +1187,11 @@ public class GameScreen extends Screen {
 		}
 		// PlayerStatus owns the timed shield, so its answer decides whether
 		// the hit lands at all; the effects below must not run otherwise.
-		if (!this.playerStatus.takeDamage(damage))
-			return false;
+        if (!this.playerStatus.takeDamage(damage)) {
+            if (this.playerStatus.isShieldActive())
+                AudioManager.playSFX("audio/sfx/status_shield_block.wav");
+            return false;
+        }
 		AudioManager.playSFX("audio/sfx/player_hit.wav");
 
 		this.ship.destroy();
