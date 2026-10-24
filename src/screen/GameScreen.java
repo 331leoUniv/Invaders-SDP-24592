@@ -1458,7 +1458,7 @@ public class GameScreen extends Screen {
                 || !this.ship.isChameleonHullActive()) {
             return;
         }
-
+        boolean enemyDestroyed = false;
         for (EnemyShip enemy : this.enemyShipFormation) {
             if (!enemy.isDestroyed() && checkCollision(this.ship, enemy)) {
                 this.score += enemy.getPointValue();
@@ -1467,8 +1467,12 @@ public class GameScreen extends Screen {
 				recordEnemyDefeat(enemy);
 
                 this.enemyShipFormation.destroy(enemy);
+                enemyDestroyed = true;
                 tryDropChameleonHull(enemy);
             }
+        }
+        if (enemyDestroyed) {
+            AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
         }
 
 		EnemyShip bonusShip = this.bonusEnemyManager.getShip();
