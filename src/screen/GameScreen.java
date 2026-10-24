@@ -496,6 +496,7 @@ public class GameScreen extends Screen {
 		this.playerStatus.addListener(new PlayerStatusListener() {
 			public void onPlayerStatusEvent(final PlayerStatusEvent event) {
 				recordsEvents.publish(event);
+                handlePlayerStatusSound(event);
 			}
 		});
 		// The boss appears only on boss stages.
@@ -1415,6 +1416,34 @@ public class GameScreen extends Screen {
 			break;
 		}
 	}
+
+    /**
+     * Plays the sound that matches a player status event, such as the timed
+     * shield or the slow debuff starting and ending.
+     *
+     * @param event
+     *            Player status event.
+     */
+    private void handlePlayerStatusSound(final PlayerStatusEvent event) {
+        switch (event.getType()) {
+            case SHIELD_STARTED:
+            case SHIELD_REFRESHED:
+                AudioManager.playSFX("audio/sfx/status_shield_on.wav");
+                break;
+            case SHIELD_ENDED:
+                AudioManager.playSFX("audio/sfx/status_shield_off.wav");
+                break;
+            case SLOW_STARTED:
+            case SLOW_REFRESHED:
+                AudioManager.playSFX("audio/sfx/status_slow_start.wav");
+                break;
+            case SLOW_ENDED:
+                AudioManager.playSFX("audio/sfx/status_slow_end.wav");
+                break;
+            default:
+                break;
+        }
+    }
 
 	/**
 	 * Counts the boss as a defeated enemy in the run records. The boss
