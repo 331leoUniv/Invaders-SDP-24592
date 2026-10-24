@@ -9,12 +9,12 @@ import engine.DrawManager.SpriteType;
 
 /**
  * Implements a enemy ship, to be destroyed by the player.
- * 
+ *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
 public class EnemyShip extends Entity {
-	
+
 	/** Point value of a type A enemy. */
 	private static final int A_TYPE_POINTS = 10;
 	/** Point value of a type B enemy. */
@@ -32,9 +32,12 @@ public class EnemyShip extends Entity {
 	private int pointValue;
 	/** Cooldown between this ship's shots. Null if the ship cannot shoot. */
 	private Cooldown shootingCooldown;
+	/** Remaining hit points; legacy and bonus enemies start with one. */
+	private int health = 1;
+
 	/**
 	 * Constructor, establishes the ship's properties.
-	 * 
+	 *
 	 * @param positionX
 	 *            Initial position of the ship in the X axis.
 	 * @param positionY
@@ -44,7 +47,16 @@ public class EnemyShip extends Entity {
 	 */
 	public EnemyShip(final int positionX, final int positionY,
 			final SpriteType spriteType) {
+     this(positionX, positionY, spriteType, 1);
+	}
+
+	/** Creates an enemy with explicit positive initial health. */
+	public EnemyShip(final int positionX, final int positionY,
+			final SpriteType spriteType, final int health) {
 		super(positionX, positionY, 12 * 2, 8 * 2, colorFor(spriteType));
+		if (health <= 0)
+			throw new IllegalArgumentException("health must be positive");
+		this.health = health;
 		this.spriteType = spriteType;
 		this.animationCooldown = Core.getCooldown(500);
 		this.isDestroyed = false;
@@ -96,7 +108,7 @@ public class EnemyShip extends Entity {
 
 	/**
 	 * Getter for the score bonus if this ship is destroyed.
-	 * 
+	 *
 	 * @return Value of the ship.
 	 */
 	public final int getPointValue() {
@@ -105,7 +117,7 @@ public class EnemyShip extends Entity {
 
 	/**
 	 * Moves the ship the specified distance.
-	 * 
+	 *
 	 * @param distanceX
 	 *            Distance to move in the X axis.
 	 * @param distanceY
@@ -152,13 +164,29 @@ public class EnemyShip extends Entity {
 	 * Destroys the ship, causing an explosion.
 	 */
 	public final void destroy() {
+		this.health = 0;
 		this.isDestroyed = true;
 		this.spriteType = SpriteType.Explosion;
 	}
 
+	/** Applies one hit. Returns true only for the hit that destroys this ship. */
+	public final boolean hit() {
+		if (this.isDestroyed)
+			return false;
+		if (--this.health == 0) {
+			destroy();
+			return true;
+		}
+		return false;
+	}
+
+	public final int getHealth() {
+		return this.health;
+	}
+
 	/**
 	 * Checks if the ship has been destroyed.
-	 * 
+	 *
 	 * @return True if the ship has been destroyed.
 	 */
 	public final boolean isDestroyed() {
@@ -197,8 +225,14 @@ public class EnemyShip extends Entity {
 	 */
 	public static EnemyShip createByType(final EnemyType type,
 			final int positionX, final int positionY) {
+		return createByType(type, positionX, positionY, 1);
+	}
+
+	/** Creates a typed enemy with the health specified by a custom level. */
+	public static EnemyShip createByType(final EnemyType type,
+			final int positionX, final int positionY, final int health) {
 		if (type == null)
 			throw new IllegalArgumentException("Enemy type cannot be null.");
-		return new EnemyShip(positionX, positionY, type.getSpriteType());
+		return new EnemyShip(positionX, positionY, type.getSpriteType(), health);
 	}
 }

@@ -123,7 +123,9 @@ public final class DrawManager {
         /** Hyperfire falling power-up. */
         Hyperfire,
         /** Destroyed enemy ship. */
-        Explosion
+        Explosion,
+        /** Falling hazard. */
+        FallingObstacle
     };
 
     /**
@@ -149,6 +151,7 @@ public final class DrawManager {
             spriteMap.put(SpriteType.EnemyShipC2, new boolean[12][8]);
             spriteMap.put(SpriteType.EnemyShipSpecial, new boolean[16][7]);
             spriteMap.put(SpriteType.Explosion, new boolean[13][7]);
+            spriteMap.put(SpriteType.FallingObstacle, new boolean[13][7]);
 
             fileManager.loadSprite(spriteMap);
             logger.info("Finished loading the sprites.");
@@ -737,6 +740,15 @@ public final class DrawManager {
                 screen,
                 "Stage " + stage + " Failed",
                 stageFailedY);
+    }
+
+    /** Draws the game mode as one more row of the results list. */
+    public void drawModeLabel(final Screen screen, final String modeLabel,
+            final boolean isNewRecord) {
+        int height = isNewRecord ? 4 : 2;
+        backBufferGraphics.setColor(Color.WHITE);
+        drawCenteredRegularString(screen, modeLabel, screen.getHeight()
+                / height + fontRegularMetrics.getHeight() * 8);
     }
 
     /**
@@ -1526,7 +1538,6 @@ public final class DrawManager {
         drawCenteredRegularString(screen, achievement.getCondition(),
                 screen.getHeight() / 7 + fontRegularMetrics.getHeight());
     }
-
     public void drawAchievementResults(final Screen screen, final int score,
             final int lives, final int enemies, final float accuracy,
             final boolean isNewRecord, final char[] name, final int selected,
@@ -1540,6 +1551,16 @@ public final class DrawManager {
             final boolean isNewRecord, final char[] name, final int selected,
             final List<Achievement> achievements, final boolean acceptsInput, final int failedStage,
             final boolean gameCleared) {
+        drawAchievementResults(screen, score, lives, enemies, accuracy,
+                isNewRecord, name, selected, achievements, acceptsInput,
+                failedStage, gameCleared, null);
+    }
+
+    public void drawAchievementResults(final Screen screen, final int score,
+            final int lives, final int enemies, final float accuracy,
+            final boolean isNewRecord, final char[] name, final int selected,
+            final List<Achievement> achievements, final boolean acceptsInput,
+            final int failedStage, final boolean gameCleared, final String modeLabel) {
         int spacing = fontRegularMetrics.getHeight();
         int y = fontBigMetrics.getHeight() + 10;
         backBufferGraphics.setColor(Color.GREEN);
@@ -1554,6 +1575,8 @@ public final class DrawManager {
         String[] results = { "Score " + score, "Lives remaining " + lives,
                 "Enemies destroyed " + enemies,
                 String.format("Accuracy %.2f%%", accuracy * 100) };
+        if (modeLabel != null)
+            results = new String[] { results[0], results[1], results[2], results[3], modeLabel };
         for (String result : results) {
             drawCenteredRegularString(screen, result, y);
             y += spacing;
