@@ -787,6 +787,7 @@ this.particleSystem.update();
 		this.currentWave++;
 		this.gameSettings = this.waves.get(this.currentWave);
 		this.enemyShipFormation = createFormation();
+		AudioManager.playSFX("audio/sfx/wave_transition.wav");
 		this.logger.info("Stage " + this.level + " wave " + (this.currentWave + 1) +
 				" of " + this.waves.size() + " started.");
 	}
