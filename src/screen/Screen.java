@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import audio.AudioControls;
+import engine.ControlsConfig;
 import engine.Cooldown;
 import engine.Core;
 import engine.DrawManager;
@@ -135,9 +136,23 @@ public class Screen {
 	 */
 	private void handleMuteKey() {
 		boolean muteKeyDown = inputManager.isKeyDown(KeyEvent.VK_M);
-		if (muteKeyDown && !muteKeyWasDown && usesGlobalMuteKey())
+		if (muteKeyDown && !muteKeyWasDown && usesGlobalMuteKey()
+				&& !isMuteKeyBoundElsewhere())
 			AudioControls.toggleMute();
 		muteKeyWasDown = muteKeyDown;
+	}
+
+	/**
+	 * Checks whether the M key is also bound to movement or firing.
+	 * The global mute key is turned off in that case, so the same key
+	 * does not move or fire and toggle the mute state at once.
+	 *
+	 * @return True if M is used by another control.
+	 */
+	private static boolean isMuteKeyBoundElsewhere() {
+		return ControlsConfig.getKey(ControlsConfig.LEFT) == KeyEvent.VK_M
+				|| ControlsConfig.getKey(ControlsConfig.RIGHT) == KeyEvent.VK_M
+				|| ControlsConfig.getKey(ControlsConfig.FIRE) == KeyEvent.VK_M;
 	}
 
 	/**
