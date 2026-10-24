@@ -23,6 +23,8 @@ public class ShipSelectionScreen extends Screen {
     private int selectedIndex = 0;
     /** Tracks the previous left mouse button state. */
     private boolean wasMousePressed = false;
+    /** Option hovered in the previous frame, used only to time the hover sound. */
+    private int lastHoveredIndex = -1;
 
     /**
      * Constructor, establishes the properties of the screen.
@@ -62,6 +64,12 @@ public class ShipSelectionScreen extends Screen {
             this.selectedIndex = hoveredIndex;
         }
 
+        // Play the move sound only when the mouse enters a different option.
+        if (hoveredIndex != -1 && hoveredIndex != this.lastHoveredIndex) {
+            AudioManager.playSFX("audio/sfx/menu_move.wav");
+        }
+        this.lastHoveredIndex = hoveredIndex;
+
         // Detect a new left mouse click.
         boolean mousePressed = inputManager.isMousePressed();
         boolean newMouseClick = mousePressed && !wasMousePressed;
@@ -75,6 +83,7 @@ public class ShipSelectionScreen extends Screen {
             this.selectedIndex = hoveredIndex;
             this.returnCode = SHIP_SELECTED;
             this.isRunning = false;
+            AudioManager.playSFX("audio/sfx/menu_select.wav");
         }
 
         draw();
