@@ -126,3 +126,36 @@ Third-party sound effects used in this project and their licenses.
 - Source: Generated with a Python (NumPy) script, made with AI assistance
 - License: No third-party license; original work for this project
 - Changes: None (16-bit / 44.1kHz mono WAV)
+
+
+
+## wave_transition.wav
+
+- Original: "jingles_NES01.ogg" from "Music Jingles" by Kenney
+- Source: https://kenney.nl/assets/music-jingles
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed and converted from OGG Vorbis to 44.1 kHz, 16-bit stereo PCM WAV.
+
+
+## achievement_unlock.wav
+
+- Original: "achievement-sparkle" by SkySpeira
+- Source: https://freesound.org/people/SkySpeira/sounds/715067/
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed file and increased volume by 20 dB.
+
+
+## new_record.wav
+
+- Original: "jingles_NES12.ogg" from "Music Jingles" by Kenney
+- Source: https://kenney.nl/assets/music-jingles
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed and converted from OGG Vorbis to 44.1 kHz, 16-bit stereo PCM WAV.
+
+
+## game_over.wav
+
+- Original: "jingles_NES00.ogg" from "Music Jingles" by Kenney
+- Source: https://kenney.nl/assets/music-jingles
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed and converted from OGG Vorbis to 44.1 kHz, 16-bit stereo PCM WAV.
