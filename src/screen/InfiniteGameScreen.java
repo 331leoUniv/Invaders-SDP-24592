@@ -208,8 +208,12 @@ public class InfiniteGameScreen extends Screen {
 			if (fired > 0)
 				AudioManager.playSFX("audio/sfx/player_shoot.wav");
 		}
-		if (!this.ship.isDestroyed())
-			this.bulletsShot += this.ship.updateBurst(this.bullets);
+		if (!this.ship.isDestroyed()) {
+			int burstFired = this.ship.updateBurst(this.bullets);
+			this.bulletsShot += burstFired;
+			if (burstFired > 0)
+				AudioManager.playSFX("audio/sfx/player_shoot.wav");
+		}
 	}
 
 	private void spawnEnemy() {
