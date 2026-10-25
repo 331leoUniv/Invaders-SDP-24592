@@ -299,3 +299,10 @@ documented below for completeness.
 - Source: https://opengameart.org/content/512-sound-effects-8-bit-style
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
 - Changes: Renamed only (16-bit / 44.1kHz mono WAV)
+
+## boss_explosion.wav
+
+- Original: "sfx_exp_long6.wav" from "The Essential Retro Video Game Sound Effects Collection [512 sounds]" by SubspaceAudio
+- Source: https://opengameart.org/content/512-sound-effects-8-bit-style
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed only (16-bit / 44.1kHz mono WAV)
