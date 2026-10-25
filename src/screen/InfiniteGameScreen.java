@@ -157,6 +157,7 @@ public class InfiniteGameScreen extends Screen {
 				this.abandoned = true;
 				if (recordsService != null && runSession != null) recordsService.abandonRun(runSession.getRunId());
 				if (runSession != null) runSession.stopActiveSegment(System.nanoTime());
+				// Leaving with Esc plays the same back sound as the menu screens.
 				AudioManager.playSFX("audio/sfx/menu_back.wav");
 				this.isRunning = false;
 				return;
