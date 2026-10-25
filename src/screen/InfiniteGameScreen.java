@@ -281,7 +281,7 @@ public class InfiniteGameScreen extends Screen {
 		try {
 			drawManager.drawCredits(this, Core.getAssetHudSnapshot().getCredits());
 		} catch (IllegalStateException e) {
-			
+			// Assets are not initialized (e.g. screen-only tests): skip credits.
 		}
 		drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
 
