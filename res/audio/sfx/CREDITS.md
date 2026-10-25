@@ -204,3 +204,11 @@ documented below for completeness.
 - Source: Generated with a Python (NumPy) script, made with AI assistance
 - License: No third-party license; original work for this project
 - Changes: None (16-bit / 44.1kHz mono WAV)
+
+
+## obstacle_hit.wav
+
+- Original: "axe hits - 2.wav" by quatricise
+- Source: https://freesound.org/people/quatricise/sounds/582371/
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed, converted to 16-bit / 44.1kHz WAV, volume lowered.
