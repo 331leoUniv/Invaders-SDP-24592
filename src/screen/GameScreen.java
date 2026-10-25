@@ -1084,6 +1084,7 @@ this.particleSystem.update();
                             this.twinCanonItem, this.ship);
                     this.twinCanonItem = null;
                     recyclable.add(bullet);
+                    AudioManager.playSFX("audio/sfx/item_pickup.wav");
                 }
 
                 // A bullet that already hit a ship cannot also hit the boss.
