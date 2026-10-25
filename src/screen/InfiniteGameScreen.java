@@ -404,6 +404,7 @@ public class InfiniteGameScreen extends Screen {
 						rammed.getPositionY() + rammed.getHeight() / 2);
 				this.ship.destroy();
 				this.ship.triggerDamageFeedback();
+				// Crashed into an enemy: same hit sound as a bullet hit.
 				AudioManager.playSFX("audio/sfx/player_hit.wav");
 				this.particleSystem.spawnPlayerExplosion(
 						this.ship.getPositionX() + this.ship.getWidth() / 2,
