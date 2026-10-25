@@ -496,6 +496,7 @@ public class GameScreen extends Screen {
 		this.playerStatus.addListener(new PlayerStatusListener() {
 			public void onPlayerStatusEvent(final PlayerStatusEvent event) {
 				recordsEvents.publish(event);
+                handlePlayerStatusSound(event);
 			}
 		});
 		// The boss appears only on boss stages.
@@ -1192,8 +1193,11 @@ public class GameScreen extends Screen {
 		}
 		// PlayerStatus owns the timed shield, so its answer decides whether
 		// the hit lands at all; the effects below must not run otherwise.
-		if (!this.playerStatus.takeDamage(damage))
-			return false;
+        if (!this.playerStatus.takeDamage(damage)) {
+            if (this.playerStatus.isShieldActive())
+                AudioManager.playSFX("audio/sfx/item_shield_block.wav");
+            return false;
+        }
 		AudioManager.playSFX("audio/sfx/player_hit.wav");
 
 		this.ship.destroy();
@@ -1421,6 +1425,34 @@ public class GameScreen extends Screen {
 			break;
 		}
 	}
+
+    /**
+     * Plays the sound that matches a player status event, such as the timed
+     * shield or the slow debuff starting and ending.
+     *
+     * @param event
+     *            Player status event.
+     */
+    private void handlePlayerStatusSound(final PlayerStatusEvent event) {
+        switch (event.getType()) {
+            case SHIELD_STARTED:
+            case SHIELD_REFRESHED:
+                AudioManager.playSFX("audio/sfx/status_shield_on.wav");
+                break;
+            case SHIELD_ENDED:
+                AudioManager.playSFX("audio/sfx/status_shield_off.wav");
+                break;
+            case SLOW_STARTED:
+            case SLOW_REFRESHED:
+                AudioManager.playSFX("audio/sfx/status_slow_start.wav");
+                break;
+            case SLOW_ENDED:
+                AudioManager.playSFX("audio/sfx/status_slow_end.wav");
+                break;
+            default:
+                break;
+        }
+    }
 
 	/**
 	 * Counts the boss as a defeated enemy in the run records. The boss

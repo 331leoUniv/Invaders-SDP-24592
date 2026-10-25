@@ -206,6 +206,39 @@ documented below for completeness.
 - Changes: None (16-bit / 44.1kHz mono WAV)
 
 
+
+## status_slow_start.wav
+
+- Original: "Cosmic Communication 01.wav" by LilMati
+- Source: https://freesound.org/people/LilMati/sounds/453061/
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed, volume lowered.
+
+
+## status_slow_end.wav
+
+- Original: "Cosmic Communication 01.wav" by LilMati (same source as status_slow_start.wav)
+- Source: https://freesound.org/people/LilMati/sounds/453061/
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Reversed, trimmed to 0.59 seconds, low-pass filtered, faded out, volume lowered.
+
+
+## status_shield_on.wav
+
+- Original: "Armor 02.wav" by LilMati
+- Source: https://freesound.org/people/LilMati/sounds/523745/
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed, trimmed to 0.8 seconds with a fade-out, volume lowered.
+
+
+## status_shield_off.wav
+
+- Original: "SHIELDHIT3.wav" by fonografico
+- Source: https://freesound.org/people/fonografico/sounds/636101/
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed, trimmed to 0.5 seconds with a fade-out, converted to 16-bit / 44.1kHz WAV, volume lowered.
+
+
 ## obstacle_hit.wav
 
 - Original: "axe hits - 2.wav" by quatricise

@@ -3,6 +3,7 @@ package entity.item;
 import engine.Core;
 import engine.DrawManager.SpriteType;
 import entity.Ship;
+import audio.AudioManager;
 
 /**
  * Item qui octroie un bouclier d'energie temporaire (15 secondes).
@@ -26,6 +27,7 @@ public class ShieldItem extends Item {
         // log line below from claiming a shield that never came up.
         if (ship != null && ship.getShipType().isShieldCapable()) {
             ship.setShieldActive(true);
+            AudioManager.playSFX("audio/sfx/status_shield_on.wav");
             Core.getLogger().info("Energy Shield activated for 15 seconds.");
         }
     }
