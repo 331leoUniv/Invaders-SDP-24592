@@ -336,6 +336,39 @@ public final class DrawManager {
         backBufferGraphics.drawString(scoreString, scoreX, 25);
     }
 
+    /** K, M, B, T, Q suffixes for shortened credits. */
+    private static final String[] CREDIT_SUFFIXES = { "", "K", "M", "B", "T", "Q" };
+
+    /**
+     * Draws credits with a coin icon right-aligned just left of the score.
+     * Up to 4 digits fit between the level label and the score.
+     */
+    public void drawCredits(final Screen screen, final long credits) {
+        backBufferGraphics.setFont(fontRegular);
+        backBufferGraphics.setColor(Color.WHITE);
+        String text = shortenCredits(credits);
+        // Ends 8px left of the score icon drawn by drawScore().
+        int textX = screen.getWidth() - 60 - Icon.SCORE.getWidth() * 2 - 14
+                - backBufferGraphics.getFontMetrics().stringWidth(text);
+        drawIcon(Icon.COIN, textX - 4 - Icon.COIN.getWidth() * 2, 12, 2);
+        backBufferGraphics.drawString(text, textX, 25);
+    }
+
+    /** 5+ digits become 12.3K or 123K, rounded down so it never shows more. */
+    private static String shortenCredits(final long credits) {
+        if (credits < 10000)
+            return Long.toString(credits);
+        long unit = 1;
+        int suffix = 0;
+        while (suffix < CREDIT_SUFFIXES.length - 1 && credits / unit >= 1000) {
+            unit *= 1000;
+            suffix++;
+        }
+        long whole = credits / unit;
+        return whole + (whole < 100 ? "." + credits % unit / (unit / 10) : "")
+                + CREDIT_SUFFIXES[suffix];
+    }
+
     /**
      * Draws remaining lives as heart icons on screen.
      *
