@@ -7,9 +7,13 @@ import javax.sound.sampled.AudioSystem;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 /**
  * Caches audio formats and sample data by classpath resource path.
@@ -24,6 +28,24 @@ public class AudioCache {
 
     /** Successfully loaded audio resources indexed by their classpath paths. */
     private final Map<String, AudioResource> cacheMap = new HashMap<>();
+
+    /** Loads all WAV files beneath a classpath directory, such as {@code audio/bgm}. */
+    public void preload(String directory) {
+        if (directory == null) return;
+        URL resource = AudioCache.class.getClassLoader().getResource(directory);
+        if (resource == null) return;
+        try {
+            Path root = Path.of(resource.toURI());
+            try (Stream<Path> files = Files.walk(root)) {
+                files.filter(Files::isRegularFile)
+                        .filter(path -> path.toString().toLowerCase(Locale.ROOT).endsWith(".wav"))
+                        .forEach(path -> getAudioData(directory + "/"
+                                + root.relativize(path).toString().replace('\\', '/')));
+            }
+        } catch (Exception e) {
+            logger.warning("Failed to preload audio: " + directory + " / " + e);
+        }
+    }
 
     /**
      * Returns cached audio data, loading and caching the resource if necessary.
@@ -69,7 +91,7 @@ public class AudioCache {
                 throw new IOException("Cannot convert audio format: " + stream.getFormat());
             }
             try (AudioInputStream converted =
-                    AudioSystem.getAudioInputStream(AudioMixer.FORMAT, stream)) {
+                         AudioSystem.getAudioInputStream(AudioMixer.FORMAT, stream)) {
                 return readPcm(converted);
             }
         } catch (Exception e) {
