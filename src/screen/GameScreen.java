@@ -980,7 +980,10 @@ public class GameScreen extends Screen {
                 // Remove first so a single obstacle can trigger only one collision.
                 iterator.remove();
                 this.fallingObstacleCooldown.reset();
-                AudioManager.playSFX("audio/sfx/obstacle_hit.wav");
+                if (this.ship.isShieldActive())
+                    AudioManager.playSFX("audio/sfx/item_shield_block.wav");
+                else
+                    AudioManager.playSFX("audio/sfx/obstacle_hit.wav");
                 if (!this.ship.isInvulnerable() && !this.ship.isShieldActive())
                     this.playerStatus.applySlow(this.ship);
             }
