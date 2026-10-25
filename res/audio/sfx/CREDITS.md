@@ -206,6 +206,7 @@ documented below for completeness.
 - Changes: None (16-bit / 44.1kHz mono WAV)
 
 
+
 ## status_slow_start.wav
 
 - Original: "Cosmic Communication 01.wav" by LilMati
@@ -244,3 +245,11 @@ documented below for completeness.
 - Source: https://freesound.org/people/BBoz87/sounds/788235/
 - License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 - Changes: Renamed, trimmed to 0.4 seconds with a fade-out, volume lowered.
+
+
+## obstacle_hit.wav
+
+- Original: "axe hits - 2.wav" by quatricise
+- Source: https://freesound.org/people/quatricise/sounds/582371/
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed, converted to 16-bit / 44.1kHz WAV, volume lowered.
