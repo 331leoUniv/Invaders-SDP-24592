@@ -125,6 +125,10 @@ public class ScoreScreen extends Screen {
 			AudioManager.playBGM("audio/bgm/music_end_defeat.wav");
 		}
 
+        if (this.isNewRecord) {
+            AudioManager.playSFX("audio/sfx/new_record.wav");
+        }
+
         RecordsService recordsService = Core.getRecordsService();
         if (recordsService != null) {
             boolean hasNewAchievement = false;
@@ -134,7 +138,7 @@ public class ScoreScreen extends Screen {
                     hasNewAchievement = true;
                 }
             }
-            if (hasNewAchievement) {
+            if (hasNewAchievement && !this.isNewRecord) {
                 AudioManager.playSFX("audio/sfx/achievement_unlock.wav");
             }
         }
