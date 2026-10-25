@@ -106,6 +106,18 @@ public class GameScreen extends Screen {
 	/** Sound played when a boss special attack fires. */
 	private static final String BOSS_SPECIAL_SOUND =
 			"audio/sfx/item_laser_beam.wav";
+	/** Sound played when the boss appears. */
+	private static final String BOSS_SPAWN_SOUND =
+			"audio/sfx/boss_spawn.wav";
+	/** Sound played when the boss enters a new phase. */
+	private static final String BOSS_PHASE_SOUND =
+			"audio/sfx/boss_phase.wav";
+	/** Sound played when the boss fires a normal attack. */
+	private static final String BOSS_SHOT_SOUND =
+			"audio/sfx/boss_shoot.wav";
+	/** Sound played when the boss is defeated. */
+	private static final String BOSS_EXPLOSION_SOUND =
+			"audio/sfx/boss_explosion.wav";
 	/** Stages where a boss appears (agreed with the team, may change). */
 	static final int[] BOSS_LEVELS = { 3, 5, 7 };
     /** Time the space key must be held to trigger the Annihilator. */
@@ -1432,12 +1444,21 @@ public class GameScreen extends Screen {
 	 */
 	private void handleBossEvent(final BossEvent event) {
 		switch (event.getType()) {
+		case SPAWNED:
+			AudioManager.playSFX(BOSS_SPAWN_SOUND);
+			break;
+		case PHASE_CHANGED:
+			AudioManager.playSFX(BOSS_PHASE_SOUND);
+			break;
 		case ATTACK:
 			if (event.isSpecial())
 				AudioManager.playSFX(event.isWindup()
 						? BOSS_WARNING_SOUND : BOSS_SPECIAL_SOUND);
+			else
+				AudioManager.playSFX(BOSS_SHOT_SOUND);
 			break;
 		case DEFEATED:
+			AudioManager.playSFX(BOSS_EXPLOSION_SOUND);
 			// Three explosions across the boss, as it is bigger than an enemy.
 			for (int i = -1; i <= 1; i++)
 				this.particleSystem.spawnEnemyExplosion(

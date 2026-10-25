@@ -278,3 +278,31 @@ documented below for completeness.
 - Source: https://freesound.org/people/quatricise/sounds/582371/
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
 - Changes: Renamed, converted to 16-bit / 44.1kHz WAV, volume lowered.
+
+## boss_spawn.wav
+
+- Original: "sfx_alarm_loop2.wav" from "The Essential Retro Video Game Sound Effects Collection [512 sounds]" by SubspaceAudio
+- Source: https://opengameart.org/content/512-sound-effects-8-bit-style
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed only (16-bit / 44.1kHz mono WAV)
+
+## boss_phase.wav
+
+- Original: "sfx_movement_portal6.wav" from "The Essential Retro Video Game Sound Effects Collection [512 sounds]" by SubspaceAudio
+- Source: https://opengameart.org/content/512-sound-effects-8-bit-style
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed only (16-bit / 44.1kHz mono WAV)
+
+## boss_shoot.wav
+
+- Original: "sfx_wpn_cannon1.wav" from "The Essential Retro Video Game Sound Effects Collection [512 sounds]" by SubspaceAudio
+- Source: https://opengameart.org/content/512-sound-effects-8-bit-style
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed only (16-bit / 44.1kHz mono WAV)
+
+## boss_explosion.wav
+
+- Original: "sfx_exp_long6.wav" from "The Essential Retro Video Game Sound Effects Collection [512 sounds]" by SubspaceAudio
+- Source: https://opengameart.org/content/512-sound-effects-8-bit-style
+- License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- Changes: Renamed only (16-bit / 44.1kHz mono WAV)
