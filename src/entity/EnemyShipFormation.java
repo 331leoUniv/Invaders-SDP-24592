@@ -15,6 +15,7 @@ import engine.Core;
 import engine.DrawManager;
 import engine.DrawManager.SpriteType;
 import engine.GameSettings;
+import audio.AudioManager;
 
 /**
  * Groups enemy ships into a formation that moves together.
@@ -693,6 +694,7 @@ private int getBulletSpeed() {
 
 			bullets.add(BulletPool.getBullet(enemyX, enemyY, getBulletSpeed(),
 					Bullet.Owner.ENEMY));
+			AudioManager.playSFX("audio/sfx/enemy_shoot.wav");
 			return;
 		}
 
@@ -714,6 +716,7 @@ private int getBulletSpeed() {
 		// explicitly rather than inferred from the speed.
 		bullets.add(BulletPool.getBullet(enemyX, enemyY, speedY, speedX,
 				Bullet.Owner.ENEMY));
+		AudioManager.playSFX("audio/sfx/enemy_shoot.wav");
 	}
 
 	/**
