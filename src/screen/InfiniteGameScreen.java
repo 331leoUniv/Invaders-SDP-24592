@@ -379,6 +379,7 @@ public class InfiniteGameScreen extends Screen {
 				BulletPool.recycle(Collections.singleton(bullet));
 				this.ship.destroy();
 				this.ship.triggerDamageFeedback();
+				AudioManager.playSFX("audio/sfx/player_hit.wav");
 				this.particleSystem.spawnPlayerExplosion(
 						this.ship.getPositionX() + this.ship.getWidth() / 2,
 						this.ship.getPositionY() + this.ship.getHeight() / 2);
