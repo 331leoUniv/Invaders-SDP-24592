@@ -5,6 +5,7 @@ import java.util.List;
 
 import engine.Cooldown;
 import engine.Core;
+import engine.DifficultyAdjustWhilePlaying;
 import entity.BossBullet;
 
 /**
@@ -156,9 +157,11 @@ public abstract class SpecialAttack {
                 final int damage) {
             List<BossBullet> bullets = new ArrayList<BossBullet>();
             double step = 360.0 / this.count;
+            double adjustedSpeed = DifficultyAdjustWhilePlaying.getInstance()
+                    .adjustEnemyBulletSpeed(this.speed);
             for (int i = 0; i < this.count; i++)
                 bullets.add(BossBullet.fromAngle(originX, originY,
-                        this.offset + i * step, this.speed, damage, true));
+                        this.offset + i * step, adjustedSpeed, damage, true));
             this.offset = (this.offset + step / 2) % 360.0;
             return bullets;
         }
