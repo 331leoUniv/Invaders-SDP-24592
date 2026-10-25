@@ -552,6 +552,9 @@ public class GameScreen extends Screen {
 			long now = System.currentTimeMillis();
 			if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
 				this.visibleAchievement = this.recordsService.pollNotification();
+				if (this.visibleAchievement != null) {
+					AudioManager.playSFX("audio/sfx/achievement_unlock.wav");
+				}
 				this.achievementNoticeUntil = this.visibleAchievement == null ? 0 : now + 3000;
 			}
 		}
@@ -733,6 +736,7 @@ public class GameScreen extends Screen {
             if (!this.playerStatus.isAlive()) {
                 this.levelFinished = true;
                 this.stageCleared = false;
+                AudioManager.playSFX("audio/sfx/game_over.wav");
                 this.screenFinishedCooldown.reset();
                 this.logger.info("Stage " + this.level + " failed.");
             } else if (this.enemyShipFormation.isEmpty() && isBossCleared()) {
@@ -799,6 +803,7 @@ public class GameScreen extends Screen {
 		this.currentWave++;
 		this.gameSettings = this.waves.get(this.currentWave);
 		this.enemyShipFormation = createFormation();
+		AudioManager.playSFX("audio/sfx/wave_transition.wav");
 		this.logger.info("Stage " + this.level + " wave " + (this.currentWave + 1) +
 				" of " + this.waves.size() + " started.");
 	}
