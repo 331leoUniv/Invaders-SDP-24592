@@ -545,6 +545,9 @@ public class GameScreen extends Screen {
             long now = System.currentTimeMillis();
             if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
                 this.visibleAchievement = this.recordsService.pollNotification();
+                if (this.visibleAchievement != null) {
+                    AudioManager.playSFX("audio/sfx/achievement_unlock.wav");
+                }
                 this.achievementNoticeUntil = this.visibleAchievement == null ? 0 : now + 3000;
             }
         }
