@@ -399,6 +399,7 @@ public class InfiniteGameScreen extends Screen {
 			ZigzagEnemyShip rammed = iterator.next();
 			if (checkCollision(rammed, this.ship)) {
 				iterator.remove();
+				// The crashing enemy explodes like an enemy that is shot down.
 				AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
 				this.particleSystem.spawnEnemyExplosion(
 						rammed.getPositionX() + rammed.getWidth() / 2,
