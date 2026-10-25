@@ -379,6 +379,7 @@ public class InfiniteGameScreen extends Screen {
 				BulletPool.recycle(Collections.singleton(bullet));
 				this.ship.destroy();
 				this.ship.triggerDamageFeedback();
+				// Hit by an enemy bullet: same hit sound as Campaign mode.
 				AudioManager.playSFX("audio/sfx/player_hit.wav");
 				this.particleSystem.spawnPlayerExplosion(
 						this.ship.getPositionX() + this.ship.getWidth() / 2,
