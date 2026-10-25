@@ -191,6 +191,14 @@ documented below for completeness.
 - Changes: None (16-bit / 44.1kHz mono WAV)
 
 
+## item_grenade_launch.wav
+
+- Original: Created for this project (synthesized short launch thump with a whoosh, no third-party source)
+- Source: Generated with a Python (NumPy) script, made with AI assistance
+- License: No third-party license; original work for this project
+- Changes: None (16-bit / 44.1kHz mono WAV)
+
+
 
 ## wave_transition.wav
 
