@@ -217,10 +217,10 @@ documented below for completeness.
 
 ## status_slow_end.wav
 
-- Original: "Powerup 06.wav" by LilMati
-- Source: https://freesound.org/people/LilMati/sounds/523650/
+- Original: "Cosmic Communication 01.wav" by LilMati (same source as status_slow_start.wav)
+- Source: https://freesound.org/people/LilMati/sounds/453061/
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
-- Changes: Renamed, volume lowered.
+- Changes: Reversed, trimmed to 0.59 seconds, low-pass filtered, faded out, volume lowered.
 
 
 ## status_shield_on.wav
