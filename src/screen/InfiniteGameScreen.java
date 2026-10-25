@@ -278,7 +278,7 @@ public class InfiniteGameScreen extends Screen {
 
 		drawManager.drawScore(this, this.score);
 		drawManager.drawLives(this, this.lives, this.maxLives);
-		try { 
+		try {
 			drawManager.drawCredits(this, Core.getAssetHudSnapshot().getCredits());
 		} catch (IllegalStateException e) {
 			
