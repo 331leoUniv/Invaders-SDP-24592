@@ -266,6 +266,7 @@ public class InfiniteGameScreen extends Screen {
 						enemy.getPositionX() + enemy.getWidth() / 2,
 						enemy.getPositionY() + enemy.getHeight(),
 						getEnemyBulletSpeed()));
+				// Same enemy shot sound as the Campaign formation.
 				AudioManager.playSFX("audio/sfx/enemy_shoot.wav");
 			}
 		}
