@@ -725,6 +725,7 @@ this.particleSystem.update();
             if (!this.playerStatus.isAlive()) {
                 this.levelFinished = true;
                 this.stageCleared = false;
+                AudioManager.playSFX("audio/sfx/game_over.wav");
                 this.screenFinishedCooldown.reset();
                 this.logger.info("Stage " + this.level + " failed.");
             } else if (this.enemyShipFormation.isEmpty() && isBossCleared()) {

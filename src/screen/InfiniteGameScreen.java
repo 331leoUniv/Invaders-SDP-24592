@@ -175,6 +175,7 @@ public class InfiniteGameScreen extends Screen {
 
 		if (this.lives == 0 && !this.gameOver) {
 			this.gameOver = true;
+			AudioManager.playSFX("audio/sfx/game_over.wav");
 			if (runSession != null) runSession.stopActiveSegment(System.nanoTime());
 			this.screenFinishedCooldown.reset();
 		}
