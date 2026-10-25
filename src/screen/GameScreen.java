@@ -51,6 +51,7 @@ import hud.FloatingScoreHud;
 import records.RunSession;
 import records.RecordsService;
 import records.Achievement;
+import event.DefeatedEnemyType;
 import event.EnemyDefeatedEvent;
 import event.GameplayEventListener;
 import event.GameplayEventPublisher;
@@ -69,6 +70,7 @@ import entity.item.TwinCanon;
 
 /**
  * Implements the game screen, where the action happens.
+ * Plays sound effects for gameplay events.
  *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
  *
@@ -211,6 +213,8 @@ public class GameScreen extends Screen {
     private long achievementNoticeUntil;
     private final GameplayEventPublisher recordsEvents = new GameplayEventPublisher();
     private final Map<EnemyShip,String> defeatIds = new IdentityHashMap<EnemyShip,String>();
+    /** Separates the enemy type from the random part of a defeat ID. */
+    static final String DEFEAT_ID_SEPARATOR = ":";
     /** Prevents repeated activation while holding H. */
     private boolean hyperfireKeyPressed = false;
     /** Flag to track if the urgent low-health BGM is currently playing. */
@@ -519,6 +523,7 @@ public class GameScreen extends Screen {
 		this.playerStatus.addListener(new PlayerStatusListener() {
 			public void onPlayerStatusEvent(final PlayerStatusEvent event) {
 				recordsEvents.publish(event);
+                handlePlayerStatusSound(event);
 			}
 		});
 		// The boss appears only on boss stages.
@@ -534,14 +539,18 @@ public class GameScreen extends Screen {
         this.inputDelay = Core.getCooldown(INPUT_DELAY);
         this.inputDelay.reset();
 
-        if (this.playerStatus.getLives() == 1) {
-            AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
-            this.isLowHealthBGM = true;
-        } else {
-            AudioManager.playBGM("audio/bgm/music_game.wav");
-            this.isLowHealthBGM = false;
-        }
-    }
+		if (this.bonusLife) {
+			AudioManager.playSFX("audio/sfx/bonus_life.wav");
+		}
+
+		if (this.playerStatus.getLives() == 1) {
+			AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
+			this.isLowHealthBGM = true;
+		} else {
+			AudioManager.playBGM("audio/bgm/music_game.wav");
+			this.isLowHealthBGM = false;
+		}
+	}
 
     /**
      * Starts the action.
@@ -560,18 +569,22 @@ public class GameScreen extends Screen {
         return this.returnCode;
     }
 
-    /**
-     * Updates the elements on screen and checks for events.
-     */
-    protected final void update() {
-        super.update();
-        if (this.recordsService != null) {
-            long now = System.currentTimeMillis();
-            if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
-                this.visibleAchievement = this.recordsService.pollNotification();
-                this.achievementNoticeUntil = this.visibleAchievement == null ? 0 : now + 3000;
-            }
-        }
+	/**
+	 * Updates the elements on screen, checks for events, and plays the bonus
+	 * enemy appearance sound.
+	 */
+	protected final void update() {
+		super.update();
+		if (this.recordsService != null) {
+			long now = System.currentTimeMillis();
+			if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
+				this.visibleAchievement = this.recordsService.pollNotification();
+				if (this.visibleAchievement != null) {
+					AudioManager.playSFX("audio/sfx/achievement_unlock.wav");
+				}
+				this.achievementNoticeUntil = this.visibleAchievement == null ? 0 : now + 3000;
+			}
+		}
 
 		// Outside the input-delay check: a shield that runs out has to be
 		// announced even while the level is finishing.
@@ -607,13 +620,17 @@ public class GameScreen extends Screen {
                     clampShipPosition();
                 }
 
-                // Normal shooting using configured controls.
-                if (inputManager.isKeyDown(
-                        ControlsConfig.getKey(ControlsConfig.FIRE))) {
-                    if (!this.annihilator.isCharging()) {
-						this.bulletsShot += this.ship.shoot(this.bullets);
-                    }
-                }
+				// Normal shooting using configured controls.
+				if (inputManager.isKeyDown(
+						ControlsConfig.getKey(ControlsConfig.FIRE))) {
+					if (!this.annihilator.isCharging()) {
+						int fired = this.ship.shoot(this.bullets);
+						this.bulletsShot += fired;
+						if (fired > 0) {
+							AudioManager.playSFX("audio/sfx/player_shoot.wav");
+						}
+					}
+				}
 
                 // Hyperfire test activation with the H key, only with the
                 // debug keys enabled so normal play cannot get it for free.
@@ -731,7 +748,7 @@ public class GameScreen extends Screen {
             manageAnnihilatorBeam();
 
         cleanBullets();
-this.particleSystem.update();
+        this.particleSystem.update();
         draw();
 
         advanceStageIfReady();
@@ -746,6 +763,7 @@ this.particleSystem.update();
             if (!this.playerStatus.isAlive()) {
                 this.levelFinished = true;
                 this.stageCleared = false;
+                AudioManager.playSFX("audio/sfx/game_over.wav");
                 this.screenFinishedCooldown.reset();
                 this.logger.info("Stage " + this.level + " failed.");
             } else if (this.enemyShipFormation.isEmpty() && isBossCleared()) {
@@ -754,6 +772,7 @@ this.particleSystem.update();
                 } else {
                     this.levelFinished = true;
                     this.stageCleared = true;
+                    AudioManager.playSFX("audio/sfx/level_clear.wav");
                     this.screenFinishedCooldown.reset();
                     this.logger.info("Stage " + this.level + " cleared.");
                     publishLevelCompleted();
@@ -811,6 +830,7 @@ this.particleSystem.update();
 		this.currentWave++;
 		this.gameSettings = this.waves.get(this.currentWave);
 		this.enemyShipFormation = createFormation();
+		AudioManager.playSFX("audio/sfx/wave_transition.wav");
 		this.logger.info("Stage " + this.level + " wave " + (this.currentWave + 1) +
 				" of " + this.waves.size() + " started.");
 	}
@@ -880,6 +900,11 @@ this.particleSystem.update();
 		drawManager.drawLives(this, this.playerStatus.getLives(),
 				this.playerStatus.getMaxLives());
 		drawManager.drawLevel(this, this.level, CampaignStageData.getTotalStages());
+		try { // Includes rewards awaiting settlement; read every frame.
+			drawManager.drawCredits(this, Core.getAssetHudSnapshot().getCredits());
+		} catch (IllegalStateException e) {
+			// Assets are not initialized (e.g. screen-only tests): skip credits.
+		}
 
 		// Item HUD: grenades left, active buffs and their time left.
 		drawManager.drawGrenadeCount(this, this.ship.getGrenadeCount());
@@ -993,8 +1018,14 @@ this.particleSystem.update();
                 // Remove first so a single obstacle can trigger only one collision.
                 iterator.remove();
                 this.fallingObstacleCooldown.reset();
-                if (!this.ship.isInvulnerable() && !this.ship.isShieldActive())
-                    this.playerStatus.applySlow(this.ship);
+                if (!this.ship.isInvulnerable()) {
+                    if (this.ship.isShieldActive()) {
+                        AudioManager.playSFX("audio/sfx/item_shield_block.wav");
+                    } else {
+                        AudioManager.playSFX("audio/sfx/obstacle_hit.wav");
+                        this.playerStatus.applySlow(this.ship);
+                    }
+                }
             }
         }
     }
@@ -1026,6 +1057,7 @@ this.particleSystem.update();
                         if (!this.enemyShipFormation.hit(enemyShip))
                             break;
 
+                        AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
                         this.score += enemyShip.getPointValue();
                         floatingScoreHud.show(enemyShip);
                         this.shipsDestroyed++;
@@ -1115,8 +1147,8 @@ this.particleSystem.update();
      * corridor and neutralizes enemy projectiles inside it.
      */
     private void manageAnnihilatorBeam() {
-        if (this.levelFinished)
-            return;
+        if (this.levelFinished) return;
+        boolean enemyDestroyed = false;
         for (EnemyShip enemyShip : this.enemyShipFormation) {
             if (!enemyShip.isDestroyed()
                     && OrbitalAnnihilator.hits(this.ship, enemyShip)) {
@@ -1126,16 +1158,21 @@ this.particleSystem.update();
                 recordEnemyDefeat(enemyShip);
 
                 this.enemyShipFormation.destroy(enemyShip);
+                enemyDestroyed = true;
                 tryDropChameleonHull(enemyShip);
             }
         }
 
-        EnemyShip bonusShip = this.bonusEnemyManager.getShip();
-        if (this.bonusEnemyManager.isActive()
-                && OrbitalAnnihilator.hits(this.ship, bonusShip)) {
-            recordEnemyDefeat(bonusShip);
-            floatingScoreHud.show(bonusShip);
-            this.score += this.bonusEnemyManager.destroy();
+        if (enemyDestroyed) {
+            AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
+        }
+
+		EnemyShip bonusShip = this.bonusEnemyManager.getShip();
+		if (this.bonusEnemyManager.isActive()
+				&& OrbitalAnnihilator.hits(this.ship, bonusShip)) {
+			recordEnemyDefeat(bonusShip);
+			floatingScoreHud.show(bonusShip);
+			this.score += this.bonusEnemyManager.destroy();
             this.shipsDestroyed++;
             tryDropChameleonHull(bonusShip);
             tryDropHyperfire(bonusShip);
@@ -1183,6 +1220,7 @@ this.particleSystem.update();
 			return false;
 		if (this.ship.isShieldActive()) {
 			this.logger.info("Shot absorbed by Energy Shield.");
+			AudioManager.playSFX("audio/sfx/item_shield_block.wav");
 			// The Energy Shield belongs to Ship, so PlayerStatus cannot see
 			// this hit by itself. Announce it anyway, or a listener would
 			// hear a blocked hit only when the timed shield was the one that
@@ -1192,8 +1230,12 @@ this.particleSystem.update();
 		}
 		// PlayerStatus owns the timed shield, so its answer decides whether
 		// the hit lands at all; the effects below must not run otherwise.
-		if (!this.playerStatus.takeDamage(damage))
-			return false;
+        if (!this.playerStatus.takeDamage(damage)) {
+            if (this.playerStatus.isShieldActive())
+                AudioManager.playSFX("audio/sfx/item_shield_block.wav");
+            return false;
+        }
+		AudioManager.playSFX("audio/sfx/player_hit.wav");
 
 		this.ship.destroy();
 		this.ship.triggerDamageFeedback();
@@ -1414,29 +1456,98 @@ this.particleSystem.update();
 			// saved run record read shipsDestroyed, not the defeat events,
 			// so a boss went uncounted in both until this.
 			this.shipsDestroyed++;
-			recordBossDefeat();
+			recordBossDefeat(event.getBossType());
 			break;
 		default:
 			break;
 		}
 	}
 
+    /**
+     * Plays the sound that matches a player status event, such as the timed
+     * shield or the slow debuff starting and ending.
+     *
+     * @param event
+     *            Player status event.
+     */
+    private void handlePlayerStatusSound(final PlayerStatusEvent event) {
+        switch (event.getType()) {
+            case SHIELD_STARTED:
+            case SHIELD_REFRESHED:
+                AudioManager.playSFX("audio/sfx/status_shield_on.wav");
+                break;
+            case SHIELD_ENDED:
+                AudioManager.playSFX("audio/sfx/status_shield_off.wav");
+                break;
+            case SLOW_STARTED:
+            case SLOW_REFRESHED:
+                AudioManager.playSFX("audio/sfx/status_slow_start.wav");
+                break;
+            case SLOW_ENDED:
+                AudioManager.playSFX("audio/sfx/status_slow_end.wav");
+                break;
+            default:
+                break;
+        }
+    }
+
 	/**
 	 * Counts the boss as a defeated enemy in the run records. The boss
 	 * manager sends BossDefeated only once, so one id per boss is enough.
+	 * The boss type travels on this event too, so a listener needs only one
+	 * subscription for every kind of defeat.
+	 *
+	 * @param bossType
+	 *            Kind of boss that was defeated.
 	 */
-	private void recordBossDefeat() {
+	private void recordBossDefeat(final Boss.BossType bossType) {
 		if (this.runSession == null)
 			return;
+		DefeatedEnemyType type = classifyBoss(bossType);
 		this.recordsEvents.publish(new EnemyDefeatedEvent(
-				this.runSession.getRunId(), UUID.randomUUID().toString()));
+				this.runSession.getRunId(), newDefeatId(type), type));
+	}
+
+	/**
+	 * Builds the ID of one defeat, grouped by the type of enemy defeated. The
+	 * random part keeps every defeat distinct, so two enemies of the same
+	 * type still count as two defeats and the ID stays usable on its own for
+	 * duplicate detection. The type is handed out here rather than derived by
+	 * a listener; {@link EnemyDefeatedEvent#getEnemyType()} remains the value
+	 * to read, and this prefix only groups the IDs it accompanies.
+	 *
+	 * @param type
+	 *            Classification of the defeated enemy.
+	 * @return Defeat ID beginning with its enemy type.
+	 */
+	private static String newDefeatId(final DefeatedEnemyType type) {
+		return type.name() + DEFEAT_ID_SEPARATOR + UUID.randomUUID();
+	}
+
+	/**
+	 * Classifies a defeated boss for its defeat event.
+	 *
+	 * @param bossType
+	 *            Kind of boss that was defeated.
+	 * @return Classification of the boss, UNKNOWN for an unlisted kind.
+	 */
+	private static DefeatedEnemyType classifyBoss(final Boss.BossType bossType) {
+		switch (bossType) {
+		case BOSS_A:
+			return DefeatedEnemyType.BOSS_A;
+		case BOSS_B:
+			return DefeatedEnemyType.BOSS_B;
+		default:
+			return DefeatedEnemyType.UNKNOWN;
+		}
 	}
 
     private void recordEnemyDefeat(final EnemyShip enemy) {
         if (this.runSession == null) return;
         String id = this.defeatIds.get(enemy);
-        if (id == null) { id=UUID.randomUUID().toString(); this.defeatIds.put(enemy,id); }
-        this.recordsEvents.publish(new EnemyDefeatedEvent(this.runSession.getRunId(),id));
+        if (id == null) { id=newDefeatId(enemy.getDefeatedType()); this.defeatIds.put(enemy,id); }
+        this.recordsEvents.publish(new EnemyDefeatedEvent(this.runSession.getRunId(),id,
+                enemy.getDefeatedType()));
     }
 
     /**
@@ -1536,7 +1647,7 @@ this.particleSystem.update();
                 || !this.ship.isChameleonHullActive()) {
             return;
         }
-
+        boolean enemyDestroyed = false;
         for (EnemyShip enemy : this.enemyShipFormation) {
             if (!enemy.isDestroyed() && checkCollision(this.ship, enemy)) {
                 this.score += enemy.getPointValue();
@@ -1545,8 +1656,12 @@ this.particleSystem.update();
 				recordEnemyDefeat(enemy);
 
                 this.enemyShipFormation.destroy(enemy);
+                enemyDestroyed = true;
                 tryDropChameleonHull(enemy);
             }
+        }
+        if (enemyDestroyed) {
+            AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
         }
 
 		EnemyShip bonusShip = this.bonusEnemyManager.getShip();
@@ -1678,10 +1793,12 @@ this.particleSystem.update();
                 exploded.add(grenade);
                 this.fragments.addAll(GrenadeFragment.explode(
                         grenade.getCenterX(), grenade.getCenterY()));
+				AudioManager.playSFX("audio/sfx/item_grenade_explode.wav");
             }
         }
         this.grenades.removeAll(exploded);
 
+        boolean enemyDestroyed = false;
         Set<GrenadeFragment> expired = new HashSet<GrenadeFragment>();
         for (GrenadeFragment fragment : this.fragments) {
             fragment.update();
@@ -1696,6 +1813,7 @@ this.particleSystem.update();
                         this.shipsDestroyed++;
                         recordEnemyDefeat(enemyShip);
                         this.enemyShipFormation.destroy(enemyShip);
+                        enemyDestroyed = true;
                         this.particleSystem.spawnEnemyExplosion(
                                 enemyShip.getPositionX()
                                         + enemyShip.getWidth() / 2,
@@ -1727,5 +1845,9 @@ this.particleSystem.update();
                 expired.add(fragment);
         }
         this.fragments.removeAll(expired);
+
+        if (enemyDestroyed) {
+            AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
+        }
     }
 }

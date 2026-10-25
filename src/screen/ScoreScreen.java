@@ -13,6 +13,7 @@ import engine.GameplayConfig;
 import engine.Score;
 import audio.AudioManager;
 import records.Achievement;
+import records.RecordsService;
 import java.util.ArrayList;
 
 /**
@@ -123,6 +124,24 @@ public class ScoreScreen extends Screen {
 		} else {
 			AudioManager.playBGM("audio/bgm/music_end_defeat.wav");
 		}
+
+        if (this.isNewRecord) {
+            AudioManager.playSFX("audio/sfx/new_record.wav");
+        }
+
+        RecordsService recordsService = Core.getRecordsService();
+        if (recordsService != null) {
+            boolean hasNewAchievement = false;
+            Achievement achievement;
+            while ((achievement = recordsService.pollNotification()) != null) {
+                if (this.runUnlocks.contains(achievement)) {
+                    hasNewAchievement = true;
+                }
+            }
+            if (hasNewAchievement && !this.isNewRecord) {
+                AudioManager.playSFX("audio/sfx/achievement_unlock.wav");
+            }
+        }
 
 
 	}

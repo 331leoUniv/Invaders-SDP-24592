@@ -138,6 +138,9 @@ public class InfiniteGameScreen extends Screen {
 			long now = System.currentTimeMillis();
 			if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
 				this.visibleAchievement = this.recordsService.pollNotification();
+                if (this.visibleAchievement != null) {
+                    AudioManager.playSFX("audio/sfx/achievement_unlock.wav");
+                }
 				this.achievementNoticeUntil = this.visibleAchievement == null ? 0 : now + 3000;
 			}
 		}
@@ -172,6 +175,7 @@ public class InfiniteGameScreen extends Screen {
 
 		if (this.lives == 0 && !this.gameOver) {
 			this.gameOver = true;
+			AudioManager.playSFX("audio/sfx/game_over.wav");
 			if (runSession != null) runSession.stopActiveSegment(System.nanoTime());
 			this.screenFinishedCooldown.reset();
 		}
@@ -274,6 +278,11 @@ public class InfiniteGameScreen extends Screen {
 
 		drawManager.drawScore(this, this.score);
 		drawManager.drawLives(this, this.lives, this.maxLives);
+		try {
+			drawManager.drawCredits(this, Core.getAssetHudSnapshot().getCredits());
+		} catch (IllegalStateException e) {
+			// Assets are not initialized (e.g. screen-only tests): skip credits.
+		}
 		drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
 
 		if (this.visibleAchievement != null)
@@ -336,7 +345,8 @@ public class InfiniteGameScreen extends Screen {
 				if (checkCollision(bullet, enemy)) {
 					this.score += enemy.getPointValue();
 					this.shipsDestroyed++;
-					recordEnemyDefeat(enemy);
+                    recordEnemyDefeat(enemy);
+                    AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
 					this.particleSystem.spawnEnemyExplosion(
 							enemy.getPositionX() + enemy.getWidth() / 2,
 							enemy.getPositionY() + enemy.getHeight() / 2);
