@@ -213,9 +213,11 @@ public abstract class SpecialAttack {
             double step = this.spreadAngle / (this.count - 1);
             double first = center - this.spreadAngle / 2;
             List<BossBullet> bullets = new ArrayList<BossBullet>();
+            double adjustedSpeed = DifficultyAdjustWhilePlaying.getInstance()
+                    .adjustEnemyBulletSpeed(this.speed);
             for (int i = 0; i < this.count; i++)
                 bullets.add(BossBullet.fromAngle(originX, originY,
-                        first + i * step, this.speed, damage, true));
+                        first + i * step, adjustedSpeed, damage, true));
             return bullets;
         }
     }
