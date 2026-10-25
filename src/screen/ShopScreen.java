@@ -167,7 +167,12 @@ public class ShopScreen extends Screen {
         }
         assets = controller.snapshot();
         refreshProducts();
-        AudioManager.playSFX("audio/sfx/menu_select.wav");
+
+        if (lastProductAvailableByDefault || lastResult == PurchaseResult.SUCCESS) {
+            AudioManager.playSFX("audio/sfx/shop_successful_purchase.wav");
+        } else {
+            AudioManager.playSFX("audio/sfx/shop_purchase_failure.wav");
+        }
     }
 
     private void retrySave() {
