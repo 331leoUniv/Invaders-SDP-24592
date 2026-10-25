@@ -261,11 +261,13 @@ public class InfiniteGameScreen extends Screen {
 
 	private void shootEnemies() {
 		for (ZigzagEnemyShip enemy : this.enemies) {
-			if (Math.random() < ENEMY_FIRE_CHANCE)
+			if (Math.random() < ENEMY_FIRE_CHANCE) {
 				this.enemyBullets.add(BulletPool.getBullet(
 						enemy.getPositionX() + enemy.getWidth() / 2,
 						enemy.getPositionY() + enemy.getHeight(),
 						getEnemyBulletSpeed()));
+				AudioManager.playSFX("audio/sfx/enemy_shoot.wav");
+			}
 		}
 	}
 
