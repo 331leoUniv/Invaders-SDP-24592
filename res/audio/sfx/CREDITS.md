@@ -147,15 +147,15 @@ Third-party sound effects used in this project and their licenses.
 
 ## new_record.wav
 
-- Original: "jingles_NES12.ogg" from "Music Jingles" by Kenney
-- Source: https://kenney.nl/assets/music-jingles
+- Original: "SFX-Success!.wav" by HenryRichard
+- Source: https://freesound.org/people/HenryRichard/sounds/448274/
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
-- Changes: Renamed and converted from OGG Vorbis to 44.1 kHz, 16-bit stereo PCM WAV.
+- Changes: Renamed file and increased volume by 6 dB.
 
 
 ## game_over.wav
 
-- Original: "jingles_NES00.ogg" from "Music Jingles" by Kenney
-- Source: https://kenney.nl/assets/music-jingles
+- Original: "Lose_C_02" by cabled_mess
+- Source: https://freesound.org/people/cabled_mess/sounds/350985/
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
-- Changes: Renamed and converted from OGG Vorbis to 44.1 kHz, 16-bit stereo PCM WAV.
+- Changes: Renamed file and increased volume by 9 dB.
