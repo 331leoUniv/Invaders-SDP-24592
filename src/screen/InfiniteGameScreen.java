@@ -209,6 +209,8 @@ public class InfiniteGameScreen extends Screen {
 				AudioManager.playSFX("audio/sfx/player_shoot.wav");
 		}
 		if (!this.ship.isDestroyed()) {
+			// Follow-up bullets of a rapid burst play the same shot sound,
+			// so a burst does not sound like a single shot.
 			int burstFired = this.ship.updateBurst(this.bullets);
 			this.bulletsShot += burstFired;
 			if (burstFired > 0)
