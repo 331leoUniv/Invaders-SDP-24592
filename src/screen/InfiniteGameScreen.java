@@ -157,6 +157,7 @@ public class InfiniteGameScreen extends Screen {
 				this.abandoned = true;
 				if (recordsService != null && runSession != null) recordsService.abandonRun(runSession.getRunId());
 				if (runSession != null) runSession.stopActiveSegment(System.nanoTime());
+				AudioManager.playSFX("audio/sfx/menu_back.wav");
 				this.isRunning = false;
 				return;
 			}
