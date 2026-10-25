@@ -29,22 +29,30 @@ public class AudioCache {
     /** Successfully loaded audio resources indexed by their classpath paths. */
     private final Map<String, AudioResource> cacheMap = new HashMap<>();
 
-    /** Loads all WAV files beneath a classpath directory, such as {@code audio/bgm}. */
-    public void preload(String directory) {
+    /** Loads all WAV files beneath a classpath directory and logs newly cached and failed counts. */
+    public synchronized void preload(String directory) {
         if (directory == null) return;
         URL resource = AudioCache.class.getClassLoader().getResource(directory);
         if (resource == null) return;
+        int cachedBefore = cacheMap.size();
+        int failed = 0;
         try {
             Path root = Path.of(resource.toURI());
             try (Stream<Path> files = Files.walk(root)) {
-                files.filter(Files::isRegularFile)
+                var wavFiles = files.filter(Files::isRegularFile)
                         .filter(path -> path.toString().toLowerCase(Locale.ROOT).endsWith(".wav"))
-                        .forEach(path -> getAudioData(directory + "/"
-                                + root.relativize(path).toString().replace('\\', '/')));
+                        .iterator();
+                while (wavFiles.hasNext()) {
+                    String path = directory + "/"
+                            + root.relativize(wavFiles.next()).toString().replace('\\', '/');
+                    if (getAudioData(path) == null) failed++;
+                }
             }
         } catch (Exception e) {
             logger.warning("Failed to preload audio: " + directory + " / " + e);
         }
+        logger.info("Audio preload [directory=" + directory + "]: "
+                + (cacheMap.size() - cachedBefore) + " newly cached, " + failed + " failed");
     }
 
     /**
