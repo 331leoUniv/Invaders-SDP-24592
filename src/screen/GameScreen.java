@@ -635,6 +635,7 @@ public class GameScreen extends Screen {
                 if (grenadeKeyDown && !this.grenadeKeyPressed) {
                     this.ship.launchGrenade(this.grenades,
                             GRENADE_DETONATION_Y);
+                    AudioManager.playSFX("audio/sfx/item_grenade_launch.wav");
                 }
                 this.grenadeKeyPressed = grenadeKeyDown;
 
