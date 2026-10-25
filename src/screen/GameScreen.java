@@ -1195,7 +1195,7 @@ public class GameScreen extends Screen {
 		// the hit lands at all; the effects below must not run otherwise.
         if (!this.playerStatus.takeDamage(damage)) {
             if (this.playerStatus.isShieldActive())
-                AudioManager.playSFX("audio/sfx/status_shield_block.wav");
+                AudioManager.playSFX("audio/sfx/item_shield_block.wav");
             return false;
         }
 		AudioManager.playSFX("audio/sfx/player_hit.wav");

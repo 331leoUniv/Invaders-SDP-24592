@@ -239,14 +239,6 @@ documented below for completeness.
 - Changes: Renamed, trimmed to 0.5 seconds with a fade-out, converted to 16-bit / 44.1kHz WAV, volume lowered.
 
 
-## status_shield_block.wav
-
-- Original: "hammerHit_1" by BBoz87
-- Source: https://freesound.org/people/BBoz87/sounds/788235/
-- License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
-- Changes: Renamed, trimmed to 0.4 seconds with a fade-out, volume lowered.
-
-
 ## obstacle_hit.wav
 
 - Original: "axe hits - 2.wav" by quatricise
