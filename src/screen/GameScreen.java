@@ -14,6 +14,7 @@ import entity.item.ChameleonHull;
 import entity.item.ItemManager;
 import entity.item.ShieldItem;
 import engine.Cooldown;
+import engine.CampaignUpgrades;
 import engine.Core;
 import engine.GameSettings;
 import engine.GameState;
@@ -105,6 +106,18 @@ public class GameScreen extends Screen {
 	/** Sound played when a boss special attack fires. */
 	private static final String BOSS_SPECIAL_SOUND =
 			"audio/sfx/item_laser_beam.wav";
+	/** Sound played when the boss appears. */
+	private static final String BOSS_SPAWN_SOUND =
+			"audio/sfx/boss_spawn.wav";
+	/** Sound played when the boss enters a new phase. */
+	private static final String BOSS_PHASE_SOUND =
+			"audio/sfx/boss_phase.wav";
+	/** Sound played when the boss fires a normal attack. */
+	private static final String BOSS_SHOT_SOUND =
+			"audio/sfx/boss_shoot.wav";
+	/** Sound played when the boss is defeated. */
+	private static final String BOSS_EXPLOSION_SOUND =
+			"audio/sfx/boss_explosion.wav";
 	/** Stages where a boss appears (agreed with the team, may change). */
 	static final int[] BOSS_LEVELS = { 3, 5, 7 };
     /** Time the space key must be held to trigger the Annihilator. */
@@ -157,6 +170,7 @@ public class GameScreen extends Screen {
 
 	/** Player ship type selected before the stage started. */
 	private ShipType shipType;
+	private final CampaignUpgrades campaignUpgrades;
     /** Current game difficulty settings. */
     private GameSettings gameSettings;
 	/** Settings of every wave in this stage, in play order. */
@@ -381,7 +395,28 @@ public class GameScreen extends Screen {
 					  final List<GameSettings> waves, final boolean bonusLife,
 					  final int width, final int height, final int fps,
 					  final ShipType shipType, final RunSession runSession) {
+        this(gameState, waves, bonusLife, width, height, fps, shipType, runSession,
+                CampaignUpgrades.none());
+    }
+
+    public GameScreen(final GameState gameState, final GameSettings gameSettings,
+            final boolean bonusLife, final int width, final int height, final int fps,
+            final ShipType shipType, final RunSession runSession,
+            final CampaignUpgrades campaignUpgrades) {
+        this(gameState, Collections.singletonList(gameSettings), bonusLife,
+                width, height, fps, shipType, runSession, campaignUpgrades);
+    }
+
+    /** Campaign-only entry point; legacy and custom-level constructors keep base stats. */
+    public GameScreen(final GameState gameState, final List<GameSettings> waves,
+            final boolean bonusLife, final int width, final int height, final int fps,
+            final ShipType shipType, final RunSession runSession,
+            final CampaignUpgrades campaignUpgrades) {
         super(width, height, fps);
+        if (campaignUpgrades == null) {
+            throw new IllegalArgumentException("Campaign upgrades cannot be null.");
+        }
+        this.campaignUpgrades = campaignUpgrades;
 
 		this.runSession = runSession;
 		this.recordsService = Core.getRecordsService();
@@ -407,8 +442,8 @@ public class GameScreen extends Screen {
         this.score = gameState.getScore();
 		this.playerStatus = new PlayerStatus(
 				Math.min(gameState.getLivesRemaining(),
-						this.shipType.getMaxLives()),
-				this.shipType.getMaxLives(),
+						this.campaignUpgrades.getMaxLives(this.shipType)),
+				this.campaignUpgrades.getMaxLives(this.shipType),
 				this.shipType.isShieldCapable());
         if (this.bonusLife)
 			this.playerStatus.gainLife();
@@ -445,6 +480,7 @@ public class GameScreen extends Screen {
 
 		this.ship = new Ship(this.width / 2, this.height - 30,
 				this.shipType);
+        this.campaignUpgrades.initializeShip(this.ship);
 		// The hangar colour has to go through setBaseColor: the ship resets
 		// its colour to the base one every frame once the damage flash is
 		// over, so a plain setColour is wiped back to the default green.
@@ -499,6 +535,7 @@ public class GameScreen extends Screen {
 		this.playerStatus.addListener(new PlayerStatusListener() {
 			public void onPlayerStatusEvent(final PlayerStatusEvent event) {
 				recordsEvents.publish(event);
+                handlePlayerStatusSound(event);
 			}
 		});
 		// The boss appears only on boss stages.
@@ -554,6 +591,9 @@ public class GameScreen extends Screen {
 			long now = System.currentTimeMillis();
 			if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
 				this.visibleAchievement = this.recordsService.pollNotification();
+				if (this.visibleAchievement != null) {
+					AudioManager.playSFX("audio/sfx/achievement_unlock.wav");
+				}
 				this.achievementNoticeUntil = this.visibleAchievement == null ? 0 : now + 3000;
 			}
 		}
@@ -622,8 +662,8 @@ public class GameScreen extends Screen {
                 boolean grenadeKeyDown = !isGrenadeKeyBoundElsewhere()
                         && inputManager.isKeyDown(KeyEvent.VK_G);
                 if (grenadeKeyDown && !this.grenadeKeyPressed) {
-                    this.ship.launchGrenade(this.grenades,
-                            GRENADE_DETONATION_Y);
+                    if (this.ship.launchGrenade(this.grenades, GRENADE_DETONATION_Y))
+                        AudioManager.playSFX("audio/sfx/item_grenade_launch.wav");
                 }
                 this.grenadeKeyPressed = grenadeKeyDown;
 
@@ -740,6 +780,7 @@ public class GameScreen extends Screen {
             if (!this.playerStatus.isAlive()) {
                 this.levelFinished = true;
                 this.stageCleared = false;
+                AudioManager.playSFX("audio/sfx/game_over.wav");
                 this.screenFinishedCooldown.reset();
                 this.logger.info("Stage " + this.level + " failed.");
             } else if (this.enemyShipFormation.isEmpty() && isBossCleared()) {
@@ -806,6 +847,7 @@ public class GameScreen extends Screen {
 		this.currentWave++;
 		this.gameSettings = this.waves.get(this.currentWave);
 		this.enemyShipFormation = createFormation();
+		AudioManager.playSFX("audio/sfx/wave_transition.wav");
 		this.logger.info("Stage " + this.level + " wave " + (this.currentWave + 1) +
 				" of " + this.waves.size() + " started.");
 	}
@@ -988,8 +1030,14 @@ public class GameScreen extends Screen {
                 // Remove first so a single obstacle can trigger only one collision.
                 iterator.remove();
                 this.fallingObstacleCooldown.reset();
-                if (!this.ship.isInvulnerable() && !this.ship.isShieldActive())
-                    this.playerStatus.applySlow(this.ship);
+                if (!this.ship.isInvulnerable()) {
+                    if (this.ship.isShieldActive()) {
+                        AudioManager.playSFX("audio/sfx/item_shield_block.wav");
+                    } else {
+                        AudioManager.playSFX("audio/sfx/obstacle_hit.wav");
+                        this.playerStatus.applySlow(this.ship);
+                    }
+                }
             }
         }
     }
@@ -1080,6 +1128,7 @@ public class GameScreen extends Screen {
                             this.twinCanonItem, this.ship);
                     this.twinCanonItem = null;
                     recyclable.add(bullet);
+                    AudioManager.playSFX("audio/sfx/item_pickup.wav");
                 }
 
                 // A bullet that already hit a ship cannot also hit the boss.
@@ -1111,8 +1160,8 @@ public class GameScreen extends Screen {
      * corridor and neutralizes enemy projectiles inside it.
      */
     private void manageAnnihilatorBeam() {
-        if (this.levelFinished)
-            return;
+        if (this.levelFinished) return;
+        boolean enemyDestroyed = false;
         for (EnemyShip enemyShip : this.enemyShipFormation) {
             if (!enemyShip.isDestroyed()
                     && OrbitalAnnihilator.hits(this.ship, enemyShip)) {
@@ -1122,16 +1171,21 @@ public class GameScreen extends Screen {
                 recordEnemyDefeat(enemyShip);
 
                 this.enemyShipFormation.destroy(enemyShip);
+                enemyDestroyed = true;
                 tryDropChameleonHull(enemyShip);
             }
         }
 
-        EnemyShip bonusShip = this.bonusEnemyManager.getShip();
-        if (this.bonusEnemyManager.isActive()
-                && OrbitalAnnihilator.hits(this.ship, bonusShip)) {
-            recordEnemyDefeat(bonusShip);
-            floatingScoreHud.show(bonusShip);
-            this.score += this.bonusEnemyManager.destroy();
+        if (enemyDestroyed) {
+            AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
+        }
+
+		EnemyShip bonusShip = this.bonusEnemyManager.getShip();
+		if (this.bonusEnemyManager.isActive()
+				&& OrbitalAnnihilator.hits(this.ship, bonusShip)) {
+			recordEnemyDefeat(bonusShip);
+			floatingScoreHud.show(bonusShip);
+			this.score += this.bonusEnemyManager.destroy();
             this.shipsDestroyed++;
             tryDropChameleonHull(bonusShip);
             tryDropHyperfire(bonusShip);
@@ -1189,8 +1243,11 @@ public class GameScreen extends Screen {
 		}
 		// PlayerStatus owns the timed shield, so its answer decides whether
 		// the hit lands at all; the effects below must not run otherwise.
-		if (!this.playerStatus.takeDamage(damage))
-			return false;
+        if (!this.playerStatus.takeDamage(damage)) {
+            if (this.playerStatus.isShieldActive())
+                AudioManager.playSFX("audio/sfx/item_shield_block.wav");
+            return false;
+        }
 		AudioManager.playSFX("audio/sfx/player_hit.wav");
 
 		this.ship.destroy();
@@ -1398,12 +1455,21 @@ public class GameScreen extends Screen {
 	 */
 	private void handleBossEvent(final BossEvent event) {
 		switch (event.getType()) {
+		case SPAWNED:
+			AudioManager.playSFX(BOSS_SPAWN_SOUND);
+			break;
+		case PHASE_CHANGED:
+			AudioManager.playSFX(BOSS_PHASE_SOUND);
+			break;
 		case ATTACK:
 			if (event.isSpecial())
 				AudioManager.playSFX(event.isWindup()
 						? BOSS_WARNING_SOUND : BOSS_SPECIAL_SOUND);
+			else
+				AudioManager.playSFX(BOSS_SHOT_SOUND);
 			break;
 		case DEFEATED:
+			AudioManager.playSFX(BOSS_EXPLOSION_SOUND);
 			// Three explosions across the boss, as it is bigger than an enemy.
 			for (int i = -1; i <= 1; i++)
 				this.particleSystem.spawnEnemyExplosion(
@@ -1420,6 +1486,34 @@ public class GameScreen extends Screen {
 			break;
 		}
 	}
+
+    /**
+     * Plays the sound that matches a player status event, such as the timed
+     * shield or the slow debuff starting and ending.
+     *
+     * @param event
+     *            Player status event.
+     */
+    private void handlePlayerStatusSound(final PlayerStatusEvent event) {
+        switch (event.getType()) {
+            case SHIELD_STARTED:
+            case SHIELD_REFRESHED:
+                AudioManager.playSFX("audio/sfx/status_shield_on.wav");
+                break;
+            case SHIELD_ENDED:
+                AudioManager.playSFX("audio/sfx/status_shield_off.wav");
+                break;
+            case SLOW_STARTED:
+            case SLOW_REFRESHED:
+                AudioManager.playSFX("audio/sfx/status_slow_start.wav");
+                break;
+            case SLOW_ENDED:
+                AudioManager.playSFX("audio/sfx/status_slow_end.wav");
+                break;
+            default:
+                break;
+        }
+    }
 
 	/**
 	 * Counts the boss as a defeated enemy in the run records. The boss
@@ -1536,7 +1630,7 @@ public class GameScreen extends Screen {
                 || !this.ship.isChameleonHullActive()) {
             return;
         }
-
+        boolean enemyDestroyed = false;
         for (EnemyShip enemy : this.enemyShipFormation) {
             if (!enemy.isDestroyed() && checkCollision(this.ship, enemy)) {
                 this.score += enemy.getPointValue();
@@ -1545,8 +1639,12 @@ public class GameScreen extends Screen {
 				recordEnemyDefeat(enemy);
 
                 this.enemyShipFormation.destroy(enemy);
+                enemyDestroyed = true;
                 tryDropChameleonHull(enemy);
             }
+        }
+        if (enemyDestroyed) {
+            AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
         }
 
 		EnemyShip bonusShip = this.bonusEnemyManager.getShip();
@@ -1683,6 +1781,7 @@ public class GameScreen extends Screen {
         }
         this.grenades.removeAll(exploded);
 
+        boolean enemyDestroyed = false;
         Set<GrenadeFragment> expired = new HashSet<GrenadeFragment>();
         for (GrenadeFragment fragment : this.fragments) {
             fragment.update();
@@ -1697,6 +1796,7 @@ public class GameScreen extends Screen {
                         this.shipsDestroyed++;
                         recordEnemyDefeat(enemyShip);
                         this.enemyShipFormation.destroy(enemyShip);
+                        enemyDestroyed = true;
                         this.particleSystem.spawnEnemyExplosion(
                                 enemyShip.getPositionX()
                                         + enemyShip.getWidth() / 2,
@@ -1728,5 +1828,9 @@ public class GameScreen extends Screen {
                 expired.add(fragment);
         }
         this.fragments.removeAll(expired);
+
+        if (enemyDestroyed) {
+            AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
+        }
     }
 }

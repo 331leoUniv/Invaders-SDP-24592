@@ -138,6 +138,9 @@ public class InfiniteGameScreen extends Screen {
 			long now = System.currentTimeMillis();
 			if (this.visibleAchievement == null || now >= this.achievementNoticeUntil) {
 				this.visibleAchievement = this.recordsService.pollNotification();
+                if (this.visibleAchievement != null) {
+                    AudioManager.playSFX("audio/sfx/achievement_unlock.wav");
+                }
 				this.achievementNoticeUntil = this.visibleAchievement == null ? 0 : now + 3000;
 			}
 		}
@@ -154,6 +157,8 @@ public class InfiniteGameScreen extends Screen {
 				this.abandoned = true;
 				if (recordsService != null && runSession != null) recordsService.abandonRun(runSession.getRunId());
 				if (runSession != null) runSession.stopActiveSegment(System.nanoTime());
+				// Leaving with Esc plays the same back sound as the menu screens.
+				AudioManager.playSFX("audio/sfx/menu_back.wav");
 				this.isRunning = false;
 				return;
 			}
@@ -172,6 +177,7 @@ public class InfiniteGameScreen extends Screen {
 
 		if (this.lives == 0 && !this.gameOver) {
 			this.gameOver = true;
+			AudioManager.playSFX("audio/sfx/game_over.wav");
 			if (runSession != null) runSession.stopActiveSegment(System.nanoTime());
 			this.screenFinishedCooldown.reset();
 		}
@@ -197,10 +203,21 @@ public class InfiniteGameScreen extends Screen {
 			this.ship.moveRight();
 		if (moveLeft && !isLeftBorder)
 			this.ship.moveLeft();
-		if (inputManager.isKeyDown(ControlsConfig.getKey(ControlsConfig.FIRE)))
-			this.bulletsShot += this.ship.shoot(this.bullets);
-		if (!this.ship.isDestroyed())
-			this.bulletsShot += this.ship.updateBurst(this.bullets);
+		if (inputManager.isKeyDown(ControlsConfig.getKey(ControlsConfig.FIRE))) {
+			int fired = this.ship.shoot(this.bullets);
+			this.bulletsShot += fired;
+			// Play the shot sound only when a bullet was actually fired.
+			if (fired > 0)
+				AudioManager.playSFX("audio/sfx/player_shoot.wav");
+		}
+		if (!this.ship.isDestroyed()) {
+			// Follow-up bullets of a rapid burst play the same shot sound,
+			// so a burst does not sound like a single shot.
+			int burstFired = this.ship.updateBurst(this.bullets);
+			this.bulletsShot += burstFired;
+			if (burstFired > 0)
+				AudioManager.playSFX("audio/sfx/player_shoot.wav");
+		}
 	}
 
 	private void spawnEnemy() {
@@ -246,11 +263,14 @@ public class InfiniteGameScreen extends Screen {
 
 	private void shootEnemies() {
 		for (ZigzagEnemyShip enemy : this.enemies) {
-			if (Math.random() < ENEMY_FIRE_CHANCE)
+			if (Math.random() < ENEMY_FIRE_CHANCE) {
 				this.enemyBullets.add(BulletPool.getBullet(
 						enemy.getPositionX() + enemy.getWidth() / 2,
 						enemy.getPositionY() + enemy.getHeight(),
 						getEnemyBulletSpeed()));
+				// Same enemy shot sound as the Campaign formation.
+				AudioManager.playSFX("audio/sfx/enemy_shoot.wav");
+			}
 		}
 	}
 
@@ -336,7 +356,8 @@ public class InfiniteGameScreen extends Screen {
 				if (checkCollision(bullet, enemy)) {
 					this.score += enemy.getPointValue();
 					this.shipsDestroyed++;
-					recordEnemyDefeat(enemy);
+                    recordEnemyDefeat(enemy);
+                    AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
 					this.particleSystem.spawnEnemyExplosion(
 							enemy.getPositionX() + enemy.getWidth() / 2,
 							enemy.getPositionY() + enemy.getHeight() / 2);
@@ -360,6 +381,8 @@ public class InfiniteGameScreen extends Screen {
 				BulletPool.recycle(Collections.singleton(bullet));
 				this.ship.destroy();
 				this.ship.triggerDamageFeedback();
+				// Hit by an enemy bullet: same hit sound as Campaign mode.
+				AudioManager.playSFX("audio/sfx/player_hit.wav");
 				this.particleSystem.spawnPlayerExplosion(
 						this.ship.getPositionX() + this.ship.getWidth() / 2,
 						this.ship.getPositionY() + this.ship.getHeight() / 2);
@@ -378,11 +401,15 @@ public class InfiniteGameScreen extends Screen {
 			ZigzagEnemyShip rammed = iterator.next();
 			if (checkCollision(rammed, this.ship)) {
 				iterator.remove();
+				// The crashing enemy explodes like an enemy that is shot down.
+				AudioManager.playSFX("audio/sfx/enemy_explosion.wav");
 				this.particleSystem.spawnEnemyExplosion(
 						rammed.getPositionX() + rammed.getWidth() / 2,
 						rammed.getPositionY() + rammed.getHeight() / 2);
 				this.ship.destroy();
 				this.ship.triggerDamageFeedback();
+				// Crashed into an enemy: same hit sound as a bullet hit.
+				AudioManager.playSFX("audio/sfx/player_hit.wav");
 				this.particleSystem.spawnPlayerExplosion(
 						this.ship.getPositionX() + this.ship.getWidth() / 2,
 						this.ship.getPositionY() + this.ship.getHeight() / 2);
