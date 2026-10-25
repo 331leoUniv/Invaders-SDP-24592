@@ -552,6 +552,8 @@ public class GameScreen extends Screen {
 			AudioManager.playSFX("audio/sfx/bonus_life.wav");
 		}
 
+		// The last life is checked first, so the urgent track also plays on
+		// boss stages.
 		if (this.playerStatus.getLives() == 1) {
 			AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
 			this.isLowHealthBGM = true;
