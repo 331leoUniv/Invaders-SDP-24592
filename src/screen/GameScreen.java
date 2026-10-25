@@ -114,6 +114,9 @@ public class GameScreen extends Screen {
 	/** Sound played when the boss fires a normal attack. */
 	private static final String BOSS_SHOT_SOUND =
 			"audio/sfx/boss_shoot.wav";
+	/** Sound played when the boss is defeated. */
+	private static final String BOSS_EXPLOSION_SOUND =
+			"audio/sfx/boss_explosion.wav";
 	/** Stages where a boss appears (agreed with the team, may change). */
 	static final int[] BOSS_LEVELS = { 3, 5, 7 };
     /** Time the space key must be held to trigger the Annihilator. */
@@ -1431,6 +1434,7 @@ public class GameScreen extends Screen {
 				AudioManager.playSFX(BOSS_SHOT_SOUND);
 			break;
 		case DEFEATED:
+			AudioManager.playSFX(BOSS_EXPLOSION_SOUND);
 			// Three explosions across the boss, as it is bigger than an enemy.
 			for (int i = -1; i <= 1; i++)
 				this.particleSystem.spawnEnemyExplosion(
