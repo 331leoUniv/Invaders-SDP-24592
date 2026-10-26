@@ -191,6 +191,14 @@ documented below for completeness.
 - Changes: None (16-bit / 44.1kHz mono WAV)
 
 
+
+## boss_hit.wav
+
+- Original: "laser" by Gumichan01
+- Source: https://opengameart.org/content/shots
+- License: CC-BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/)
+- Changes: None
+
 ## item_grenade_launch.wav
 
 - Original: Created for this project (synthesized short launch thump with a whoosh, no third-party source)
@@ -230,6 +238,7 @@ documented below for completeness.
 - Source: https://freesound.org/people/cabled_mess/sounds/350985/
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
 - Changes: Renamed file and increased volume by 9 dB.
+
 
 
 ## item_grenade_explode.wav

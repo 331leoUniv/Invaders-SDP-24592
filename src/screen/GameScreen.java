@@ -552,9 +552,16 @@ public class GameScreen extends Screen {
 			AudioManager.playSFX("audio/sfx/bonus_life.wav");
 		}
 
+		// The last life is checked first, so the urgent track also plays on
+		// boss stages.
 		if (this.playerStatus.getLives() == 1) {
 			AudioManager.playBGM("audio/bgm/music_game_urgent.wav");
 			this.isLowHealthBGM = true;
+		} else if (isBossLevel(this.level)) {
+			// Boss stages start the boss music right away, so it already plays
+			// during the countdown instead of switching when the boss appears.
+			AudioManager.playBGM("audio/bgm/music_boss.wav");
+			this.isLowHealthBGM = false;
 		} else {
 			AudioManager.playBGM("audio/bgm/music_game.wav");
 			this.isLowHealthBGM = false;
@@ -1301,6 +1308,8 @@ public class GameScreen extends Screen {
 			return;
 		boss.takeDamage(damage);
 		this.bossManager.sync();
+		AudioManager.playSFX("audio/sfx/boss_hit.wav");
+
 		// The check above stops a defeated boss from being hit again, so the
 		// score is given only once per boss.
 		if (boss.isDefeated()) {
