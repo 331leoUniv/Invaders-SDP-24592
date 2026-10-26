@@ -6,12 +6,15 @@ import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.JarURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -37,15 +40,34 @@ public class AudioCache {
         int cachedBefore = cacheMap.size();
         int failed = 0;
         try {
-            Path root = Path.of(resource.toURI());
-            try (Stream<Path> files = Files.walk(root)) {
-                var wavFiles = files.filter(Files::isRegularFile)
-                        .filter(path -> path.toString().toLowerCase(Locale.ROOT).endsWith(".wav"))
-                        .iterator();
-                while (wavFiles.hasNext()) {
-                    String path = directory + "/"
-                            + root.relativize(wavFiles.next()).toString().replace('\\', '/');
-                    if (getAudioData(path) == null) failed++;
+            if ("jar".equals(resource.getProtocol())) {
+                JarURLConnection connection = (JarURLConnection) resource.openConnection();
+                // Own this handle so closing it does not close the class loader's cached JAR.
+                connection.setUseCaches(false);
+                String prefix = connection.getEntryName();
+                if (!prefix.endsWith("/")) prefix += "/";
+                try (JarFile jar = connection.getJarFile()) {
+                    var entries = jar.entries();
+                    while (entries.hasMoreElements()) {
+                        JarEntry entry = entries.nextElement();
+                        String path = entry.getName();
+                        if (!entry.isDirectory() && path.startsWith(prefix)
+                                && path.toLowerCase(Locale.ROOT).endsWith(".wav")) {
+                            if (getAudioData(path) == null) failed++;
+                        }
+                    }
+                }
+            } else {
+                Path root = Path.of(resource.toURI());
+                try (Stream<Path> files = Files.walk(root)) {
+                    var wavFiles = files.filter(Files::isRegularFile)
+                            .filter(path -> path.toString().toLowerCase(Locale.ROOT).endsWith(".wav"))
+                            .iterator();
+                    while (wavFiles.hasNext()) {
+                        String path = directory + "/"
+                                + root.relativize(wavFiles.next()).toString().replace('\\', '/');
+                        if (getAudioData(path) == null) failed++;
+                    }
                 }
             }
         } catch (Exception e) {
